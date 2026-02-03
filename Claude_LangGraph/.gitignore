@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Cache files
+cache/events.csv
+cache/concerts.csv
+cache/cache_metadata.json
+
+# Concert finder secrets
+concert_finder/config.json
+concert_finder/browser.json
+concert_finder/.artists_cache.json
+concert_finder/.concert_results.json
+
+# Environment
+.env
+*.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# macOS
+.DS_Store

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TRMNL NYC Events Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #e0e0e0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .screen {
+            width: 800px;
+            height: 480px;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            overflow: hidden;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+        .title-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 12px;
+        }
+        .title-bar img {
+            width: 24px;
+            height: 24px;
+        }
+        .title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .events-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 12px;
+            flex: 1;
+        }
+        .event-card {
+            border: 1px solid #ccc;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow: hidden;
+        }
+        .event-date {
+            display: flex;
+            gap: 8px;
+            font-size: 12px;
+        }
+        .event-day {
+            font-weight: 600;
+            text-decoration: underline;
+        }
+        .event-time {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .event-time-unknown {
+            font-size: 11px;
+            color: #888;
+            font-style: italic;
+        }
+        .event-title {
+            font-size: 13px;
+            line-height: 1.3;
+            flex: 1;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .event-venue {
+            font-size: 11px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+<div class="screen">
+    <div class="title-bar">
+        <img src="https://usetrmnl.com/images/plugins/trmnl--render.svg" />
+        <span class="title">NYC Events</span>
+    </div>
+
+    <div class="events-grid">
+        <div class="event-card">
+            <div class="event-date">
+                <span class="event-day">Mon</span>
+                <span>Feb 02</span>
+            </div>
+            <span class="event-time">7:00pm</span>
+            <div class="event-title">Drunk Bollywood Trivia</div>
+            <span class="event-venue">Caveat NYC</span>
+        </div>
+        <div class="event-card">
+            <div class="event-date">
+                <span class="event-day">Tue</span>
+                <span>Feb 03</span>
+            </div>
+            <span class="event-time">6:30pm</span>
+            <div class="event-title">Gods of New York: The Birth of the Modern City, 19</div>
+            <span class="event-venue">NY Historical Society</span>
+        </div>
+        <div class="event-card">
+            <div class="event-date">
+                <span class="event-day">Wed</span>
+                <span>Feb 04</span>
+            </div>
+            <span class="event-time">7:00pm</span>
+            <div class="event-title">SciCafe: The Subway’s Invisible Microbiome</div>
+            <span class="event-venue">AMNH</span>
+        </div>
+        <div class="event-card">
+            <div class="event-date">
+                <span class="event-day">Wed</span>
+                <span>Feb 04</span>
+            </div>
+            <span class="event-time">7:00pm</span>
+            <div class="event-title">Next Slide Please: A PowerPoint Comedy Show</div>
+            <span class="event-venue">Caveat NYC</span>
+        </div>
+        <div class="event-card">
+            <div class="event-date">
+                <span class="event-day">Wed</span>
+                <span>Feb 04</span>
+            </div>
+            <span class="event-time">9:30pm</span>
+            <div class="event-title">EconLOL: An Economics-Themed Comedy Show</div>
+            <span class="event-venue">Caveat NYC</span>
+        </div>
+        <div class="event-card">
+            <div class="event-date">
+                <span class="event-day">Sat</span>
+                <span>Feb 07</span>
+            </div>
+            <span class="event-time">4:00pm</span>
+            <div class="event-title">The First Two Woman Show</div>
+            <span class="event-venue">Caveat NYC</span>
+        </div>
+    </div>
+</div>
+</body>
+</html>

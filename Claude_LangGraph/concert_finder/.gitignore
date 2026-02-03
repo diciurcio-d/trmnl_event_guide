@@ -1,0 +1,12 @@
+# Secrets
+config.json
+browser.json
+
+# Cache files
+.artists_cache.json
+.concert_results.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo

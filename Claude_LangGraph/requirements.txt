@@ -1,0 +1,6 @@
+langgraph
+langchain-core
+google-genai
+playwright
+requests
+python-dateutil
