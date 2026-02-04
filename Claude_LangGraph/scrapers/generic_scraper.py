@@ -1,17 +1,32 @@
 """Generic scraper that uses LLM to parse events from any source."""
 
+import importlib.util
 import json
 import re
 import time
 import requests
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 from playwright.sync_api import sync_playwright
 
 import sys
-from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.llm import generate_content
+from utils.jina_reader import fetch_page_text_jina
+from utils.distance import enrich_events_with_travel_time
+
+
+def _load_settings():
+    """Load settings module directly to avoid circular imports."""
+    settings_path = Path(__file__).parent.parent / "settings.py"
+    spec = importlib.util.spec_from_file_location("settings", settings_path)
+    settings = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(settings)
+    return settings
+
+
+_settings = _load_settings()
 
 
 EVENT_PARSING_PROMPT = """You are extracting event information from a webpage. Parse the text and return a JSON array of events.
@@ -57,8 +72,15 @@ def _get_browser_context(playwright):
     return browser, context
 
 
-def fetch_page_text_playwright(url: str, wait_seconds: int = 3, cloudflare_protected: bool = False) -> str:
+def fetch_page_text_playwright(
+    url: str,
+    wait_seconds: int | None = None,
+    cloudflare_protected: bool = False
+) -> str:
     """Fetch page text using Playwright."""
+    if wait_seconds is None:
+        wait_seconds = _settings.SCRAPER_PLAYWRIGHT_WAIT
+
     with sync_playwright() as p:
         browser, context = _get_browser_context(p)
         page = context.new_page()
@@ -67,8 +89,8 @@ def fetch_page_text_playwright(url: str, wait_seconds: int = 3, cloudflare_prote
 
         # Handle Cloudflare challenge if needed
         if cloudflare_protected:
-            for _ in range(15):
-                time.sleep(2)
+            for _ in range(_settings.SCRAPER_CLOUDFLARE_MAX_CHECKS):
+                time.sleep(_settings.SCRAPER_CLOUDFLARE_WAIT)
                 title = page.title().lower()
                 if "moment" not in title and "checking" not in title:
                     break
@@ -94,6 +116,41 @@ def fetch_api_json(url: str) -> dict | list:
     return response.json()
 
 
+def _extract_event_content(page_text: str, max_chars: int | None = None) -> str:
+    """
+    Extract the most relevant event content from a page.
+
+    Tries to find where event listings start and extracts from there.
+    """
+    if max_chars is None:
+        max_chars = _settings.SCRAPER_MAX_CONTENT_CHARS
+
+    # Patterns that often appear before event listings
+    start_patterns = [
+        r'(?i)(upcoming events|event calendar|events calendar|what\'s on)',
+        r'(?i)(january|february|march|april|may|june|july|august|september|october|november|december)\s+202[4-6]',
+        r'(?i)sort by',
+        r'(?i)items \d+-\d+ of',
+    ]
+
+    best_start = 0
+    for pattern in start_patterns:
+        match = re.search(pattern, page_text)
+        if match and match.start() > best_start:
+            # Start a bit before the match for context
+            best_start = max(0, match.start() - 200)
+
+    # If we found a good starting point, use it
+    if best_start > 1000:  # Only if it's meaningfully into the document
+        page_text = page_text[best_start:]
+
+    # Truncate to max length
+    if len(page_text) > max_chars:
+        page_text = page_text[:max_chars] + "\n... [truncated]"
+
+    return page_text
+
+
 def parse_events_with_llm(
     page_text: str,
     source_name: str,
@@ -104,9 +161,8 @@ def parse_events_with_llm(
     """Use Gemini to parse events from page text."""
     import re
 
-    # Truncate text if too long (keep first 15000 chars)
-    if len(page_text) > 15000:
-        page_text = page_text[:15000] + "\n... [truncated]"
+    # Extract the most relevant content section
+    page_text = _extract_event_content(page_text)
 
     prompt = EVENT_PARSING_PROMPT.format(
         source_name=source_name,
@@ -267,7 +323,11 @@ def parse_api_events_directly(data: list, source: dict) -> list[dict]:
             "description": description,
             "has_specific_time": has_specific_time,
             "url": event_url,
+            "travel_minutes": None,  # Will be populated by caller
         })
+
+    # Enrich events with travel time from user's home
+    events = enrich_events_with_travel_time(events)
 
     return events
 
@@ -315,17 +375,33 @@ def fetch_events_from_source(source: dict) -> list[dict]:
             print(f"    API error: {e}")
             return []
     else:
-        # Fetch page with Playwright
-        wait_seconds = source.get("wait_seconds", 3)
+        # Fetch page - use Jina for non-Cloudflare pages, Playwright otherwise
         cloudflare_protected = source.get("cloudflare_protected", False)
 
-        try:
-            page_text = fetch_page_text_playwright(url, wait_seconds, cloudflare_protected)
-        except Exception as e:
-            print(f"    Playwright error: {e}")
-            return []
+        if cloudflare_protected:
+            # Cloudflare-protected sites need Playwright to handle the challenge
+            wait_seconds = source.get("wait_seconds", 3)
+            try:
+                print(f"    Using Playwright (Cloudflare protected)...", flush=True)
+                page_text = fetch_page_text_playwright(url, wait_seconds, cloudflare_protected)
+            except Exception as e:
+                print(f"    Playwright error: {e}")
+                return []
+        else:
+            # Use Jina Reader for cleaner, LLM-friendly text
+            try:
+                print(f"    Using Jina Reader...", flush=True)
+                page_text = fetch_page_text_jina(url)
+            except Exception as e:
+                print(f"    Jina error: {e}, falling back to Playwright...")
+                wait_seconds = source.get("wait_seconds", 3)
+                try:
+                    page_text = fetch_page_text_playwright(url, wait_seconds, False)
+                except Exception as e2:
+                    print(f"    Playwright fallback error: {e2}")
+                    return []
 
-        # Parse with LLM for Playwright sources
+        # Parse with LLM
         print(f"    Parsing with LLM...", flush=True)
 
     # LLM parsing (for Playwright sources or API fallback)
@@ -356,6 +432,10 @@ def fetch_events_from_source(source: dict) -> list[dict]:
             "description": raw.get("description", "")[:100],
             "has_specific_time": has_specific_time,
             "url": raw.get("url") or url,
+            "travel_minutes": None,  # Will be populated below
         })
+
+    # Enrich events with travel time from user's home
+    events = enrich_events_with_travel_time(events)
 
     return events

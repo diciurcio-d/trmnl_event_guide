@@ -29,6 +29,7 @@ CSV_COLUMNS = [
     "price_min",
     "price_max",
     "status",
+    "travel_minutes",
 ]
 
 
@@ -102,6 +103,14 @@ def read_cached_concerts() -> list[dict]:
         with open(CONCERTS_CSV, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
+                travel_mins_str = row.get("travel_minutes", "")
+                travel_minutes = None
+                if travel_mins_str and travel_mins_str not in ("", "None"):
+                    try:
+                        travel_minutes = int(travel_mins_str)
+                    except ValueError:
+                        pass
+
                 concert = {
                     "artist": row.get("artist", ""),
                     "artist_source": row.get("artist_source", ""),
@@ -119,6 +128,7 @@ def read_cached_concerts() -> list[dict]:
                     "price_min": float(row.get("price_min")) if row.get("price_min") else None,
                     "price_max": float(row.get("price_max")) if row.get("price_max") else None,
                     "status": row.get("status", ""),
+                    "travel_minutes": travel_minutes,
                 }
                 concerts.append(concert)
     except (IOError, csv.Error) as e:
@@ -154,6 +164,7 @@ def write_concerts_to_cache(concerts: list[dict]):
         writer.writeheader()
 
         for concert in future_concerts:
+            travel_mins = concert.get("travel_minutes")
             row = {
                 "artist": concert.get("artist", ""),
                 "artist_source": concert.get("artist_source", ""),
@@ -171,6 +182,7 @@ def write_concerts_to_cache(concerts: list[dict]):
                 "price_min": concert.get("price_min") if concert.get("price_min") else "",
                 "price_max": concert.get("price_max") if concert.get("price_max") else "",
                 "status": concert.get("status", ""),
+                "travel_minutes": str(travel_mins) if travel_mins is not None else "",
             }
             writer.writerow(row)
 

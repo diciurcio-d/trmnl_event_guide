@@ -8,7 +8,16 @@ from langchain_core.messages import HumanMessage, AIMessage
 from state import AgentState, DEFAULT_SOURCES
 from tools.source_analyzer import analyze_source
 from tools.event_fetcher import fetch_all_events
-from tools.query_parser import match_events_to_query, filter_events_by_llm_result, format_matched_events
+from tools.concert_fetcher import fetch_concerts
+from tools.query_parser import (
+    match_events_to_query,
+    filter_events_by_llm_result,
+    format_matched_events,
+    match_concerts_to_query,
+    format_matched_concerts,
+    apply_user_filters,
+    apply_user_filters_concerts,
+)
 
 
 def create_agent():
@@ -132,6 +141,39 @@ What would you like to know? You can ask things like:
             "force_update": False,
         }
 
+    def fetch_concerts_node(state: AgentState) -> AgentState:
+        """Fetch concerts based on user's YouTube Music preferences."""
+        force_update = state.get("force_update", False)
+        cache_threshold_days = state.get("cache_threshold_days", 7)
+
+        message = AIMessage(content="Loading concerts based on your YouTube Music taste...")
+
+        result = fetch_concerts.invoke({
+            "force_update": force_update,
+            "cache_threshold_days": cache_threshold_days,
+        })
+
+        cache_status = result.get("cache_status", "unknown")
+        status_emoji = {"fresh": "📦", "stale": "⚠️", "error": "❌"}.get(cache_status, "")
+
+        if result.get("error"):
+            error_msg = f"\n\n_Concert error: {result['error']}_" if result["total"] == 0 else ""
+            response = AIMessage(
+                content=f"Found **{result['total']} concerts** for your artists {status_emoji}{error_msg}"
+            )
+        else:
+            source_text = "cached" if result["source"] == "cache" else "fetched"
+            response = AIMessage(
+                content=f"Found **{result['total']} concerts** for your artists {status_emoji} ({source_text})"
+            )
+
+        return {
+            **state,
+            "messages": state["messages"] + [message, response],
+            "concerts": result.get("concerts", []),
+            "concerts_fetched": True,
+        }
+
     def add_source_node(state: AgentState) -> AgentState:
         """Handle adding a new source dynamically."""
         messages = state.get("messages", [])
@@ -194,9 +236,10 @@ The source has been added. Reply **yes** to fetch events from all sources."""
         }
 
     def query_handler_node(state: AgentState) -> AgentState:
-        """Handle user queries about events using semantic matching."""
+        """Handle user queries about events and concerts using semantic matching."""
         messages = state.get("messages", [])
         events = state.get("events", [])
+        concerts = state.get("concerts", [])
 
         query = None
         for msg in reversed(messages):
@@ -207,8 +250,8 @@ The source has been added. Reply **yes** to fetch events from all sources."""
         if not query:
             return state
 
-        if not events:
-            response = AIMessage(content="No events loaded. Please fetch events first.")
+        if not events and not concerts:
+            response = AIMessage(content="No events or concerts loaded. Please fetch data first.")
             return {
                 **state,
                 "messages": state["messages"] + [response],
@@ -216,12 +259,30 @@ The source has been added. Reply **yes** to fetch events from all sources."""
 
         print(f"  Matching query: '{query}'...", flush=True)
 
-        llm_result = match_events_to_query(query, events)
-        matched_events = filter_events_by_llm_result(events, llm_result)
-        interpretation = llm_result.get("interpretation", "")
-        formatted = format_matched_events(matched_events, interpretation)
+        results = []
 
-        response = AIMessage(content=formatted)
+        # Search events
+        if events:
+            llm_result = match_events_to_query(query, events)
+            matched_events = filter_events_by_llm_result(events, llm_result)
+            interpretation = llm_result.get("interpretation", "")
+            if matched_events:
+                # Apply user filters (travel time, calendar conflicts)
+                matched_events = apply_user_filters(matched_events, exclude_conflicts=False)
+                results.append(format_matched_events(matched_events, interpretation))
+
+        # Search concerts
+        if concerts:
+            matched_concerts = match_concerts_to_query(query, concerts)
+            if matched_concerts:
+                # Apply user filters (travel time, calendar conflicts)
+                matched_concerts = apply_user_filters_concerts(matched_concerts, exclude_conflicts=False)
+                results.append(format_matched_concerts(matched_concerts))
+
+        if results:
+            response = AIMessage(content="\n\n---\n\n".join(results))
+        else:
+            response = AIMessage(content="No matching events or concerts found for your query. Try asking something else!")
 
         return {
             **state,
@@ -233,6 +294,7 @@ The source has been added. Reply **yes** to fetch events from all sources."""
 
     workflow.add_node("source_validation", source_validation_node)
     workflow.add_node("fetch_events", fetch_events_node)
+    workflow.add_node("fetch_concerts", fetch_concerts_node)
     workflow.add_node("add_source", add_source_node)
     workflow.add_node("query_handler", query_handler_node)
 
@@ -249,7 +311,9 @@ The source has been added. Reply **yes** to fetch events from all sources."""
         },
     )
 
-    workflow.add_edge("fetch_events", END)
+    # After fetching events, fetch concerts, then done
+    workflow.add_edge("fetch_events", "fetch_concerts")
+    workflow.add_edge("fetch_concerts", END)
     workflow.add_edge("add_source", END)
     workflow.add_edge("query_handler", END)
 
@@ -261,10 +325,12 @@ def get_initial_state(force_update: bool = False, cache_threshold_days: int = 7)
     return {
         "sources": DEFAULT_SOURCES,
         "events": [],
+        "concerts": [],
         "messages": [],
         "pending_source": None,
         "sources_confirmed": False,
         "events_fetched": False,
+        "concerts_fetched": False,
         "force_update": force_update,
         "cache_threshold_days": cache_threshold_days,
     }

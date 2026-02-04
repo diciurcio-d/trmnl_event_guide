@@ -6,18 +6,25 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from ytmusic_client import YTMusicClient
-from ticketmaster_client import TicketmasterClient
-import settings
-
-# Add parent directory to path for cache imports
+# Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Support both relative imports (when used as module) and absolute imports (when run as script)
+try:
+    from .ytmusic_client import YTMusicClient
+    from .ticketmaster_client import TicketmasterClient
+except ImportError:
+    from ytmusic_client import YTMusicClient
+    from ticketmaster_client import TicketmasterClient
+
+import settings
 from cache.concert_cache import (
     is_concerts_cache_fresh,
     read_cached_concerts,
     write_concerts_to_cache,
     get_concerts_cache_summary,
 )
+from utils.distance import get_travel_time_cached, get_user_home_address
 
 # JSON cache for detailed results
 RESULTS_CACHE = Path(__file__).parent / ".concert_results.json"
@@ -101,7 +108,7 @@ def find_concerts_for_liked_artists(
             if use_attraction_id:
                 # Try to get attraction ID for more precise results
                 tm_attraction_id = ticketmaster.get_attraction_id(artist_name)
-                time.sleep(settings.REQUEST_DELAY_SECONDS)
+                time.sleep(settings.TICKETMASTER_REQUEST_DELAY)
 
                 if tm_attraction_id:
                     events = ticketmaster.get_events_by_attraction_id(
@@ -116,7 +123,7 @@ def find_concerts_for_liked_artists(
                     artist_name, months_ahead=months_ahead, dma_id=dma_id
                 )
 
-            time.sleep(settings.REQUEST_DELAY_SECONDS)
+            time.sleep(settings.TICKETMASTER_REQUEST_DELAY)
 
         except Exception as e:
             print(f"  {i+1:3}. ✗ {artist_name}: error - {e}")
@@ -173,6 +180,28 @@ def find_concerts_for_liked_artists(
             seen.add(key)
             unique_concerts.append(concert)
     results["concerts_found"] = unique_concerts
+
+    # Calculate travel times for unique venues
+    if get_user_home_address():
+        print("\nCalculating travel times...")
+        unique_venues = set()
+        for concert in unique_concerts:
+            venue_addr = f"{concert['venue']}, {concert['city']}, {concert['state']}"
+            unique_venues.add(venue_addr)
+
+        print(f"  {len(unique_venues)} unique venues")
+        venue_times = {}
+        for venue_addr in unique_venues:
+            travel_mins = get_travel_time_cached(venue_addr)
+            venue_times[venue_addr] = travel_mins
+
+        # Apply travel times to concerts
+        for concert in unique_concerts:
+            venue_addr = f"{concert['venue']}, {concert['city']}, {concert['state']}"
+            concert["travel_minutes"] = venue_times.get(venue_addr)
+    else:
+        for concert in unique_concerts:
+            concert["travel_minutes"] = None
 
     # Cache results to JSON (detailed)
     RESULTS_CACHE.write_text(json.dumps(results, indent=2))

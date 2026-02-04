@@ -24,6 +24,7 @@ CSV_COLUMNS = [
     "description",
     "has_specific_time",
     "url",
+    "travel_minutes",
 ]
 
 
@@ -114,6 +115,14 @@ def read_cached_events(source_name: str | None = None) -> list[dict]:
                     continue
 
                 # Convert types
+                travel_mins_str = row.get("travel_minutes", "")
+                travel_minutes = None
+                if travel_mins_str and travel_mins_str not in ("", "None"):
+                    try:
+                        travel_minutes = int(travel_mins_str)
+                    except ValueError:
+                        pass
+
                 event = {
                     "name": row.get("name", ""),
                     "datetime": None,
@@ -125,6 +134,7 @@ def read_cached_events(source_name: str | None = None) -> list[dict]:
                     "description": row.get("description", ""),
                     "has_specific_time": row.get("has_specific_time", "").lower() == "true",
                     "url": row.get("url", ""),
+                    "travel_minutes": travel_minutes,
                 }
 
                 # Parse datetime
@@ -186,6 +196,7 @@ def write_events_to_cache(events: list[dict], source_name: str | None = None):
         writer.writeheader()
 
         for event in all_events:
+            travel_mins = event.get("travel_minutes")
             row = {
                 "name": event.get("name", ""),
                 "datetime": event.get("datetime").isoformat() if event.get("datetime") else "",
@@ -197,6 +208,7 @@ def write_events_to_cache(events: list[dict], source_name: str | None = None):
                 "description": event.get("description", ""),
                 "has_specific_time": str(event.get("has_specific_time", False)),
                 "url": event.get("url", ""),
+                "travel_minutes": str(travel_mins) if travel_mins is not None else "",
             }
             writer.writerow(row)
 

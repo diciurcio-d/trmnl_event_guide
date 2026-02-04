@@ -13,6 +13,8 @@ concert_finder/config.json
 concert_finder/browser.json
 concert_finder/.artists_cache.json
 concert_finder/.concert_results.json
+concert_finder/calendar_credentials.json
+concert_finder/calendar_token.json
 
 # Environment
 .env

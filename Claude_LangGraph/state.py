@@ -39,6 +39,28 @@ class Event(TypedDict):
     description: str
     has_specific_time: bool
     url: str
+    travel_minutes: int | None  # Transit time from user's home
+
+
+class Concert(TypedDict):
+    """A concert from Ticketmaster."""
+    artist: str
+    artist_source: str  # subscription, liked_songs, or both
+    artist_ytmusic_id: str
+    artist_tm_id: str
+    liked_songs: int
+    event_id: str
+    event_name: str
+    date: str
+    time: str
+    venue: str
+    city: str
+    state: str
+    url: str
+    price_min: float | None
+    price_max: float | None
+    status: str
+    travel_minutes: int | None  # Transit time from user's home
 
 
 class AgentState(TypedDict):
@@ -49,6 +71,9 @@ class AgentState(TypedDict):
 
     # Aggregated events from all sources
     events: list[Event]
+
+    # Concerts from Ticketmaster (based on user's music taste)
+    concerts: list[Concert]
 
     # Conversation messages
     messages: Annotated[list, "add_messages"]
@@ -61,6 +86,9 @@ class AgentState(TypedDict):
 
     # Whether events have been fetched
     events_fetched: bool
+
+    # Whether concerts have been fetched
+    concerts_fetched: bool
 
     # Cache settings
     force_update: bool  # If True, bypass cache on next fetch

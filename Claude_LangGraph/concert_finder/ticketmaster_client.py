@@ -4,7 +4,10 @@ import time
 from datetime import datetime, timedelta
 import requests
 
-from config import get_ticketmaster_key
+try:
+    from .config import get_ticketmaster_key
+except ImportError:
+    from config import get_ticketmaster_key
 
 TICKETMASTER_API_BASE = "https://app.ticketmaster.com/discovery/v2"
 
