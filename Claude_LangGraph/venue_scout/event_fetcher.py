@@ -329,6 +329,135 @@ def _looks_like_js_calendar(html: str, stripped_text: str) -> bool:
     return False
 
 
+def _extract_google_calendar_events(html: str, venue_name: str) -> list[dict]:
+    """
+    Extract events from embedded Google Calendar iframes.
+
+    Looks for Google Calendar embed iframes, extracts the calendar ID,
+    and fetches events from the public iCal feed.
+
+    Args:
+        html: Raw HTML of the page
+        venue_name: Name of the venue for event records
+
+    Returns:
+        List of event dicts, or empty list if no Google Calendar found
+    """
+    import base64
+    import urllib.request
+    from urllib.parse import parse_qs, urlparse
+
+    if not html:
+        return []
+
+    # Find Google Calendar embed iframe
+    # Pattern: calendar.google.com/calendar/embed?...&src=BASE64_CALENDAR_ID
+    iframe_pattern = r'calendar\.google\.com/calendar/embed\?[^"\'>\s]+'
+    matches = re.findall(iframe_pattern, html, re.IGNORECASE)
+
+    if not matches:
+        return []
+
+    print(f"    Found Google Calendar iframe, extracting events...")
+
+    for match in matches[:3]:  # Try up to 3 calendar embeds
+        try:
+            # Parse the embed URL to get calendar ID
+            # The src parameter contains base64-encoded calendar ID
+            parsed = urlparse("https://" + match)
+            params = parse_qs(parsed.query)
+
+            src_values = params.get("src", [])
+            if not src_values:
+                continue
+
+            # Decode the calendar ID (base64 encoded email)
+            calendar_id_b64 = src_values[0]
+            try:
+                # Add padding if needed
+                padding = 4 - len(calendar_id_b64) % 4
+                if padding != 4:
+                    calendar_id_b64 += "=" * padding
+                calendar_id = base64.b64decode(calendar_id_b64).decode("utf-8")
+            except Exception:
+                # Maybe it's not base64 encoded, use as-is
+                calendar_id = src_values[0]
+
+            # Fetch the public iCal feed
+            ical_url = f"https://calendar.google.com/calendar/ical/{urllib.parse.quote(calendar_id)}/public/basic.ics"
+
+            try:
+                req = urllib.request.Request(
+                    ical_url,
+                    headers={"User-Agent": "Mozilla/5.0 (compatible; EventBot/1.0)"}
+                )
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    ical_data = response.read().decode("utf-8")
+            except Exception as e:
+                print(f"    Could not fetch iCal feed: {e}")
+                continue
+
+            # Parse iCal data
+            events = []
+            current_event = {}
+            now = datetime.now(ZoneInfo("America/New_York"))
+
+            for line in ical_data.split("\n"):
+                line = line.strip()
+                # Handle line continuations (lines starting with space)
+                if line.startswith(" ") and current_event:
+                    continue
+
+                if line == "BEGIN:VEVENT":
+                    current_event = {}
+                elif line == "END:VEVENT":
+                    if current_event.get("summary") and current_event.get("dtstart"):
+                        # Only include future events
+                        event_dt = current_event["dtstart"]
+                        if event_dt.tzinfo is None:
+                            event_dt = event_dt.replace(tzinfo=ZoneInfo("America/New_York"))
+                        if event_dt > now:
+                            events.append({
+                                "event_name": current_event["summary"],
+                                "datetime": event_dt.isoformat(),
+                                "date_str": event_dt.strftime("%Y-%m-%d"),
+                                "venue_name": venue_name,
+                                "event_source_url": ical_url,
+                                "extraction_method": "google_calendar_ical",
+                            })
+                    current_event = {}
+                elif line.startswith("SUMMARY:"):
+                    # Handle escaped characters in summary
+                    summary = line[8:].replace("\\,", ",").replace("\\;", ";").replace("\\n", " ")
+                    current_event["summary"] = summary
+                elif line.startswith("DTSTART"):
+                    # Handle both DATE and DATETIME formats
+                    try:
+                        if "VALUE=DATE:" in line:
+                            date_str = line.split(":")[-1]
+                            current_event["dtstart"] = datetime.strptime(date_str, "%Y%m%d")
+                        elif ":" in line:
+                            date_str = line.split(":")[-1].replace("Z", "")
+                            if "T" in date_str:
+                                current_event["dtstart"] = datetime.strptime(date_str, "%Y%m%dT%H%M%S")
+                            else:
+                                current_event["dtstart"] = datetime.strptime(date_str, "%Y%m%d")
+                    except ValueError:
+                        pass
+
+            if events:
+                # Sort by date
+                events.sort(key=lambda x: x["datetime"])
+                print(f"    Google Calendar: {len(events)} upcoming events")
+                return events
+
+        except Exception as e:
+            print(f"    Error parsing Google Calendar: {e}")
+            continue
+
+    return []
+
+
 def _strip_html_for_llm(html: str) -> str:
     """Strip HTML tags to get plain text for LLM parsing.
 
@@ -740,6 +869,12 @@ def _fetch_from_website(
                         return iframe_events
                 except Exception:
                     continue
+
+        # Try Google Calendar iframe extraction as last resort
+        if raw_html:
+            gcal_events = _extract_google_calendar_events(raw_html, venue_name)
+            if gcal_events:
+                return gcal_events
 
         return []
 

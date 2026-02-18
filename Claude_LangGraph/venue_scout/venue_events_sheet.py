@@ -31,6 +31,7 @@ VENUE_EVENTS_COLUMNS = [
     "extraction_method",
     "relevance_score",
     "validation_confidence",
+    "date_added",
 ]
 
 
@@ -51,6 +52,7 @@ def normalize_event(event: dict) -> dict:
     normalized["extraction_method"] = normalized.get("extraction_method", "")
     normalized["relevance_score"] = normalized.get("relevance_score")
     normalized["validation_confidence"] = normalized.get("validation_confidence")
+    normalized["date_added"] = normalized.get("date_added", "")
     return normalized
 
 
@@ -138,7 +140,7 @@ def read_venue_events_from_sheet(venue_name: str | None = None) -> list[dict]:
     try:
         result = service.spreadsheets().values().get(
             spreadsheetId=sheet_id,
-            range="A:N",
+            range="A:O",
         ).execute()
 
         rows = result.get("values", [])
@@ -282,13 +284,14 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
             event.get("extraction_method", ""),
             str(event.get("relevance_score")) if event.get("relevance_score") is not None else "",
             str(event.get("validation_confidence")) if event.get("validation_confidence") is not None else "",
+            event.get("date_added", ""),
         ]
         rows.append(row)
 
     try:
         service.spreadsheets().values().clear(
             spreadsheetId=sheet_id,
-            range="A:N",
+            range="A:O",
         ).execute()
 
         service.spreadsheets().values().update(
@@ -320,6 +323,7 @@ def append_venue_events(events: list[dict], venue_name: str):
         existing_keys.add(key)
 
     new_events = []
+    now = datetime.now(ZoneInfo("America/New_York")).isoformat()
     for event in events:
         event = normalize_event(event)
         key = (
@@ -328,6 +332,9 @@ def append_venue_events(events: list[dict], venue_name: str):
             event.get("date_str", ""),
         )
         if key not in existing_keys:
+            # Set date_added for new events
+            if not event.get("date_added"):
+                event["date_added"] = now
             new_events.append(event)
             existing_keys.add(key)
 
