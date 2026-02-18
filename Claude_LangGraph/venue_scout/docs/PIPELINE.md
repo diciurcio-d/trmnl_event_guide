@@ -54,7 +54,7 @@ python -m venue_scout.cli clean-venues --limit 50
 2. **Remove duplicates** - Dedupe by normalized name, keep best-scored entry
 3. **Add descriptions** - Generate venue descriptions using Gemini
 
-**Output:** "Venue Scout Cache - Verified" sheet with clean, enriched data.
+**Output:** Venues updated in "Venue Scout Cache" sheet with clean, enriched data.
 
 ---
 
@@ -103,11 +103,11 @@ Venue Scout Cache (Google Sheet)
     ↓
 Validation (website + events_url)
     ↓
-Venue Scout Cache - Verified (Google Sheet)
-    ↓
 Cleaning (addresses, dedup, descriptions)
     ↓
 Event Crawling (TM API / scraping)
     ↓
 Events Cache + Google Sheets export
 ```
+
+All venue data is stored in a single "Venue Scout Cache" sheet throughout the pipeline.

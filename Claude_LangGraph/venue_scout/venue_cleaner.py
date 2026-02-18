@@ -18,7 +18,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from venue_scout.cache import read_cached_venues, VENUE_COLUMNS, _venue_to_row, _get_sheets_service
+from venue_scout.cache import (
+    read_cached_venues,
+    VENUE_COLUMNS,
+    _venue_to_row,
+    _get_sheets_service,
+    get_or_create_venues_sheet,
+)
 from venue_scout.enrich_addresses import lookup_place, is_bad_address
 
 
@@ -32,9 +38,6 @@ def _load_settings():
 
 
 _settings = _load_settings()
-
-# Verified venues sheet ID
-VERIFIED_SHEET_ID = "1-Px113MllBDvZlkh8XUOh2tManLpoj9rZ_ZUSHUzjnc"
 
 
 def normalize_name(name: str) -> str:
@@ -207,9 +210,14 @@ def clean_venues(
     Returns:
         Dict with cleaning stats
     """
-    print(f"Loading verified venues from sheet...")
+    print(f"Loading venues from cache sheet...")
 
-    # Read from verified sheet
+    # Get the shared venues sheet
+    sheet_id = get_or_create_venues_sheet()
+    if not sheet_id:
+        print("Error: Could not get venues sheet")
+        return {"error": "sheets_connection_failed"}
+
     service = _get_sheets_service()
     if not service:
         print("Error: Could not connect to Google Sheets")
@@ -217,13 +225,13 @@ def clean_venues(
 
     try:
         result = service.spreadsheets().values().get(
-            spreadsheetId=VERIFIED_SHEET_ID,
+            spreadsheetId=sheet_id,
             range="A:R"
         ).execute()
 
         rows = result.get("values", [])
         if len(rows) <= 1:
-            print("No venues found in verified sheet")
+            print("No venues found in cache sheet")
             return {"error": "no_venues"}
 
         header = rows[0]
@@ -365,18 +373,18 @@ def clean_venues(
         try:
             # Clear and write
             service.spreadsheets().values().clear(
-                spreadsheetId=VERIFIED_SHEET_ID,
+                spreadsheetId=sheet_id,
                 range="A:R"
             ).execute()
 
             service.spreadsheets().values().update(
-                spreadsheetId=VERIFIED_SHEET_ID,
+                spreadsheetId=sheet_id,
                 range="A1",
                 valueInputOption="RAW",
                 body={"values": rows}
             ).execute()
 
-            print(f"Saved {len(all_venues)} venues to verified sheet")
+            print(f"Saved {len(all_venues)} venues to cache sheet")
 
         except Exception as e:
             print(f"Error saving to sheet: {e}")
