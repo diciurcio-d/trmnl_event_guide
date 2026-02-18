@@ -1,36 +1,19 @@
-"""Concert caching system with CSV storage and freshness tracking."""
+"""Concert caching system with Google Sheets storage and freshness tracking."""
 
-import csv
 import json
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-# Cache directory (same as events)
-CACHE_DIR = Path(__file__).parent
-CONCERTS_CSV = CACHE_DIR / "concerts.csv"
-METADATA_FILE = CACHE_DIR / "cache_metadata.json"
+# Add parent to path for utils imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# CSV columns for concerts
-CSV_COLUMNS = [
-    "artist",
-    "artist_source",
-    "artist_ytmusic_id",
-    "artist_tm_id",
-    "liked_songs",
-    "event_id",
-    "event_name",
-    "date",
-    "time",
-    "venue",
-    "city",
-    "state",
-    "url",
-    "price_min",
-    "price_max",
-    "status",
-    "travel_minutes",
-]
+from utils.sheets import read_concerts_from_sheet, write_concerts_to_sheet
+
+# Metadata file for freshness tracking
+CACHE_DIR = Path(__file__).parent
+METADATA_FILE = CACHE_DIR / "cache_metadata.json"
 
 
 def _load_metadata() -> dict:
@@ -94,105 +77,22 @@ def mark_concerts_updated():
 
 
 def read_cached_concerts() -> list[dict]:
-    """Read concerts from the CSV cache."""
-    if not CONCERTS_CSV.exists():
-        return []
-
-    concerts = []
-    try:
-        with open(CONCERTS_CSV, "r", newline="", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                travel_mins_str = row.get("travel_minutes", "")
-                travel_minutes = None
-                if travel_mins_str and travel_mins_str not in ("", "None"):
-                    try:
-                        travel_minutes = int(travel_mins_str)
-                    except ValueError:
-                        pass
-
-                concert = {
-                    "artist": row.get("artist", ""),
-                    "artist_source": row.get("artist_source", ""),
-                    "artist_ytmusic_id": row.get("artist_ytmusic_id", ""),
-                    "artist_tm_id": row.get("artist_tm_id", ""),
-                    "liked_songs": int(row.get("liked_songs", 0) or 0),
-                    "event_id": row.get("event_id", ""),
-                    "event_name": row.get("event_name", ""),
-                    "date": row.get("date", ""),
-                    "time": row.get("time", ""),
-                    "venue": row.get("venue", ""),
-                    "city": row.get("city", ""),
-                    "state": row.get("state", ""),
-                    "url": row.get("url", ""),
-                    "price_min": float(row.get("price_min")) if row.get("price_min") else None,
-                    "price_max": float(row.get("price_max")) if row.get("price_max") else None,
-                    "status": row.get("status", ""),
-                    "travel_minutes": travel_minutes,
-                }
-                concerts.append(concert)
-    except (IOError, csv.Error) as e:
-        print(f"Warning: Error reading concert cache: {e}")
-        return []
-
-    return concerts
+    """Read concerts from Google Sheets cache."""
+    return read_concerts_from_sheet()
 
 
 def write_concerts_to_cache(concerts: list[dict]):
-    """Write concerts to the CSV cache."""
-    CACHE_DIR.mkdir(parents=True, exist_ok=True)
-
-    # Filter out past concerts
-    today = datetime.now(ZoneInfo("America/New_York")).date()
-    future_concerts = []
-    for concert in concerts:
-        if concert.get("date"):
-            try:
-                concert_date = datetime.strptime(concert["date"], "%Y-%m-%d").date()
-                if concert_date >= today:
-                    future_concerts.append(concert)
-            except ValueError:
-                future_concerts.append(concert)  # Keep if date parsing fails
-        else:
-            future_concerts.append(concert)
-
-    # Sort by date
-    future_concerts.sort(key=lambda x: x.get("date", "9999-99-99"))
-
-    with open(CONCERTS_CSV, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_COLUMNS)
-        writer.writeheader()
-
-        for concert in future_concerts:
-            travel_mins = concert.get("travel_minutes")
-            row = {
-                "artist": concert.get("artist", ""),
-                "artist_source": concert.get("artist_source", ""),
-                "artist_ytmusic_id": concert.get("artist_ytmusic_id", ""),
-                "artist_tm_id": concert.get("artist_tm_id", ""),
-                "liked_songs": concert.get("liked_songs", 0),
-                "event_id": concert.get("event_id", ""),
-                "event_name": concert.get("event_name", ""),
-                "date": concert.get("date", ""),
-                "time": concert.get("time", ""),
-                "venue": concert.get("venue", ""),
-                "city": concert.get("city", ""),
-                "state": concert.get("state", ""),
-                "url": concert.get("url", ""),
-                "price_min": concert.get("price_min") if concert.get("price_min") else "",
-                "price_max": concert.get("price_max") if concert.get("price_max") else "",
-                "status": concert.get("status", ""),
-                "travel_minutes": str(travel_mins) if travel_mins is not None else "",
-            }
-            writer.writerow(row)
-
+    """Write concerts to Google Sheets cache."""
+    write_concerts_to_sheet(concerts)
     mark_concerts_updated()
 
 
 def clear_concerts_cache():
-    """Clear concert cache."""
-    if CONCERTS_CSV.exists():
-        CONCERTS_CSV.unlink()
+    """Clear concerts metadata (sheets data must be cleared manually)."""
+    metadata = _load_metadata()
+    if "concerts" in metadata:
+        metadata["concerts"] = {}
+        _save_metadata(metadata)
 
 
 def get_concerts_cache_summary() -> dict:

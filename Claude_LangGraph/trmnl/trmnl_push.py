@@ -1,11 +1,24 @@
 """Push events to TRMNL via webhook API."""
 
+import importlib.util
 import json
 import os
 import requests
 from pathlib import Path
 
 from event_selector import get_trmnl_events
+
+
+def _load_settings():
+    """Load settings module directly to avoid circular imports."""
+    settings_path = Path(__file__).parent.parent / "settings.py"
+    spec = importlib.util.spec_from_file_location("settings", settings_path)
+    settings = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(settings)
+    return settings
+
+
+_settings = _load_settings()
 
 # Configuration
 TRMNL_WEBHOOK_URL = os.environ.get("TRMNL_WEBHOOK_URL")
@@ -90,7 +103,7 @@ def push_to_trmnl(webhook_url: str | None = None) -> dict:
             url,
             headers={"Content-Type": "application/json"},
             json=payload,
-            timeout=10,
+            timeout=int(_settings.TRMNL_WEBHOOK_TIMEOUT_SEC),
         )
 
         if response.status_code == 200:

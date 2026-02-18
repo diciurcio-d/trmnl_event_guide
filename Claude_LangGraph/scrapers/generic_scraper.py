@@ -85,7 +85,8 @@ def fetch_page_text_playwright(
         browser, context = _get_browser_context(p)
         page = context.new_page()
 
-        page.goto(url, timeout=60000)
+        goto_timeout = int(_settings.GENERIC_SCRAPER_PLAYWRIGHT_GOTO_TIMEOUT_MS)
+        page.goto(url, timeout=goto_timeout)
 
         # Handle Cloudflare challenge if needed
         if cloudflare_protected:
@@ -111,7 +112,8 @@ def fetch_api_json(url: str) -> dict | list:
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
     }
-    response = requests.get(url, headers=headers, timeout=30)
+    timeout = int(_settings.GENERIC_SCRAPER_API_TIMEOUT_SEC)
+    response = requests.get(url, headers=headers, timeout=timeout)
     response.raise_for_status()
     return response.json()
 

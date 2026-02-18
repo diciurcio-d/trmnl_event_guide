@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Venue Scout</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .controls button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .controls button.primary {
+            background: #007bff;
+            color: white;
+        }
+        .controls button.secondary {
+            background: #e0e0e0;
+        }
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .category-group {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .category-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        .category-header:hover {
+            background: #e9ecef;
+        }
+        .category-header input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+        .category-name {
+            font-weight: 600;
+            flex-grow: 1;
+        }
+        .category-count {
+            color: #666;
+            font-size: 14px;
+        }
+        .category-toggle {
+            color: #999;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .venue-list {
+            display: none;
+            padding: 10px 15px;
+        }
+        .venue-list.expanded {
+            display: block;
+        }
+        .venue-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .venue-item:last-child {
+            border-bottom: none;
+        }
+        .venue-item input[type="checkbox"] {
+            margin-right: 10px;
+            margin-top: 3px;
+        }
+        .venue-info {
+            flex-grow: 1;
+        }
+        .venue-name {
+            font-weight: 500;
+        }
+        .venue-name a {
+            color: #333;
+            text-decoration: none;
+        }
+        .venue-name a:hover {
+            color: #007bff;
+        }
+        .venue-meta {
+            font-size: 12px;
+            color: #666;
+        }
+        .venue-travel {
+            font-size: 12px;
+            color: #007bff;
+            font-weight: 500;
+        }
+        .venue-travel.far {
+            color: #dc3545;
+        }
+        .venue-item.filtered-out {
+            opacity: 0.3;
+        }
+        .calculating {
+            color: #ff9800;
+        }
+        .manual-input {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .manual-input h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        .manual-input textarea {
+            width: 100%;
+            height: 80px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            resize: vertical;
+        }
+        .manual-venues {
+            margin-top: 10px;
+        }
+        .manual-venue-tag {
+            display: inline-block;
+            background: #e3f2fd;
+            padding: 4px 10px;
+            border-radius: 15px;
+            margin: 3px;
+            font-size: 13px;
+        }
+        .manual-venue-tag .remove {
+            margin-left: 5px;
+            cursor: pointer;
+            color: #666;
+        }
+        .summary {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .summary strong {
+            font-size: 18px;
+        }
+        #export-btn {
+            background: #28a745;
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+        }
+        #fetch-events-btn {
+            background: #6f42c1;
+            color: white;
+            padding: 12px 24px;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        #fetch-events-btn:disabled {
+            background: #9d7fd1;
+            cursor: not-allowed;
+        }
+        .events-panel {
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .events-panel.visible {
+            display: block;
+        }
+        .events-header {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .events-header h3 {
+            margin: 0;
+        }
+        .events-tabs {
+            display: flex;
+            gap: 10px;
+        }
+        .events-tabs button {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .events-tabs button.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .events-content {
+            padding: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .query-row {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .query-row input {
+            flex: 1;
+            min-width: 240px;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .query-row button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .query-row button.primary {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .query-status {
+            width: 100%;
+            font-size: 12px;
+            color: #555;
+        }
+        .event-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .event-item:last-child {
+            border-bottom: none;
+        }
+        .event-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .event-name a {
+            color: #333;
+            text-decoration: none;
+        }
+        .event-name a:hover {
+            color: #007bff;
+        }
+        .event-meta {
+            font-size: 13px;
+            color: #666;
+        }
+        .event-matched {
+            background: #e8f5e9;
+            border-left: 3px solid #4caf50;
+        }
+        .matched-badge {
+            background: #4caf50;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+        .events-loading {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+        .progress-container {
+            margin: 20px 0;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #6f42c1, #9d7fd1);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        .progress-text {
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .progress-venue {
+            color: #333;
+            font-weight: 500;
+        }
+        .progress-stats {
+            color: #666;
+            margin-top: 5px;
+        }
+        .events-empty {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <h1>Venue Scout</h1>
+    <p class="subtitle">Select venues to include in event searches</p>
+
+    <div class="summary">
+        <strong><span id="selected-count">0</span></strong> venues selected
+        <button id="export-btn" style="float: right;">Export Selected</button>
+        <button id="fetch-events-btn" style="float: right;" onclick="fetchEvents()">Fetch Events</button>
+    </div>
+
+    <div class="events-panel" id="events-panel">
+        <div class="events-header">
+            <h3>Events (<span id="events-count">0</span>)</h3>
+            <div class="events-tabs">
+                <button class="active" onclick="showEventsTab('all')">All</button>
+                <button onclick="showEventsTab('matched')">Matched</button>
+                <button onclick="hideEventsPanel()">Close</button>
+            </div>
+        </div>
+        <div class="query-row">
+            <input id="events-query" type="text" placeholder='Try: "things in Greenpoint this Saturday"'>
+            <button class="primary" onclick="filterEventsWithAI()">Filter with AI</button>
+            <button onclick="clearAiFilter()">Clear AI Filter</button>
+            <div class="query-status" id="query-status"></div>
+        </div>
+        <div class="events-content" id="events-content">
+            <div class="events-empty">Select venues and click "Fetch Events"</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <input type="text" class="search-box" id="search" placeholder="Search venues...">
+        <button class="primary" onclick="selectAll()">Select All</button>
+        <button class="secondary" onclick="selectNone()">Select None</button>
+        <button class="secondary" onclick="expandAll()">Expand All</button>
+        <button class="secondary" onclick="collapseAll()">Collapse All</button>
+    </div>
+
+    <div class="controls" id="distance-filter">
+        <h3 style="margin-top:0; margin-bottom:10px;">Filter by Distance</h3>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <input type="text" id="origin-address" class="search-box" style="flex: 1; min-width: 250px; margin-bottom: 0;" placeholder="Your address...">
+            <select id="travel-mode" style="padding: 10px; border-radius: 4px; border: 1px solid #ddd;">
+                <option value="transit">Transit</option>
+                <option value="walking">Walking</option>
+                <option value="driving">Driving</option>
+            </select>
+            <input type="number" id="max-minutes" style="width: 80px; padding: 10px; border-radius: 4px; border: 1px solid #ddd;" placeholder="Max min" value="45">
+            <button class="secondary" onclick="previewCost()">Preview Cost</button>
+            <button class="primary" onclick="calculateDistances()">Filter</button>
+            <button class="secondary" onclick="clearDistanceFilter()">Clear</button>
+        </div>
+        <div id="distance-status" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
+        <div id="venue-count-preview" style="margin-top: 5px; font-size: 13px; color: #888;"></div>
+    </div>
+
+    <div class="manual-input">
+        <h3>Add Manual Venues</h3>
+        <textarea id="manual-venues" placeholder="Enter venue names, one per line..."></textarea>
+        <button class="primary" onclick="addManualVenues()">Add Venues</button>
+        <div class="manual-venues" id="manual-venue-list"></div>
+    </div>
+
+    <div id="categories"></div>
+
+    <script>
+        let venueData = null;
+        let manualVenues = [];
+
+        async function loadVenues() {
+            try {
+                const response = await fetch('venues.json');
+                venueData = await response.json();
+                renderCategories();
+                updateCount();
+                updateVenueCountPreview();
+            } catch (e) {
+                document.getElementById('categories').innerHTML =
+                    '<p style="color: red;">Error loading venues.json. Run: python export_venues.py NYC</p>';
+            }
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('categories');
+            const categories = Object.keys(venueData.categories).sort();
+
+            container.innerHTML = categories.map(cat => {
+                const venues = venueData.categories[cat];
+                const catId = cat.replace(/[^a-z0-9]/gi, '_');
+
+                return `
+                    <div class="category-group" data-category="${cat}">
+                        <div class="category-header" onclick="toggleCategory('${catId}')">
+                            <input type="checkbox" onclick="event.stopPropagation(); toggleCategoryCheck('${cat}', this.checked)">
+                            <span class="category-name">${cat}</span>
+                            <span class="category-count">${venues.length} venues</span>
+                            <span class="category-toggle" id="toggle-${catId}">▼</span>
+                        </div>
+                        <div class="venue-list" id="list-${catId}">
+                            ${venues.map((v, i) => `
+                                <div class="venue-item" data-name="${v.name.toLowerCase()}" data-address="${v.address || v.neighborhood || ''}">
+                                    <input type="checkbox" data-category="${cat}" data-index="${i}" onchange="updateCount()">
+                                    <div class="venue-info">
+                                        <div class="venue-name">
+                                            ${v.website ? `<a href="${v.website}" target="_blank">${v.name}</a>` : v.name}
+                                            <span class="venue-travel" data-venue="${v.name}"></span>
+                                        </div>
+                                        <div class="venue-meta">
+                                            ${v.neighborhood ? v.neighborhood + ' · ' : ''}${v.description || ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleCategory(catId) {
+            const list = document.getElementById('list-' + catId);
+            const toggle = document.getElementById('toggle-' + catId);
+            list.classList.toggle('expanded');
+            toggle.textContent = list.classList.contains('expanded') ? '▲' : '▼';
+        }
+
+        function toggleCategoryCheck(cat, checked) {
+            const checkboxes = document.querySelectorAll(`input[data-category="${cat}"]`);
+            checkboxes.forEach(cb => cb.checked = checked);
+            updateCount();
+            updateVenueCountPreview();
+        }
+
+        function selectAll() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+            updateCount();
+            updateVenueCountPreview();
+        }
+
+        function selectNone() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            updateCount();
+            updateVenueCountPreview();
+        }
+
+        function expandAll() {
+            document.querySelectorAll('.venue-list').forEach(el => el.classList.add('expanded'));
+            document.querySelectorAll('.category-toggle').forEach(el => el.textContent = '▲');
+        }
+
+        function collapseAll() {
+            document.querySelectorAll('.venue-list').forEach(el => el.classList.remove('expanded'));
+            document.querySelectorAll('.category-toggle').forEach(el => el.textContent = '▼');
+        }
+
+        function updateCount() {
+            const checked = document.querySelectorAll('.venue-item input:checked').length;
+            document.getElementById('selected-count').textContent = checked + manualVenues.length;
+        }
+
+        function addManualVenues() {
+            const textarea = document.getElementById('manual-venues');
+            const lines = textarea.value.split('\n').map(l => l.trim()).filter(l => l);
+            lines.forEach(name => {
+                if (!manualVenues.includes(name)) {
+                    manualVenues.push(name);
+                }
+            });
+            textarea.value = '';
+            renderManualVenues();
+            updateCount();
+        }
+
+        function renderManualVenues() {
+            const container = document.getElementById('manual-venue-list');
+            container.innerHTML = manualVenues.map((name, i) =>
+                `<span class="manual-venue-tag">${name}<span class="remove" onclick="removeManualVenue(${i})">×</span></span>`
+            ).join('');
+        }
+
+        function removeManualVenue(index) {
+            manualVenues.splice(index, 1);
+            renderManualVenues();
+            updateCount();
+        }
+
+        document.getElementById('search').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.venue-item').forEach(item => {
+                const name = item.dataset.name;
+                item.style.display = name.includes(query) ? 'flex' : 'none';
+            });
+        });
+
+        document.getElementById('export-btn').addEventListener('click', function() {
+            const selected = [];
+
+            // Get checked venues from categories
+            document.querySelectorAll('.venue-item input:checked').forEach(cb => {
+                const cat = cb.dataset.category;
+                const idx = parseInt(cb.dataset.index);
+                const venue = venueData.categories[cat][idx];
+                selected.push({
+                    name: venue.name,
+                    category: cat,
+                    website: venue.website,
+                    neighborhood: venue.neighborhood,
+                });
+            });
+
+            // Add manual venues
+            manualVenues.forEach(name => {
+                selected.push({ name: name, category: 'manual', website: '', neighborhood: '' });
+            });
+
+            // Download as JSON
+            const blob = new Blob([JSON.stringify(selected, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'selected_venues.json';
+            a.click();
+        });
+
+        let travelTimes = {};  // venue name -> {minutes, text}
+
+        async function previewCost() {
+            const origin = document.getElementById('origin-address').value.trim();
+            const mode = document.getElementById('travel-mode').value;
+            const statusEl = document.getElementById('distance-status');
+
+            if (!origin) {
+                alert('Please enter your address');
+                return;
+            }
+
+            const destinations = getSelectedDestinations();
+            if (destinations.length === 0) {
+                statusEl.innerHTML = 'No categories selected';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/preview-cost', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ origin, destinations, mode })
+                });
+                const data = await response.json();
+
+                statusEl.innerHTML = `
+                    <strong>${data.uncached}</strong> new API calls (${data.estimated_cost}) ·
+                    ${data.cached} cached ·
+                    ${data.skipped} skipped (no address)
+                `;
+            } catch (e) {
+                statusEl.innerHTML = 'Error previewing cost';
+            }
+        }
+
+        function getSelectedDestinations() {
+            const destinations = [];
+            const seen = new Set();
+
+            document.querySelectorAll('.category-group').forEach(group => {
+                const headerCheckbox = group.querySelector('.category-header input[type="checkbox"]');
+                if (!headerCheckbox.checked) return;
+
+                group.querySelectorAll('.venue-item').forEach(item => {
+                    const name = item.querySelector('.venue-name a, .venue-name')?.textContent?.trim();
+                    const address = item.dataset.address;
+                    if (name && !seen.has(name)) {
+                        seen.add(name);
+                        destinations.push({ name, address: (address || '') + ', NYC' });
+                    }
+                });
+            });
+
+            return destinations;
+        }
+
+        async function calculateDistances() {
+            const origin = document.getElementById('origin-address').value.trim();
+            const mode = document.getElementById('travel-mode').value;
+            const maxMinutes = parseInt(document.getElementById('max-minutes').value) || 60;
+
+            if (!origin) {
+                alert('Please enter your address');
+                return;
+            }
+
+            const statusEl = document.getElementById('distance-status');
+            statusEl.innerHTML = '<span class="calculating">Calculating travel times...</span>';
+
+            const destinations = getSelectedDestinations();
+            if (destinations.length === 0) {
+                statusEl.innerHTML = 'No categories selected';
+                return;
+            }
+
+            // Send all at once - server handles batching internally
+            try {
+                const response = await fetch('/api/travel-times', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ origin, destinations, mode })
+                });
+
+                const data = await response.json();
+
+                if (data.results) {
+                    data.results.forEach(r => {
+                        if (r && r.name) {
+                            travelTimes[r.name] = { minutes: r.minutes, text: r.text };
+                        }
+                    });
+                }
+
+            } catch (e) {
+                console.error('Error calculating distances:', e);
+                statusEl.innerHTML = '<span style="color:red;">Error calculating distances</span>';
+                return;
+            }
+
+            // Apply filter and update display
+            applyDistanceFilter(maxMinutes);
+
+            // Show cache stats
+            const cacheRes = await fetch('/api/cache-stats');
+            const cacheData = await cacheRes.json();
+            statusEl.innerHTML = `Showing venues within ${maxMinutes} min by ${mode} (${cacheData.total_cached} lookups cached)`;
+        }
+
+        function applyDistanceFilter(maxMinutes) {
+            document.querySelectorAll('.venue-item').forEach(item => {
+                const name = item.querySelector('.venue-name a, .venue-name')?.textContent?.trim();
+                const travelEl = item.querySelector('.venue-travel');
+                const travel = travelTimes[name];
+
+                if (travel && travel.minutes !== null) {
+                    travelEl.textContent = `(${travel.text})`;
+                    if (travel.minutes > maxMinutes) {
+                        travelEl.classList.add('far');
+                        item.classList.add('filtered-out');
+                        item.querySelector('input[type="checkbox"]').checked = false;
+                    } else {
+                        travelEl.classList.remove('far');
+                        item.classList.remove('filtered-out');
+                    }
+                } else {
+                    travelEl.textContent = '';
+                    item.classList.remove('filtered-out');
+                }
+            });
+
+            updateCategoryCheckboxes();
+            updateCount();
+        }
+
+        function updateCategoryCheckboxes() {
+            document.querySelectorAll('.category-group').forEach(group => {
+                const checkboxes = group.querySelectorAll('.venue-item:not(.filtered-out) input[type="checkbox"]');
+                const headerCheckbox = group.querySelector('.category-header input[type="checkbox"]');
+                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                headerCheckbox.checked = allChecked && checkboxes.length > 0;
+            });
+        }
+
+        function updateVenueCountPreview() {
+            const seen = new Set();
+            document.querySelectorAll('.category-group').forEach(group => {
+                const headerCheckbox = group.querySelector('.category-header input[type="checkbox"]');
+                if (!headerCheckbox.checked) return;
+                group.querySelectorAll('.venue-item').forEach(item => {
+                    const name = item.querySelector('.venue-name a, .venue-name')?.textContent?.trim();
+                    if (name) seen.add(name);
+                });
+            });
+            const count = seen.size;
+            const cost = (count / 1000 * 5).toFixed(2);
+            document.getElementById('venue-count-preview').innerHTML =
+                `Will calculate for <strong>${count}</strong> venues (~$${cost}, free tier covers 40k/month)`;
+        }
+
+        function clearDistanceFilter() {
+            travelTimes = {};
+            document.querySelectorAll('.venue-item').forEach(item => {
+                item.classList.remove('filtered-out');
+                item.querySelector('.venue-travel').textContent = '';
+                item.querySelector('.venue-travel').classList.remove('far');
+            });
+            document.getElementById('distance-status').innerHTML = '';
+            updateCount();
+        }
+
+        // Event fetching
+        let allEvents = [];
+        let aiFilteredEvents = null;
+        let currentEventsTab = 'all';
+        let fetchAborted = false;
+
+        async function fetchEvents() {
+            const btn = document.getElementById('fetch-events-btn');
+            const panel = document.getElementById('events-panel');
+            const content = document.getElementById('events-content');
+
+            // Get selected venues
+            const venues = getSelectedVenues();
+            if (venues.length === 0) {
+                alert('Please select some venues first');
+                return;
+            }
+
+            fetchAborted = false;
+            btn.disabled = true;
+            btn.textContent = 'Stop';
+            btn.onclick = () => { fetchAborted = true; };
+            panel.classList.add('visible');
+            allEvents = [];
+            aiFilteredEvents = null;
+            document.getElementById('query-status').textContent = '';
+
+            // Show progress bar
+            content.innerHTML = `
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text">
+                        <div class="progress-venue" id="progress-venue">Starting...</div>
+                        <div class="progress-stats" id="progress-stats">0 / ${venues.length} venues</div>
+                    </div>
+                </div>
+            `;
+
+            let completed = 0;
+            let totalEvents = 0;
+            let skipped = 0;
+
+            try {
+                for (const venue of venues) {
+                    if (fetchAborted) {
+                        document.getElementById('progress-venue').textContent = 'Stopped by user';
+                        break;
+                    }
+
+                    // Update progress UI
+                    document.getElementById('progress-venue').textContent = `Fetching: ${venue.name}`;
+                    document.getElementById('progress-stats').textContent =
+                        `${completed} / ${venues.length} venues · ${totalEvents} events found`;
+
+                    try {
+                        const response = await fetch('/api/fetch-venue', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                venue: venue,
+                                force_refresh: false,
+                                city: 'NYC'
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.events && data.events.length > 0) {
+                            data.events.forEach(e => {
+                                e.venue_name = e.venue_name || venue.name;
+                                allEvents.push(e);
+                            });
+                            totalEvents += data.events.length;
+                        }
+
+                        if (data.skipped) {
+                            skipped++;
+                        }
+
+                    } catch (e) {
+                        console.error(`Error fetching ${venue.name}:`, e);
+                    }
+
+                    completed++;
+                    const pct = Math.round((completed / venues.length) * 100);
+                    document.getElementById('progress-fill').style.width = pct + '%';
+                }
+
+                // Done - show final stats
+                document.getElementById('progress-venue').textContent = fetchAborted ? 'Stopped' : 'Complete!';
+                document.getElementById('progress-stats').textContent =
+                    `${completed} venues · ${totalEvents} events · ${skipped} skipped (cached)`;
+
+                // Sort events by date
+                allEvents.sort((a, b) => (a.date_str || '').localeCompare(b.date_str || ''));
+
+                document.getElementById('events-count').textContent = allEvents.length;
+
+                // After a brief pause, show the events
+                setTimeout(() => {
+                    renderEvents();
+                }, 1000);
+
+            } catch (e) {
+                console.error('Error fetching events:', e);
+                content.innerHTML = '<div class="events-empty">Error fetching events: ' + e.message + '</div>';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Fetch Events';
+                btn.onclick = fetchEvents;
+            }
+        }
+
+        function getSelectedVenues() {
+            const venues = [];
+            const seen = new Set();
+
+            // Get checked venues from categories
+            document.querySelectorAll('.venue-item input:checked').forEach(cb => {
+                const cat = cb.dataset.category;
+                const idx = parseInt(cb.dataset.index);
+                const venue = venueData.categories[cat][idx];
+                if (!seen.has(venue.name)) {
+                    seen.add(venue.name);
+                    venues.push({
+                        name: venue.name,
+                        category: cat,
+                        website: venue.website || '',
+                        address: venue.address || venue.neighborhood || '',
+                        city: 'NYC'
+                    });
+                }
+            });
+
+            // Add manual venues
+            manualVenues.forEach(name => {
+                if (!seen.has(name)) {
+                    seen.add(name);
+                    venues.push({
+                        name: name,
+                        category: 'manual',
+                        website: '',
+                        address: '',
+                        city: 'NYC'
+                    });
+                }
+            });
+
+            return venues;
+        }
+
+        function renderEvents() {
+            const content = document.getElementById('events-content');
+
+            let eventsToShow = aiFilteredEvents || allEvents;
+            if (currentEventsTab === 'matched') {
+                eventsToShow = allEvents.filter(e => e.matched_artist);
+                if (aiFilteredEvents) {
+                    eventsToShow = aiFilteredEvents.filter(e => e.matched_artist);
+                }
+            }
+
+            if (eventsToShow.length === 0) {
+                content.innerHTML = '<div class="events-empty">' +
+                    (currentEventsTab === 'matched' ? 'No events match your YouTube Music artists' : 'No events found') +
+                    '</div>';
+                return;
+            }
+
+            content.innerHTML = eventsToShow.map(e => {
+                const isMatched = e.matched_artist;
+                return `
+                    <div class="event-item ${isMatched ? 'event-matched' : ''}">
+                        <div class="event-name">
+                            ${e.url ? `<a href="${e.url}" target="_blank">${e.name}</a>` : e.name}
+                            ${isMatched ? `<span class="matched-badge">${e.matched_artist}</span>` : ''}
+                        </div>
+                        <div class="event-meta">
+                            ${e.date_str || ''} · ${e.venue_name || ''}
+                            ${e.event_type ? ' · ' + e.event_type : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showEventsTab(tab) {
+            currentEventsTab = tab;
+            document.querySelectorAll('.events-tabs button').forEach(btn => {
+                btn.classList.toggle('active', btn.textContent.toLowerCase() === tab);
+            });
+            renderEvents();
+        }
+
+        function hideEventsPanel() {
+            document.getElementById('events-panel').classList.remove('visible');
+        }
+
+        async function filterEventsWithAI() {
+            const query = document.getElementById('events-query').value.trim();
+            const statusEl = document.getElementById('query-status');
+
+            if (!query) {
+                statusEl.textContent = 'Enter a query first.';
+                return;
+            }
+
+            if (!allEvents.length) {
+                statusEl.textContent = 'Fetch events first, then run AI filtering.';
+                return;
+            }
+
+            statusEl.textContent = 'Filtering with AI...';
+            try {
+                const response = await fetch('/api/query-events', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: query,
+                        events: allEvents,
+                        max_results: 30,
+                    }),
+                });
+                const data = await response.json();
+                aiFilteredEvents = data.matches || [];
+                document.getElementById('events-count').textContent = aiFilteredEvents.length;
+
+                const note = data.warning ? ` Warning: ${data.warning}` : '';
+                statusEl.textContent = `${data.interpretation || 'Filtered.'}${note}`;
+                renderEvents();
+            } catch (e) {
+                statusEl.textContent = `AI filtering failed: ${e.message}`;
+            }
+        }
+
+        function clearAiFilter() {
+            aiFilteredEvents = null;
+            document.getElementById('events-count').textContent = allEvents.length;
+            document.getElementById('query-status').textContent = '';
+            renderEvents();
+        }
+
+        loadVenues();
+    </script>
+</body>
+</html>

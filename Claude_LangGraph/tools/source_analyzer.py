@@ -1,5 +1,6 @@
 """Tool to analyze a URL and create a source configuration."""
 
+import importlib.util
 import re
 import json
 import requests
@@ -10,6 +11,18 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.llm import generate_content
+
+
+def _load_settings():
+    """Load settings module directly to avoid circular imports."""
+    settings_path = Path(__file__).parent.parent / "settings.py"
+    spec = importlib.util.spec_from_file_location("settings", settings_path)
+    settings = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(settings)
+    return settings
+
+
+_settings = _load_settings()
 
 
 SOURCE_CONFIG_PROMPT = """Analyze this webpage content and create a configuration for scraping events from it.
@@ -74,7 +87,8 @@ def analyze_source(url: str) -> dict:
 
     try:
         # First, try a simple GET request
-        response = requests.get(url, headers=headers, timeout=10, allow_redirects=True)
+        timeout = int(_settings.SOURCE_ANALYZER_FETCH_TIMEOUT_SEC)
+        response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
         result["status_code"] = response.status_code
         result["content_type"] = response.headers.get("Content-Type", "")
         content = response.text

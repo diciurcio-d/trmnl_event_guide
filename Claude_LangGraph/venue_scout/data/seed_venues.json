@@ -1,0 +1,124 @@
+{
+  "NYC": [
+    {
+      "name": "Elsewhere",
+      "address": "599 Johnson Ave, Brooklyn, NY 11237",
+      "neighborhood": "Bushwick",
+      "website": "https://www.elsewherebrooklyn.com",
+      "category": "music venue",
+      "description": "Multi-room Brooklyn music venue and nightclub"
+    },
+    {
+      "name": "Knockdown Center",
+      "address": "52-19 Flushing Ave, Queens, NY 11378",
+      "neighborhood": "Maspeth",
+      "website": "https://knockdown.center",
+      "category": "music venue",
+      "description": "Multi-purpose arts and event space in former door factory"
+    },
+    {
+      "name": "Forest Hills Stadium",
+      "address": "1 Tennis Pl, Forest Hills, NY 11375",
+      "neighborhood": "Forest Hills",
+      "website": "https://foresthillsstadium.com",
+      "category": "outdoor venue",
+      "description": "Historic outdoor concert venue, former US Open tennis site"
+    },
+    {
+      "name": "Caveat",
+      "address": "21 A Clinton St, New York, NY 10002",
+      "neighborhood": "Lower East Side",
+      "website": "https://www.caveat.nyc",
+      "category": "variety venue",
+      "description": "Bar and stage for smart comedy, talks, variety shows, and experiments"
+    },
+    {
+      "name": "New-York Historical Society",
+      "address": "170 Central Park West, New York, NY 10024",
+      "neighborhood": "Upper West Side",
+      "website": "https://www.nyhistory.org",
+      "category": "museum",
+      "description": "NYC's oldest museum, American history and culture"
+    },
+    {
+      "name": "SummerStage Central Park",
+      "address": "Rumsey Playfield, Central Park",
+      "neighborhood": "Central Park",
+      "website": "https://cityparksfoundation.org/summerstage/",
+      "category": "outdoor venue",
+      "description": "Free outdoor concert series in Central Park"
+    },
+    {
+      "name": "Prospect Park Bandshell",
+      "address": "Prospect Park, Brooklyn",
+      "neighborhood": "Prospect Park",
+      "website": "https://www.bricartsmedia.org/celebrate-brooklyn",
+      "category": "outdoor venue",
+      "description": "Outdoor concert venue hosting Celebrate Brooklyn festival"
+    },
+    {
+      "name": "Governors Island",
+      "address": "Governors Island, New York, NY",
+      "neighborhood": "New York Harbor",
+      "website": "https://www.govisland.com",
+      "category": "outdoor venue",
+      "description": "Island park with festivals, art installations, and events"
+    },
+    {
+      "name": "The Rooftop at Pier 17",
+      "address": "89 South St, New York, NY 10038",
+      "neighborhood": "Seaport",
+      "website": "https://www.pier17ny.com",
+      "category": "outdoor venue",
+      "description": "Rooftop concert venue at South Street Seaport"
+    },
+    {
+      "name": "Brooklyn Mirage",
+      "address": "140 Stewart Ave, Brooklyn, NY 11237",
+      "neighborhood": "East Williamsburg",
+      "website": "https://avant-gardner.com/brooklyn-mirage",
+      "category": "music venue",
+      "description": "Open-air nightclub and concert venue"
+    },
+    {
+      "name": "House of Yes",
+      "address": "2 Wyckoff Ave, Brooklyn, NY 11237",
+      "neighborhood": "Bushwick",
+      "website": "https://houseofyes.org",
+      "category": "variety venue",
+      "description": "Nightclub and performance space for circus, dance, and parties"
+    },
+    {
+      "name": "Le Poisson Rouge",
+      "address": "158 Bleecker St, New York, NY 10012",
+      "neighborhood": "Greenwich Village",
+      "website": "https://lpr.com",
+      "category": "music venue",
+      "description": "Multimedia art cabaret and live music venue"
+    },
+    {
+      "name": "National Sawdust",
+      "address": "80 N 6th St, Brooklyn, NY 11249",
+      "neighborhood": "Williamsburg",
+      "website": "https://nationalsawdust.org",
+      "category": "music venue",
+      "description": "Non-profit music venue for new and experimental music"
+    },
+    {
+      "name": "Intrepid Sea, Air & Space Museum",
+      "address": "Pier 86, W 46th St, New York, NY 10036",
+      "neighborhood": "Hell's Kitchen",
+      "website": "https://www.intrepidmuseum.org",
+      "category": "museum",
+      "description": "Military and maritime history museum on aircraft carrier"
+    },
+    {
+      "name": "Museum of the Moving Image",
+      "address": "36-01 35th Ave, Queens, NY 11106",
+      "neighborhood": "Astoria",
+      "website": "https://movingimage.us",
+      "category": "museum",
+      "description": "Museum dedicated to film, TV, and digital media"
+    }
+  ]
+}

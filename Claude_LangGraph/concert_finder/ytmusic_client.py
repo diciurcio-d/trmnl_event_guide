@@ -5,7 +5,7 @@ from pathlib import Path
 from collections import Counter
 
 # Browser auth path
-BROWSER_AUTH_PATH = Path(__file__).parent / "browser.json"
+BROWSER_AUTH_PATH = Path(__file__).parent.parent / "config" / "browser.json"
 ARTISTS_CACHE = Path(__file__).parent / ".artists_cache.json"
 
 

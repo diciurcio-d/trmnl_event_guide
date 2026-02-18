@@ -1,0 +1,6188 @@
+[
+  {
+    "name": "Gagosian Gallery",
+    "address": "555 West 24th Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "David Zwirner",
+    "address": "537 West 20th Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Pace Gallery",
+    "address": "540 West 25th Street, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Hauser & Wirth",
+    "address": "542 West 22nd Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Gladstone Gallery",
+    "address": "515 West 24th Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Paula Cooper Gallery",
+    "address": "534 West 21st Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Luhring Augustine Gallery",
+    "address": "531 West 24th Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Tanya Bonakdar Gallery",
+    "address": "521 West 21st Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Sean Kelly Gallery",
+    "address": "475 Tenth Avenue, New York, NY 10018",
+    "neighborhood": "Hudson Yards",
+    "category": "art galleries"
+  },
+  {
+    "name": "Kasmin Gallery",
+    "address": "509 West 27th Street, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Lehmann Maupin",
+    "address": "501 West 24th Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Petzel Gallery",
+    "address": "456 West 18th Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "303 Gallery",
+    "address": "555 West 21st Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Marianne Boesky Gallery",
+    "address": "509 West 24th Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Jack Shainman Gallery",
+    "address": "513 West 20th Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Acquavella Galleries",
+    "address": "18 East 79th Street, New York, NY 10075",
+    "neighborhood": "Upper East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Sperone Westwater",
+    "address": "257 Bowery, New York, NY 10002",
+    "neighborhood": "Bowery",
+    "category": "art galleries"
+  },
+  {
+    "name": "Michael Werner Gallery",
+    "address": "4 East 77th Street, New York, NY 10075",
+    "neighborhood": "Upper East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "L\u00e9vy Gorvy Dayan",
+    "address": "19 East 64th Street, New York, NY 10065",
+    "neighborhood": "Upper East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Perrotin",
+    "address": "130 Orchard Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Andrew Kreps Gallery",
+    "address": "22 Cortlandt Alley, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "James Cohan Gallery",
+    "address": "48 Walker Street, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Anton Kern Gallery",
+    "address": "16 East 55th Street, New York, NY 10022",
+    "neighborhood": "Midtown",
+    "category": "art galleries"
+  },
+  {
+    "name": "The Drawing Center",
+    "address": "35 Wooster Street, New York, NY 10013",
+    "neighborhood": "SoHo",
+    "category": "art galleries"
+  },
+  {
+    "name": "Jeffrey Deitch",
+    "address": "18 Wooster Street, New York, NY 10013",
+    "neighborhood": "SoHo",
+    "category": "art galleries"
+  },
+  {
+    "name": "Canada",
+    "address": "60 Lispenard Street, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Team Gallery",
+    "address": "83 Grand Street, New York, NY 10013",
+    "neighborhood": "SoHo",
+    "category": "art galleries"
+  },
+  {
+    "name": "The Hole",
+    "address": "312 Bowery, New York, NY 10012",
+    "neighborhood": "NoHo",
+    "category": "art galleries"
+  },
+  {
+    "name": "Salon 94",
+    "address": "3 East 89th Street, New York, NY 10128",
+    "neighborhood": "Upper East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Bridget Donahue",
+    "address": "99 Bowery, 2nd Floor, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Luhring Augustine Bushwick",
+    "address": "25 Knickerbocker Avenue, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Pioneer Works",
+    "address": "159 Pioneer Street, Brooklyn, NY 11231",
+    "neighborhood": "Red Hook",
+    "category": "art galleries"
+  },
+  {
+    "name": "Smack Mellon",
+    "address": "92 Plymouth Street, Brooklyn, NY 11201",
+    "neighborhood": "DUMBO",
+    "category": "art galleries"
+  },
+  {
+    "name": "A.I.R. Gallery",
+    "address": "155 Plymouth Street, Brooklyn, NY 11201",
+    "neighborhood": "DUMBO",
+    "category": "art galleries"
+  },
+  {
+    "name": "Transmitter",
+    "address": "1329 Willoughby Avenue, 2A, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Tiger Strikes Asteroid",
+    "address": "1329 Willoughby Avenue, #2A, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Sargent's Daughters",
+    "address": "179 East Broadway, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "JTT",
+    "address": "191 Chrystie Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "47 Canal",
+    "address": "291 Grand Street, 2nd Floor, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Postmasters Gallery",
+    "address": "54 Franklin Street, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Peter Freeman, Inc.",
+    "address": "140 Grand Street, New York, NY 10013",
+    "neighborhood": "SoHo",
+    "category": "art galleries"
+  },
+  {
+    "name": "Ronald Feldman Gallery",
+    "address": "31 Mercer Street, New York, NY 10013",
+    "neighborhood": "SoHo",
+    "category": "art galleries"
+  },
+  {
+    "name": "Eden Gallery SoHo",
+    "address": "470 Broome Street, New York, NY 10013",
+    "neighborhood": "SoHo",
+    "category": "art galleries"
+  },
+  {
+    "name": "Front Room Gallery",
+    "address": "147 Roebling Street, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "art galleries"
+  },
+  {
+    "name": "Soloway",
+    "address": "348 South 4th Street, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "art galleries"
+  },
+  {
+    "name": "Venus Over Manhattan",
+    "address": "55 Great Jones Street, New York, NY 10012",
+    "neighborhood": "NoHo",
+    "category": "art galleries"
+  },
+  {
+    "name": "Half Gallery",
+    "address": "235 East 4th Street, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "art galleries"
+  },
+  {
+    "name": "James Fuentes Gallery",
+    "address": "55 Delancey Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Rachel Uffner Gallery",
+    "address": "170 Suffolk Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Miguel Abreu Gallery",
+    "address": "88 Eldridge Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Marc Straus",
+    "address": "299 Grand Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Klaus von Nichtssagend Gallery",
+    "address": "54 Ludlow Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Bortolami Gallery",
+    "address": "39 Walker Street, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Alexander and Bonin",
+    "address": "47 Walker Street, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Nicelle Beauchene Gallery",
+    "address": "7 Franklin Place, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Chapter NY",
+    "address": "60 Walker Street, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Denny Dimin Gallery",
+    "address": "39 Lispenard Street, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "P.P.O.W.",
+    "address": "392 Broadway, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Kerry Schuss",
+    "address": "73 Leonard Street, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Microscope Gallery",
+    "address": "1329 Willoughby Avenue, #2B, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Sardine",
+    "address": "286 Stanhope Street, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Interstate Projects",
+    "address": "66 Knickerbocker Avenue, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Journal Gallery",
+    "address": "45 White Street, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Thierry Goldberg Gallery",
+    "address": "109 Norfolk Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Derek Eller Gallery",
+    "address": "300 Broome Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Foxy Production",
+    "address": "2 East Broadway, 200, New York, NY 10038",
+    "neighborhood": "Chinatown",
+    "category": "art galleries"
+  },
+  {
+    "name": "Reena Spaulings Fine Art",
+    "address": "165 East Broadway, 2nd Floor, New York, NY 10002",
+    "neighborhood": "Chinatown",
+    "category": "art galleries"
+  },
+  {
+    "name": "Casey Kaplan",
+    "address": "121 West 27th Street, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Tibor de Nagy Gallery",
+    "address": "11 Rivington Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Betty Cuningham Gallery",
+    "address": "15 Rivington Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Fredericks & Freiser",
+    "address": "536 West 24th Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "CRG Gallery",
+    "address": "195 Chrystie Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Sikkema Jenkins & Co.",
+    "address": "530 West 22nd Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Lisson Gallery",
+    "address": "504 W 24th St, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "The New Museum",
+    "address": "235 Bowery, New York, NY 10002",
+    "neighborhood": "Bowery",
+    "category": "art galleries"
+  },
+  {
+    "name": "Skarstedt Gallery",
+    "address": "20 E 79th St, New York, NY 10075",
+    "neighborhood": "Upper East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Matthew Marks Gallery",
+    "address": "522 W 22nd St, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Cheim & Read",
+    "address": "547 W 25th St, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Tina Kim Gallery",
+    "address": "525 W 21st St, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Yossi Milo Gallery",
+    "address": "245 10th Ave, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Greene Naftali Gallery",
+    "address": "508 W 26th St, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Galerie Lelong & Co.",
+    "address": "528 W 26th St, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Mary Boone Gallery (location closed, but notable)",
+    "address": "541 W 24th St, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "Metro Pictures",
+    "address": "519 W 24th St, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "art galleries"
+  },
+  {
+    "name": "L\u00e9vy Gorvy",
+    "address": "909 Madison Ave, New York, NY 10021",
+    "neighborhood": "Upper East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "The Journal Gallery",
+    "address": "45 White St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "James Fuentes",
+    "address": "55 Delancey St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Karma",
+    "address": "188 E 2nd St, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "art galleries"
+  },
+  {
+    "name": "English Kills Art Gallery",
+    "address": "114 Forrest St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Robert Henry Contemporary",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Slag Gallery",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Incubator Studio Gallery",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "3RD ETHOS Gallery",
+    "address": "184 Noll St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "A Space Gallery",
+    "address": "13 Grattan St, #402, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Brooklyn Art Cave",
+    "address": "897 Broadway, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Swivel Gallery",
+    "address": "396 Johnson Ave, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Paradice Palase",
+    "address": "1260 Broadway, Brooklyn, NY 11221",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Centotto",
+    "address": "250 Moore St, #108, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "The Active Space",
+    "address": "566 Johnson Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Fresh Window",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Theodore:Art",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Momenta Art",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "NURTUREart",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Fuchs Projects",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Lorimoto Gallery",
+    "address": "1623 Hancock St, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "art galleries"
+  },
+  {
+    "name": "Marvin Gardens",
+    "address": "1540 Decatur St, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "art galleries"
+  },
+  {
+    "name": "Outpost Artists Resources",
+    "address": "1665 Norman St, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "art galleries"
+  },
+  {
+    "name": "The Vander Ende-Onderdonk House",
+    "address": "1820 Flushing Ave, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "art galleries"
+  },
+  {
+    "name": "Signal",
+    "address": "260 Johnson Ave, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Storefront Ten Eyck",
+    "address": "324 Ten Eyck St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "The Active Space Gallery",
+    "address": "566 Johnson Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Bushwick Gallery",
+    "address": "22 Fayette Street, Bushwick, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "The VanderEnde-Onderdonk House",
+    "address": "1820 Flushing Avenue, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "art galleries"
+  },
+  {
+    "name": "TheodoreArt",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Amos Eno Gallery",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Honey Ramka",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Kimberly-Clark",
+    "address": "1533 Decatur St, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "art galleries"
+  },
+  {
+    "name": "Underdonk",
+    "address": "1329 Willoughby Ave, Brooklyn, NY 11237",
+    "neighborhood": "Ridgewood",
+    "category": "art galleries"
+  },
+  {
+    "name": "David & Schweitzer Contemporary",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "M DAVID & CO.",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Soho Art Gallery",
+    "address": "119 Ingraham St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Artemisa Gallery",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Auxiliary Projects",
+    "address": "2 St. Nicholas Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Black Ball Projects",
+    "address": "1426 Willoughby Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Cavalho Park",
+    "address": "112 Waterbury St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Clearing",
+    "address": "396 Johnson Ave, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "False Flag",
+    "address": "13-15 37th Ave, Long Island City, NY 11101",
+    "neighborhood": "Ridgewood",
+    "category": "art galleries"
+  },
+  {
+    "name": "Fisher Parrish Gallery",
+    "address": "238 Wilson Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "The Four Twenty Gallery",
+    "address": "420 Troutman St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Fresco",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Hesse Flatow",
+    "address": "56 Bogart St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "The International Studio & Curatorial Program (ISCP)",
+    "address": "1040 Metropolitan Ave, Brooklyn, NY 11211",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "KOENIG & CLINTON",
+    "address": "1329 Willoughby Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Lesley Heller Workspace",
+    "address": "54 Orchard St, New York, NY 10002",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Loris",
+    "address": "846 Myrtle Ave, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "LMAKgallery",
+    "address": "298 Grand St, New York, NY 10002",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Mckenzie Fine Art",
+    "address": "55 Orchard St, New York, NY 10002",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Micro Empires",
+    "address": "2 St Nicholas Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "art galleries"
+  },
+  {
+    "name": "Galerie Perrotin",
+    "address": "130 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Krause Gallery",
+    "address": "149 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Van Der Plas Gallery",
+    "address": "156 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Richard Taittinger Gallery",
+    "address": "154 Ludlow St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Beauchene Gallery",
+    "address": "327 Broome St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Lesley Heller Gallery",
+    "address": "54 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Eleven Rivington",
+    "address": "11 Rivington St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Ramiken Crucible",
+    "address": "389 Grand St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Scaramouche",
+    "address": "52 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "bitforms gallery",
+    "address": "131 Allen St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "carriage trade",
+    "address": "277 Grand St, 2nd Fl, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "The Clemente Soto V\u00e9lez Cultural & Educational Center",
+    "address": "107 Suffolk St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Cuchifritos Gallery + Project Space",
+    "address": "120 Essex St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Equity Gallery",
+    "address": "245 Broome St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "FROSCH & CO",
+    "address": "34 E Broadway, New York, NY 10002",
+    "neighborhood": "Chinatown",
+    "category": "art galleries"
+  },
+  {
+    "name": "Hannah Traore Gallery",
+    "address": "150 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "HARMAN PROJECTS",
+    "address": "210 Rivington St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Hashimoto Contemporary",
+    "address": "210 Rivington St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Hollis Taggart",
+    "address": "521 W 26th St, New York, NY 10001",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "International Center of Photography",
+    "address": "79 Essex St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "KATES-FERRI PROJECTS",
+    "address": "561 Grand St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Lichtundfire",
+    "address": "175 Rivington St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Long Story Short",
+    "address": "52 Henry St, New York, NY 10002",
+    "neighborhood": "Chinatown",
+    "category": "art galleries"
+  },
+  {
+    "name": "Martos Gallery",
+    "address": "41 Elizabeth St, New York, NY 10013",
+    "neighborhood": "Chinatown",
+    "category": "art galleries"
+  },
+  {
+    "name": "Massey Klein Gallery",
+    "address": "124 Forsyth St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "The Milton Resnick and Pat Passlof Foundation",
+    "address": "87 Eldridge St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Nunu Fine Art",
+    "address": "385-389 Grand St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Participant Inc",
+    "address": "253 E Houston St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "TOTAH",
+    "address": "183 Stanton St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Chinatown Soup",
+    "address": "16B Orchard St, New York, NY 10002",
+    "neighborhood": "Chinatown",
+    "category": "art galleries"
+  },
+  {
+    "name": "Tara Downs",
+    "address": "424 Broadway, New York, NY 10013",
+    "neighborhood": "Chinatown",
+    "category": "art galleries"
+  },
+  {
+    "name": "Marc Straus Gallery",
+    "address": "299 Grand St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Participant Inc.",
+    "address": "253 E Houston St # 1, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "WESTWOOD GALLERY NYC",
+    "address": "262 Bowery, New York, NY 10012",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Woodward Gallery",
+    "address": "132A Eldridge St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Abrons Arts Center",
+    "address": "466 Grand St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Aicon Gallery",
+    "address": "35 Great Jones St, New York, NY 10012",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "The Clemente Center",
+    "address": "107 Suffolk St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Hollis Taggart Downtown",
+    "address": "109 Norfolk Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Nathalie Karg Gallery",
+    "address": "291 Grand St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "White Box",
+    "address": "9 Avenue B, New York, NY 10009",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "56 Henry",
+    "address": "56 Henry St, New York, NY 10002",
+    "neighborhood": "Chinatown",
+    "category": "art galleries"
+  },
+  {
+    "name": "Shrine",
+    "address": "179 E Broadway, New York, NY 10002",
+    "neighborhood": "Chinatown",
+    "category": "art galleries"
+  },
+  {
+    "name": "Marinaro Gallery",
+    "address": "1 Oliver St, New York, NY 10038",
+    "neighborhood": "Chinatown",
+    "category": "art galleries"
+  },
+  {
+    "name": "Lyles & King",
+    "address": "106 Forsyth St, New York, NY 10002",
+    "neighborhood": "Chinatown",
+    "category": "art galleries"
+  },
+  {
+    "name": "Swiss Institute",
+    "address": "38 St Marks Pl, New York, NY 10003",
+    "neighborhood": "Lower East Side",
+    "category": "art galleries"
+  },
+  {
+    "name": "Artist's Space",
+    "address": "11 Cortlandt Alley, New York, NY 10013",
+    "neighborhood": "Chinatown",
+    "category": "art galleries"
+  },
+  {
+    "name": "Elza Kayal Gallery",
+    "address": "368 Broadway, #409",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Page (NYC)",
+    "address": "368 Broadway, #511",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "JDJ",
+    "address": "370 Broadway, 2nd Floor",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Deanna Evans Projects",
+    "address": "368 Broadway, #210",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "GAA",
+    "address": "4 Cortlandt Alley",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Asya Geisberg Gallery",
+    "address": "4.5 Cortlandt Alley",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Broadway",
+    "address": "373 Broadway, Ground Floor",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Sarah Crown",
+    "address": "373 Broadway, #B15",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "The Earthen Room",
+    "address": "373 Broadway, #F10",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "One Art Space",
+    "address": "23 Warren Street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Storage",
+    "address": "52 Walker Street 4th Floor",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "81 Leonard Gallery",
+    "address": "81 Leonard Street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Alexander Gray Associates",
+    "address": "22_24_ludlow_street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Almine Rech",
+    "address": "361 Broadway",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Amelie du Chalard",
+    "address": "373 Broadway",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Anat Ebgi",
+    "address": "6150 Wilshire Blvd",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Andrew Edlin Gallery",
+    "address": "212 Bowery",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Anita Rogers Gallery",
+    "address": "15 Greene Street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "apexart",
+    "address": "291 Church Street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Arsenal Contemporary",
+    "address": "214 Bowery",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Art Projects International",
+    "address": "434 Greenwich Street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Baxter St at CCNY",
+    "address": "126 Baxter Street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Canal Projects",
+    "address": "351 Canal Street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Charles Moffett",
+    "address": "431 Washington Street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "CHART",
+    "address": "74 Franklin Street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Cristin Tierney",
+    "address": "219 Bowery, Floor 2",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "D.D.D.D.",
+    "address": "46 Monroe Street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Freight + Volume",
+    "address": "39 Lispenard St",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "GRIMM",
+    "address": "54 White St",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "kaufmann repetto",
+    "address": "55 Walker St",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Lomex Gallery",
+    "address": "86 Walker Street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Luhring Augustine",
+    "address": "17 White Street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Ortuzar Projects",
+    "address": "9 White Street",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "P\u00b7P\u00b7O\u00b7W",
+    "address": "392 Broadway",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Postmasters",
+    "address": "54 Franklin St",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Bortolami",
+    "address": "39 Walker St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Bureau",
+    "address": "112 Duane St, New York, NY 10007",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Cristin Tierney Gallery",
+    "address": "219 Bowery, Floor 2, New York, NY 10002",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "DUTTON",
+    "address": "153 Franklin St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Friedrichs Pontone",
+    "address": "273 Church St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "GR gallery",
+    "address": "255 Bowery, New York, NY 10002",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Hal Bromm Gallery",
+    "address": "90 W Broadway, New York, NY 10007",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "High Noon",
+    "address": "124 Forsyth St, New York, NY 10002",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Institute for Studies on Latin American Art (ISLAA)",
+    "address": "142 Franklin St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "James Cohan",
+    "address": "48 Walker St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Jane Lombard Gallery",
+    "address": "58 White St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Kerry Schuss Gallery",
+    "address": "73 Leonard St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Luhring Augustine Tribeca",
+    "address": "17 White St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Marian Goodman Gallery",
+    "address": "385 Broadway, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Mendes Wood DM",
+    "address": "47 Walker St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Nicodim Gallery",
+    "address": "119 Hester St, New York, NY 10002",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Nino Mier Gallery",
+    "address": "62 Crosby St, New York, NY 10012",
+    "neighborhood": "SoHo",
+    "category": "art galleries"
+  },
+  {
+    "name": "P.P.O.W. Gallery",
+    "address": "392 Broadway, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Pace University Art Gallery",
+    "address": "41 Park Row, New York, NY 10038",
+    "neighborhood": "Financial District",
+    "category": "art galleries"
+  },
+  {
+    "name": "Patrick Parrish Gallery",
+    "address": "50 Lispenard St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Peter Blum Gallery",
+    "address": "176 Grand St, New York, NY 10013",
+    "neighborhood": "SoHo",
+    "category": "art galleries"
+  },
+  {
+    "name": "R & Company",
+    "address": "64 White St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Sapar Contemporary",
+    "address": "9 N Moore St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "art galleries"
+  },
+  {
+    "name": "Noguchi Museum",
+    "address": "9-01 33rd Road, Long Island City, NY 11106",
+    "neighborhood": "Long Island City",
+    "category": "art galleries"
+  },
+  {
+    "name": "MoMA PS1",
+    "address": "22-25 Jackson Ave, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "art galleries"
+  },
+  {
+    "name": "SculptureCenter",
+    "address": "44-19 Purves St, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "art galleries"
+  },
+  {
+    "name": "Culture Lab LIC",
+    "address": "5-25 46th Ave, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "art galleries"
+  },
+  {
+    "name": "Socrates Sculpture Park",
+    "address": "32-01 Vernon Blvd, Long Island City, NY 11106",
+    "neighborhood": "Long Island City",
+    "category": "art galleries"
+  },
+  {
+    "name": "BrickHouse Ceramic Art Center",
+    "address": "10-34 44th Dr, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "art galleries"
+  },
+  {
+    "name": "Studio 41",
+    "address": "27-15 41st Avenue, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "art galleries"
+  },
+  {
+    "name": "Village Vanguard",
+    "address": "178 7th Ave S, New York, NY 10014",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Blue Note Jazz Club",
+    "address": "131 W 3rd St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Birdland Jazz Club",
+    "address": "315 W 44th St, New York, NY 10036",
+    "neighborhood": "Midtown",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Dizzy's Club",
+    "address": "10 Columbus Cir, New York, NY 10019",
+    "neighborhood": "Upper West Side",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Minton's Playhouse",
+    "address": "206 W 118th St, New York, NY 10026",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Smalls Jazz Club",
+    "address": "183 W 10th St, New York, NY 10014",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Smoke Jazz & Supper Club",
+    "address": "2751 Broadway, New York, NY 10025",
+    "neighborhood": "Upper West Side",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Mezzrow",
+    "address": "163 W 10th St, New York, NY 10014",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Iridium",
+    "address": "1650 Broadway, New York, NY 10019",
+    "neighborhood": "Midtown",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Jazz Gallery",
+    "address": "1160 Broadway, New York, NY 10001",
+    "neighborhood": "Flatiron District",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "55 Bar",
+    "address": "55 Christopher St, New York, NY 10014",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Arthur's Tavern",
+    "address": "57 Grove St, New York, NY 10014",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Bill's Place",
+    "address": "148 W 133rd St, New York, NY 10030",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Django",
+    "address": "2 6th Ave, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Ginny's Supper Club",
+    "address": "310 Malcolm X Blvd, New York, NY 10027",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Showman's Jazz Club",
+    "address": "375 W 125th St, New York, NY 10027",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Nublu",
+    "address": "151 Avenue C, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Zinc Bar",
+    "address": "82 W 3rd St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Ornithology Jazz Club",
+    "address": "6 Suydam St, Brooklyn, NY 11221",
+    "neighborhood": "Bushwick",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Terra Blues",
+    "address": "149 Bleecker St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Jazz at Kitano",
+    "address": "66 Park Ave, New York, NY 10016",
+    "neighborhood": "Murray Hill",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "St. Mazie Bar & Supper Club",
+    "address": "345 Grand St, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Greenwich House Music School",
+    "address": "46 Barrow St, New York, NY 10014",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Stone",
+    "address": "55 W 13th St, New York, NY 10011",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Lun\u00c0tico",
+    "address": "486 Halsey St, Brooklyn, NY 11233",
+    "neighborhood": "Bedford-Stuyvesant",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Barb\u00e8s",
+    "address": "376 9th St, Brooklyn, NY 11215",
+    "neighborhood": "Park Slope",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Tomijazz",
+    "address": "239 E 53rd St, New York, NY 10022",
+    "neighborhood": "Midtown East",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Flatiron Room",
+    "address": "37 W 26th St, New York, NY 10010",
+    "neighborhood": "Flatiron District",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Mona's",
+    "address": "224 Avenue B, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Owl Music Parlor",
+    "address": "497 Rogers Ave, Brooklyn, NY 11225",
+    "neighborhood": "Prospect Lefferts Gardens",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Cellar Dog",
+    "address": "75 Christopher St, New York, NY 10014",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Stone at The New School",
+    "address": "55 W 13th St, New York, NY 10011",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Bar Next Door",
+    "address": "129 MacDougal St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Close Up",
+    "address": "154 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Sour Mouse",
+    "address": "110 Delancey St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Drom",
+    "address": "85 Avenue A, New York, NY 10009",
+    "neighborhood": "Lower East Side",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Rue B",
+    "address": "188 Avenue B, New York, NY 10009",
+    "neighborhood": "Lower East Side",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "American Legion Post 398",
+    "address": "248 W 132nd St, New York, NY 10027",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "449 LA Scat",
+    "address": "449 Lenox Ave, New York, NY 10037",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Patrick's Place",
+    "address": "2835 Frederick Douglass Blvd, New York, NY 10039",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Keep",
+    "address": "205 Cypress Ave, Brooklyn, NY 11385",
+    "neighborhood": "Brooklyn",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Sista's Place",
+    "address": "456 Nostrand Ave, Brooklyn, NY 11216",
+    "neighborhood": "Brooklyn",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Red Pavilion",
+    "address": "1241 Flushing Ave, Brooklyn, NY 11237",
+    "neighborhood": "Brooklyn",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Bar Bayeux",
+    "address": "1066 Nostrand Ave, Brooklyn, NY 11225",
+    "neighborhood": "Brooklyn",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Cafe Erzulie",
+    "address": "894 Broadway, Brooklyn, NY 11206",
+    "neighborhood": "Brooklyn",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Lowlands Bar",
+    "address": "543 3rd Ave, Brooklyn, NY 11215",
+    "neighborhood": "Brooklyn",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "IBeam Brooklyn",
+    "address": "168 7th St, Brooklyn, NY 11215",
+    "neighborhood": "Gowanus",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Shapeshifter Lab",
+    "address": "837 Union St, Brooklyn, NY 11215",
+    "neighborhood": "Park Slope",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Roulette Intermedium",
+    "address": "509 Atlantic Ave, Brooklyn, NY 11217",
+    "neighborhood": "Boerum Hill",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "National Sawdust",
+    "address": "80 N 6th St, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Terraza 7",
+    "address": "40-19 Gleane St, Queens, NY 11373",
+    "neighborhood": "Elmhurst",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "SOB's",
+    "address": "204 Varick St, New York, NY 10014",
+    "neighborhood": "SoHo",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Clemente Soto V\u00e9lez Cultural & Educational Center",
+    "address": "107 Suffolk St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "El Barrio's Artspace PS109",
+    "address": "215 E 99th St, New York, NY 10029",
+    "neighborhood": "East Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Harlem Stage",
+    "address": "150 Convent Ave, New York, NY 10031",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Jamaica Center for Arts & Learning",
+    "address": "161-04 Jamaica Ave, Jamaica, NY 11432",
+    "neighborhood": "Jamaica",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Flushing Town Hall",
+    "address": "137-35 Northern Blvd, Queens, NY 11354",
+    "neighborhood": "Flushing",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Williamsburg Music Center",
+    "address": "367 Bedford Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Silvana",
+    "address": "300 W 116th St, New York, NY 10026",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Shrine World Music Venue",
+    "address": "2271 Adam Clayton Powell Jr Blvd, New York, NY 10030",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Threes Brewing",
+    "address": "333 Douglass St, Brooklyn, NY 11217",
+    "neighborhood": "Gowanus",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Cafe Bohemia",
+    "address": "15 Barrow St, New York, NY 10014",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Le Poisson Rouge",
+    "address": "158 Bleecker St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Sistas' Place",
+    "address": "456 Nostrand Ave, Brooklyn, NY 11216",
+    "neighborhood": "Bedford-Stuyvesant",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Anyway Cafe",
+    "address": "34 E 2nd St, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Club Cumming",
+    "address": "505 E 6th St, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Bitter End",
+    "address": "147 Bleecker St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "JAZZ 966",
+    "address": "966 Fulton St, Brooklyn, NY 11238",
+    "neighborhood": "Clinton Hill",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "BrownstoneJAZZ",
+    "address": "107 Macon St, Brooklyn, NY 11216",
+    "neighborhood": "Bedford-Stuyvesant",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Fine & Rare",
+    "address": "9 E 37th St, New York, NY 10016",
+    "neighborhood": "Midtown",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Troost",
+    "address": "1011 Manhattan Ave, Brooklyn, NY 11222",
+    "neighborhood": "Greenpoint",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Erv's on Beekman",
+    "address": "2122 Beekman Pl, Brooklyn, NY 11225",
+    "neighborhood": "Prospect Lefferts Gardens",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Wilky",
+    "address": "108 Patchen Ave, Brooklyn, NY 11221",
+    "neighborhood": "Bedford-Stuyvesant",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Hart Bar",
+    "address": "538 Hart St, Brooklyn, NY 11221",
+    "neighborhood": "Bushwick",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Sultan Room",
+    "address": "234 Starr St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Our Wicked Lady",
+    "address": "173 Morgan Ave, Brooklyn, NY 11237",
+    "neighborhood": "East Williamsburg",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Elsewhere",
+    "address": "599 Johnson Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Public Records",
+    "address": "233 Butler St, Brooklyn, NY 11217",
+    "neighborhood": "Gowanus",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "S.O.B.'s",
+    "address": "204 Varick St, New York, NY 10014",
+    "neighborhood": "SoHo",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Shrine",
+    "address": "2271 Adam Clayton Powell Jr Blvd, New York, NY 10030",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Bar Lunatico",
+    "address": "486 Halsey St, Brooklyn, NY 11233",
+    "neighborhood": "Bedford-Stuyvesant",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Freddy's Bar & Backroom",
+    "address": "627 5th Ave, Brooklyn, NY 11215",
+    "neighborhood": "South Slope",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Jalopy Theatre and School of Music",
+    "address": "315 Columbia St, Brooklyn, NY 11231",
+    "neighborhood": "Red Hook",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Anyway Cafe",
+    "address": "34 E 2nd St, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Village Vanguard",
+    "address": "178 7th Ave S, New York, NY 10014",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Z\u00fcrcher Gallery",
+    "address": "33 Bleecker St, New York, NY 10012",
+    "neighborhood": "NoHo",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The New School for Jazz and Contemporary Music",
+    "address": "55 W 13th St, New York, NY 10011",
+    "neighborhood": "Greenwich Village",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Record Shop",
+    "address": "360 Van Brunt St, Brooklyn, NY 11231",
+    "neighborhood": "Red Hook",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Sisters",
+    "address": "900 Fulton St, Brooklyn, NY 11238",
+    "neighborhood": "Clinton Hill",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Downtown Music Gallery",
+    "address": "13 Monroe St, New York, NY 10002",
+    "neighborhood": "Two Bridges",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Union Pool",
+    "address": "484 Union Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Red Rooster",
+    "address": "310 Lenox Ave, New York, NY 10027",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Nines",
+    "address": "9 Great Jones St, New York, NY 10012",
+    "neighborhood": "NoHo",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Bemelmans Bar",
+    "address": "35 E 76th St, New York, NY 10021",
+    "neighborhood": "Upper East Side",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Pierre Hotel - Two E Bar/Lounge",
+    "address": "2 E 61st St, New York, NY 10065",
+    "neighborhood": "Upper East Side",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Roxy Hotel",
+    "address": "2 6th Ave, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Room 623",
+    "address": "271 W 119th St, New York, NY 10026",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Kitano Hotel Jazz",
+    "address": "66 Park Ave, New York, NY 10016",
+    "neighborhood": "Murray Hill",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Jazz Loft",
+    "address": "275 Christian Ave, Stony Brook, NY 11790",
+    "neighborhood": "Stony Brook",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Jazz at Lincoln Center",
+    "address": "10 Columbus Cir, New York, NY 10019",
+    "neighborhood": "Upper West Side",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "National Jazz Museum in Harlem",
+    "address": "58 W 129th St, New York, NY 10027",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "The Apollo Theater",
+    "address": "253 W 125th St, New York, NY 10027",
+    "neighborhood": "Harlem",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Symphony Space",
+    "address": "2537 Broadway, New York, NY 10025",
+    "neighborhood": "Upper West Side",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "Chelsea Table + Stage",
+    "address": "152 W 26th St, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "jazz clubs"
+  },
+  {
+    "name": "New Amsterdam Theatre",
+    "address": "214 W 42nd St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Richard Rodgers Theatre",
+    "address": "226 W 46th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Palace Theatre",
+    "address": "1564 Broadway, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Gershwin Theatre",
+    "address": "222 W 51st St, New York, NY 10019",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Shubert Theatre",
+    "address": "225 W 44th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Majestic Theatre",
+    "address": "245 W 44th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Winter Garden Theatre",
+    "address": "1634 Broadway, New York, NY 10019",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Lyceum Theatre",
+    "address": "149 W 45th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Hudson Theatre",
+    "address": "141 W 44th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Belasco Theatre",
+    "address": "111 W 44th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Music Box Theatre",
+    "address": "239 W 45th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Imperial Theatre",
+    "address": "249 W 45th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "St. James Theatre",
+    "address": "246 W 44th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Broadway Theatre",
+    "address": "1681 Broadway, New York, NY 10019",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Minskoff Theatre",
+    "address": "200 W 45th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Nederlander Theatre",
+    "address": "208 W 41st St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Lunt-Fontanne Theatre",
+    "address": "205 W 46th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Al Hirschfeld Theatre",
+    "address": "302 W 45th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Stephen Sondheim Theatre",
+    "address": "124 W 43rd St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Booth Theatre",
+    "address": "222 W 45th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Broadhurst Theatre",
+    "address": "235 W 44th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Bernard B. Jacobs Theatre",
+    "address": "242 W 45th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Gerald Schoenfeld Theatre",
+    "address": "236 W 45th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Ethel Barrymore Theatre",
+    "address": "243 W 47th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Eugene O'Neill Theatre",
+    "address": "230 W 49th St, New York, NY 10019",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Walter Kerr Theatre",
+    "address": "219 W 48th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Longacre Theatre",
+    "address": "220 W 48th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Ambassador Theatre",
+    "address": "219 W 49th St, New York, NY 10019",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "John Golden Theatre",
+    "address": "252 W 45th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Vivian Beaumont Theater",
+    "address": "150 W 65th St, New York, NY 10023",
+    "neighborhood": "Lincoln Square",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Circle in the Square Theatre",
+    "address": "235 W 50th St, New York, NY 10019",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Lyric Theatre",
+    "address": "214 W 43rd St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Marquis Theatre",
+    "address": "210 W 46th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Studio 54",
+    "address": "254 W 54th St, New York, NY 10019",
+    "neighborhood": "Midtown Manhattan",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "August Wilson Theatre",
+    "address": "245 W 52nd St, New York, NY 10019",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Neil Simon Theatre",
+    "address": "250 W 52nd St, New York, NY 10019",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Samuel J. Friedman Theatre",
+    "address": "261 W 47th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "James Earl Jones Theatre",
+    "address": "138 W 48th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Lena Horne Theatre",
+    "address": "256 W 47th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Todd Haimes Theatre",
+    "address": "227 W 42nd St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Hayes Theater",
+    "address": "240 W 44th St, New York, NY 10036",
+    "neighborhood": "Theater District",
+    "category": "broadway theaters"
+  },
+  {
+    "name": "Strand Bookstore",
+    "address": "828 Broadway, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "McNally Jackson",
+    "address": "52 Prince St, New York, NY 10012",
+    "neighborhood": "Nolita",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Books Are Magic",
+    "address": "225 Smith St, Brooklyn, NY 11231",
+    "neighborhood": "Cobble Hill",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Greenlight Bookstore",
+    "address": "686 Fulton St, Brooklyn, NY 11217",
+    "neighborhood": "Fort Greene",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Center for Fiction",
+    "address": "15 Lafayette Ave, Brooklyn, NY 11217",
+    "neighborhood": "Fort Greene",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Housing Works Bookstore",
+    "address": "126 Crosby St, New York, NY 10012",
+    "neighborhood": "SoHo",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Rizzoli Bookstore",
+    "address": "1133 Broadway, New York, NY 10010",
+    "neighborhood": "NoMad",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Bluestockings Cooperative Bookstore",
+    "address": "116 Suffolk St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Community Bookstore",
+    "address": "143 7th Ave, Brooklyn, NY 11215",
+    "neighborhood": "Park Slope",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Argosy Book Store",
+    "address": "116 E 59th St, New York, NY 10022",
+    "neighborhood": "Midtown East",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Three Lives & Co.",
+    "address": "238 W 10th St, New York, NY 10014",
+    "neighborhood": "Greenwich Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "WORD Bookstore",
+    "address": "126 Franklin St, Brooklyn, NY 11222",
+    "neighborhood": "Greenpoint",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Albertine",
+    "address": "972 5th Ave, New York, NY 10075",
+    "neighborhood": "Upper East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Corner Bookstore",
+    "address": "1313 Madison Ave, New York, NY 10128",
+    "neighborhood": "Carnegie Hill",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Mysterious Bookshop",
+    "address": "58 Warren St, New York, NY 10007",
+    "neighborhood": "Tribeca",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Spoonbill & Sugartown, Booksellers",
+    "address": "218 Bedford Ave, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Drama Book Shop",
+    "address": "266 W 39th St, New York, NY 10018",
+    "neighborhood": "Midtown",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Book Club Bar",
+    "address": "197 E 3rd St, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "P&T Knitwear",
+    "address": "180 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Cafe con Libros",
+    "address": "724 Prospect Pl, Brooklyn, NY 11216",
+    "neighborhood": "Crown Heights",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Yu and Me Books",
+    "address": "44 Mulberry St, New York, NY 10013",
+    "neighborhood": "Chinatown",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Ripped Bodice",
+    "address": "218 5th Ave, Brooklyn, NY 11215",
+    "neighborhood": "Park Slope",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Astoria Bookshop",
+    "address": "31-29 31st St, Astoria, NY 11106",
+    "neighborhood": "Astoria",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Books of Wonder",
+    "address": "42 W 17th St, New York, NY 10011",
+    "neighborhood": "Flatiron District",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Lofty Pigeon Books",
+    "address": "743 Church Ave, Brooklyn, NY 11218",
+    "neighborhood": "Kensington",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Sweet Pickle Books",
+    "address": "47 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Book Culture",
+    "address": "536 W 112th St, New York, NY 10025",
+    "neighborhood": "Morningside Heights",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Bonnie Slotnick Cookbooks",
+    "address": "28 E 2nd St, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Revolution Books",
+    "address": "437 Malcolm X Blvd, New York, NY 10037",
+    "neighborhood": "Harlem",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Sister's Uptown Bookstore",
+    "address": "1942 Amsterdam Ave, New York, NY 10032",
+    "neighborhood": "Washington Heights",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Namaste Bookshop",
+    "address": "2 W 14th St, New York, NY 10011",
+    "neighborhood": "Union Square",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Koryo Books",
+    "address": "35 W 32nd St, New York, NY 10001",
+    "neighborhood": "Koreatown",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Chartwell Booksellers",
+    "address": "55 E 52nd St, New York, NY 10055",
+    "neighborhood": "Midtown East",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Printed Matter, Inc.",
+    "address": "231 11th Ave, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Gladys Books & Wine",
+    "address": "306 Malcolm X Blvd, Brooklyn, NY 11233",
+    "neighborhood": "Bedford-Stuyvesant",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Love & Legends Books",
+    "address": "2 St. Marks Pl, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Yu & Me Books",
+    "address": "44 Mulberry St, New York, NY 10013",
+    "neighborhood": "Chinatown",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Codex Books",
+    "address": "1 Bleecker St, New York, NY 10012",
+    "neighborhood": "NoHo",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "192 Books",
+    "address": "192 10th Ave, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "WORD Brooklyn",
+    "address": "126 Franklin St, Brooklyn, NY 11222",
+    "neighborhood": "Greenpoint",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "powerHouse Arena",
+    "address": "28 Adams St, Brooklyn, NY 11201",
+    "neighborhood": "DUMBO",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Unnameable Books",
+    "address": "615 Vanderbilt Ave, Brooklyn, NY 11238",
+    "neighborhood": "Prospect Heights",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Westsider Rare & Used Books",
+    "address": "2246 Broadway, New York, NY 10024",
+    "neighborhood": "Upper West Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Book-Off",
+    "address": "49 W 45th St, New York, NY 10036",
+    "neighborhood": "Midtown",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Kinokuniya New York",
+    "address": "1073 6th Ave, New York, NY 10018",
+    "neighborhood": "Midtown",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Dashwood Books",
+    "address": "33 Bond St, New York, NY 10012",
+    "neighborhood": "NoHo",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Left Bank Books",
+    "address": "41 Perry St, New York, NY 10014",
+    "neighborhood": "West Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Mercer Street Books & Records",
+    "address": "206 Mercer St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "East Village Books",
+    "address": "99 St Marks Pl, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Idlewild Books",
+    "address": "170 7th Ave S, New York, NY 10014",
+    "neighborhood": "West Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Posman Books",
+    "address": "75 9th Ave, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Mast Books",
+    "address": "72 Avenue A, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Perrotin Store",
+    "address": "130 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Clic Bookstore & Gallery",
+    "address": "255 Centre St, New York, NY 10013",
+    "neighborhood": "SoHo",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Hauser & Wirth Publishers Bookstore",
+    "address": "548 W 22nd St, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Archestratus Books + Foods",
+    "address": "160 Huron St, Brooklyn, NY 11222",
+    "neighborhood": "Greenpoint",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Topos Bookstore Cafe",
+    "address": "788 Woodward Ave, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Mil Mundos Books",
+    "address": "323 Wyckoff Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Lit. Bar",
+    "address": "131 Alexander Ave, The Bronx, NY 10454",
+    "neighborhood": "Mott Haven",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Adanne Bookshop",
+    "address": "115 Ralph Ave, Brooklyn, NY 11221",
+    "neighborhood": "Bedford-Stuyvesant",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Dear Friend Books",
+    "address": "343A Tompkins Ave, Brooklyn, NY 11216",
+    "neighborhood": "Bedford-Stuyvesant",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "BookMark Shoppe",
+    "address": "8415 3rd Ave, Brooklyn, NY 11209",
+    "neighborhood": "Bay Ridge",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Burden of Proof Books",
+    "address": "19 3rd Ave, Brooklyn, NY 11217",
+    "neighborhood": "Boerum Hill",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Taylor & Co. Books",
+    "address": "1021 Cortelyou Rd, Brooklyn, NY 11218",
+    "neighborhood": "Ditmas Park",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Mysterious Bookshop",
+    "address": "58 Warren St, New York, NY 10007",
+    "neighborhood": "Tribeca",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Kitchen Arts & Letters",
+    "address": "1435 Lexington Ave, New York, NY 10128",
+    "neighborhood": "Upper East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Molasses Books",
+    "address": "770 Hart St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Quimby's Bookstore NYC",
+    "address": "536 Metropolitan Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Bureau of General Services\u2014Queer Division",
+    "address": "208 W 13th St, Room 210, New York, NY 10011",
+    "neighborhood": "Greenwich Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Word Up Community Bookshop/Librer\u00eda Comunitaria",
+    "address": "2113 Amsterdam Ave, New York, NY 10032",
+    "neighborhood": "Washington Heights",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Turn the Page Again",
+    "address": "39-15 Bell Blvd, Bayside, NY 11361",
+    "neighborhood": "Bayside",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Kew & Willow Books",
+    "address": "81-63 Lefferts Blvd, Kew Gardens, NY 11415",
+    "neighborhood": "Kew Gardens",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Three Lives & Company",
+    "address": "238 W 10th St, New York, NY 10014",
+    "neighborhood": "West Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Alabaster Bookshop",
+    "address": "122 4th Ave, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Better Read Than Dead",
+    "address": "867 Broadway, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Human Relations",
+    "address": "1067 Flushing Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Printed Matter",
+    "address": "231 11th Ave, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Perrotin Bookstore",
+    "address": "130 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Shakespeare & Co.",
+    "address": "939 Lexington Ave, New York, NY 10065",
+    "neighborhood": "Upper East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Book Nook",
+    "address": "Multiple locations",
+    "neighborhood": "Park Slope, Windsor Terrace",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Sister's Uptown Bookstore & Cultural Center",
+    "address": "1942 Amsterdam Avenue, New York, NY 10032",
+    "neighborhood": "Washington Heights",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The World's Borough Bookshop",
+    "address": "34-06 73rd St, Jackson Heights, NY 11372",
+    "neighborhood": "Jackson Heights",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Fountain Bookshop",
+    "address": "605 Fort Washington Ave, New York, NY 10040",
+    "neighborhood": "Washington Heights",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "ETG Book Cafe",
+    "address": "208 Bay St, Staten Island, NY 10301",
+    "neighborhood": "St. George",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Grandma's Place",
+    "address": "84 W 120th St, New York, NY 10027",
+    "neighborhood": "Harlem",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Recirculation, a project of Word Up",
+    "address": "876 Riverside Drive, New York, NY 10032",
+    "neighborhood": "Washington Heights",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Boogie Down Books",
+    "address": "N/A (Bookstore-without-walls)",
+    "neighborhood": "Bronx",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Lair of Dreams Bookshop",
+    "address": "N/A (Online and pop-up events)",
+    "neighborhood": "Bronx",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Miranda Writes Books and Bar",
+    "address": "N/A (Opening Soon)",
+    "neighborhood": "Riverdale",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "92nd Street Y",
+    "address": "1395 Lexington Ave, New York, NY 10128",
+    "neighborhood": "Upper East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "New-York Historical Society",
+    "address": "170 Central Park West, New York, NY 10024",
+    "neighborhood": "Upper West Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Morgan Library & Museum",
+    "address": "225 Madison Ave, New York, NY 10016",
+    "neighborhood": "Murray Hill",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Brooklyn Museum",
+    "address": "200 Eastern Pkwy, Brooklyn, NY 11238",
+    "neighborhood": "Prospect Heights",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Metropolitan Museum of Art",
+    "address": "1000 5th Ave, New York, NY 10028",
+    "neighborhood": "Upper East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Queens Museum",
+    "address": "New York City Building, Flushing Meadows Corona Park, Queens, NY 11368",
+    "neighborhood": "Flushing",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Museum of the City of New York",
+    "address": "1220 Fifth Avenue, New York, NY 10029",
+    "neighborhood": "East Harlem",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Frick Collection",
+    "address": "1 E 70th St, New York, NY 10021",
+    "neighborhood": "Upper East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "New York Public Library - Stephen A. Schwarzman Building",
+    "address": "476 5th Ave, New York, NY 10018",
+    "neighborhood": "Midtown",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "KGB Bar",
+    "address": "85 E 4th St, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Kitchen",
+    "address": "512 W 19th St, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Writers Room",
+    "address": "740 Broadway, 12th Floor, New York, NY 10003",
+    "neighborhood": "NoHo",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Symphony Space",
+    "address": "2537 Broadway, New York, NY 10025",
+    "neighborhood": "Upper West Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Strand Bookstore",
+    "address": "828 Broadway, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Poets House",
+    "address": "10 River Terrace, New York, NY 10282",
+    "neighborhood": "Battery Park City",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Bowery Poetry Club",
+    "address": "308 Bowery, New York, NY 10012",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Nuyorican Poets Cafe",
+    "address": "236 E 3rd St, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Grolier Club",
+    "address": "47 E 60th St, New York, NY 10022",
+    "neighborhood": "Upper East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The New York Society Library",
+    "address": "53 E 79th St, New York, NY 10075",
+    "neighborhood": "Upper East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Asia Society and Museum",
+    "address": "725 Park Ave, New York, NY 10021",
+    "neighborhood": "Upper East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Scandinavia House: The Nordic Center in America",
+    "address": "58 Park Ave, New York, NY 10016",
+    "neighborhood": "Murray Hill",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Tenement Museum",
+    "address": "103 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Jewish Museum",
+    "address": "1109 5th Ave & 92nd St, New York, NY 10128",
+    "neighborhood": "Upper East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Rubin Museum of Art",
+    "address": "150 W 17th St, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The National Arts Club",
+    "address": "15 Gramercy Park S, New York, NY 10003",
+    "neighborhood": "Gramercy Park",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "PEN America",
+    "address": "588 Broadway #303, New York, NY 10012",
+    "neighborhood": "SoHo",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Caveat",
+    "address": "21 A Clinton St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Nicholas Roerich Museum",
+    "address": "319 W 107th St, New York, NY 10025",
+    "neighborhood": "Upper West Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Strand Bookstore (Rare Book Room)",
+    "address": "828 Broadway, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Bryant Park Reading Room",
+    "address": "Bryant Park, New York, NY 10018",
+    "neighborhood": "Midtown",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Poetry Project at St. Mark's Church",
+    "address": "131 E 10th St, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Stavros Niarchos Foundation Library (SNFL)",
+    "address": "455 5th Ave, New York, NY 10016",
+    "neighborhood": "Midtown",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Schomburg Center for Research in Black Culture",
+    "address": "515 Malcolm X Blvd, New York, NY 10037",
+    "neighborhood": "Harlem",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Hive Mind Books",
+    "address": "219 Irving Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Players",
+    "address": "16 Gramercy Park S, New York, NY 10003",
+    "neighborhood": "Gramercy Park",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Salmagundi Club",
+    "address": "47 5th Ave, New York, NY 10003",
+    "neighborhood": "Greenwich Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "National Arts Club",
+    "address": "15 Gramercy Park S, New York, NY 10003",
+    "neighborhood": "Gramercy Park",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Pen and Brush",
+    "address": "29 E 22nd St, New York, NY 10010",
+    "neighborhood": "Flatiron District",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Fraunces Tavern Museum",
+    "address": "54 Pearl St, New York, NY 10004",
+    "neighborhood": "Financial District",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Van Alen Institute",
+    "address": "303 Bond St, Brooklyn, NY 11231",
+    "neighborhood": "Gowanus",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Society of Illustrators",
+    "address": "128 E 63rd St, New York, NY 10065",
+    "neighborhood": "Upper East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Performance Space New York",
+    "address": "150 1st Ave, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "City Reliquary",
+    "address": "370 Metropolitan Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Interference Archive",
+    "address": "314 7th St, Brooklyn, NY 11215",
+    "neighborhood": "Park Slope",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Wendy's Subway",
+    "address": "379 Bushwick Ave, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Neue Galerie New York",
+    "address": "1048 5th Ave, New York, NY 10028",
+    "neighborhood": "Upper East Side",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "The Algonquin Hotel",
+    "address": "59 W 44th St, New York, NY 10036",
+    "neighborhood": "Midtown",
+    "category": "bookstores with author events"
+  },
+  {
+    "name": "Comedy Cellar",
+    "address": "117 MacDougal St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Gotham Comedy Club",
+    "address": "208 W 23rd St, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Carolines on Broadway",
+    "address": "750 7th Ave, New York, NY 10019",
+    "neighborhood": "Times Square",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Stand NYC",
+    "address": "116 E 16th St, New York, NY 10003",
+    "neighborhood": "Union Square",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Upright Citizens Brigade Theatre",
+    "address": "153 E 3rd St, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "New York Comedy Club",
+    "address": "241 E 24th St, New York, NY 10010",
+    "neighborhood": "Gramercy",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Stand Up NY",
+    "address": "236 W 78th St, New York, NY 10024",
+    "neighborhood": "Upper West Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Comic Strip Live",
+    "address": "1568 2nd Ave, New York, NY 10028",
+    "neighborhood": "Upper East Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Broadway Comedy Club",
+    "address": "318 W 53rd St, New York, NY 10019",
+    "neighborhood": "Hell's Kitchen",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Dangerfield's",
+    "address": "1118 1st Avenue, New York, NY 10065",
+    "neighborhood": "Upper East Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Greenwich Village Comedy Club",
+    "address": "99 MacDougal St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "EastVille Comedy Club",
+    "address": "487 Atlantic Ave, Brooklyn, NY 11217",
+    "neighborhood": "Boerum Hill",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Grisly Pear Comedy Club",
+    "address": "107 MacDougal St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "West Side Comedy Club",
+    "address": "201 W 75th St, New York, NY 10023",
+    "neighborhood": "Upper West Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Asylum NYC",
+    "address": "123 E 24th St, New York, NY 10010",
+    "neighborhood": "Flatiron District",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Caveat",
+    "address": "21 A Clinton St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Littlefield",
+    "address": "635 Sackett St, Brooklyn, NY 11217",
+    "neighborhood": "Gowanus",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Q.E.D.",
+    "address": "27-16 23rd Ave, Astoria, NY 11105",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Bell House",
+    "address": "149 7th St, Brooklyn, NY 11215",
+    "neighborhood": "Gowanus",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Union Hall",
+    "address": "702 Union St, Brooklyn, NY 11215",
+    "neighborhood": "Park Slope",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Knitting Factory",
+    "address": "361 Metropolitan Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "St. Marks Comedy Club",
+    "address": "12 St Marks Pl, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Tiny Cupboard",
+    "address": "10 Cooper St, Brooklyn, NY 11207",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Old Man Hustle BKLYN Comedy Club & Bar",
+    "address": "308 Bedford Ave, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Gutter",
+    "address": "200 N 14th St, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Grove 34",
+    "address": "31-83 34th St, Astoria, NY 11106",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Brooklyn Comedy Collective @ Eris",
+    "address": "167 Graham Ave, Brooklyn, NY 11206",
+    "neighborhood": "East Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Brooklyn Comedy Collective @ The Pig Pen",
+    "address": "144 Boerum St, Brooklyn, NY 11206",
+    "neighborhood": "East Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Flop House Comedy Club",
+    "address": "362 Grand St, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Backyards",
+    "address": "489 Quincy St, Brooklyn, NY 11221",
+    "neighborhood": "Bedford-Stuyvesant",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Tootles & French",
+    "address": "3615 Ditmars Blvd, Astoria, NY 11105",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Otis & Finn Barbershop",
+    "address": "45-22 Pearson St, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Secret Pour",
+    "address": "1114 Dekalb Ave, Brooklyn, NY 11221",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Young Ethel's",
+    "address": "506 5th Ave, Brooklyn, NY 11215",
+    "neighborhood": "South Slope",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Starr Bar",
+    "address": "214 Starr St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Halyards Bar",
+    "address": "406 3rd Ave, Brooklyn, NY 11215",
+    "neighborhood": "Gowanus",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Cobra Club",
+    "address": "6 Wyckoff Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Pine Box Rock Shop",
+    "address": "12 Grattan St, Brooklyn, NY 11206",
+    "neighborhood": "East Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Our Wicked Lady",
+    "address": "173 Morgan Ave, Brooklyn, NY 11237",
+    "neighborhood": "East Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Sultan Room",
+    "address": "234 Starr St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Hart Bar",
+    "address": "538 Hart St, Brooklyn, NY 11221",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Gold Sounds",
+    "address": "44 Wilson Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Friends and Lovers",
+    "address": "641 Classon Ave, Brooklyn, NY 11238",
+    "neighborhood": "Crown Heights",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Crystal Lake",
+    "address": "647 Grand St, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Freddy's Bar and Backroom",
+    "address": "627 5th Ave, Brooklyn, NY 11215",
+    "neighborhood": "South Slope",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Alligator Lounge",
+    "address": "600 Metropolitan Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Arrogant Swine",
+    "address": "173 Morgan Ave, Brooklyn, NY 11237",
+    "neighborhood": "East Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Way Station",
+    "address": "683 Washington Ave, Brooklyn, NY 11238",
+    "neighborhood": "Prospect Heights",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "C'mon Everybody",
+    "address": "325 Franklin Ave, Brooklyn, NY 11238",
+    "neighborhood": "Bedford-Stuyvesant",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Rockwell Place",
+    "address": "31 Rockwell Pl, Brooklyn, NY 11217",
+    "neighborhood": "Downtown Brooklyn",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Trans-Pecos",
+    "address": "915 Wyckoff Ave, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Windjammer",
+    "address": "552 Grandview Ave, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "TV Eye",
+    "address": "1647 Weirfield St, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Alphaville",
+    "address": "140 Wilson Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Elsewhere",
+    "address": "599 Johnson Ave, Brooklyn, NY 11237",
+    "neighborhood": "East Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Union Pool",
+    "address": "484 Union Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Skinny Dennis",
+    "address": "152 Metropolitan Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Bohemian Hall & Beer Garden",
+    "address": "29-19 24th Ave, Astoria, NY 11102",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Irish Rover",
+    "address": "37-18 28th Ave, Astoria, NY 11103",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "SingleCut Beersmiths",
+    "address": "19-33 37th St, Astoria, NY 11105",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Diamond Dogs",
+    "address": "34-04 31st Ave, Astoria, NY 11106",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Local Bar",
+    "address": "41-04 31st Ave, Astoria, NY 11103",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Quays",
+    "address": "45-02 30th Ave, Astoria, NY 11103",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Judy & Punch",
+    "address": "34-08 30th Ave, Astoria, NY 11103",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Shillelagh Tavern",
+    "address": "47-22 30th Ave, Astoria, NY 11103",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Q.E.D. Astoria",
+    "address": "27-16 23rd Ave, Astoria, NY 11105",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Bushwick Comedy Club",
+    "address": "259 Melrose St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Greenpoint Comedy Club",
+    "address": "66 Greenpoint Ave, Brooklyn, NY 11222",
+    "neighborhood": "Greenpoint",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Arcadia Bar & Kitchen",
+    "address": "12-21 Astoria Blvd, Queens, NY 11102",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Second City",
+    "address": "64 N 9th St, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "BKLYN Comedy Club",
+    "address": "308 Eldert St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Brooklyn Art Haus",
+    "address": "24 Marcy Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Park Slope Comedy Spot",
+    "address": "156 5th Ave, Brooklyn, NY 11217",
+    "neighborhood": "Park Slope",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Two Boots Williamsburg",
+    "address": "558 Driggs Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Rubulad",
+    "address": "389 Melrose St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Isola Brooklyn",
+    "address": "128 Union St, Brooklyn, NY 11231",
+    "neighborhood": "Carroll Gardens",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Boris & Horton Williamsburg",
+    "address": "510 Driggs Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Mood Ring",
+    "address": "1260 Myrtle Ave, Brooklyn, NY 11221",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Lovin' Cup",
+    "address": "93 N 6th St, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Cozy Art Land",
+    "address": "1040 45th Ave, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Katch Astoria",
+    "address": "31-19 Newtown Ave, Astoria, NY 11102",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The VSPOT Restaurant",
+    "address": "156 5th Ave, Brooklyn, NY 11217",
+    "neighborhood": "Park Slope",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Dram Shop Bar",
+    "address": "339 9th St, Brooklyn, NY 11215",
+    "neighborhood": "Park Slope",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Three Diamond Door",
+    "address": "211 Knickerbocker Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Easy Lover",
+    "address": "790 Metropolitan Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Seneca",
+    "address": "582 Seneca Ave, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Nicky's Unisex",
+    "address": "91 S 1st St, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The ROGUE",
+    "address": "304 5th Ave, Brooklyn, NY 11215",
+    "neighborhood": "Park Slope",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Black Cat LES",
+    "address": "172 Rivington St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "DSK Brooklyn",
+    "address": "710 Fulton St, Brooklyn, NY 11217",
+    "neighborhood": "Fort Greene",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "2A",
+    "address": "25 Avenue A, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Eris Mainstage (Brooklyn Comedy Collective)",
+    "address": "167 Graham Ave, Brooklyn, NY 11206",
+    "neighborhood": "East Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Pig Pen (Brooklyn Comedy Collective)",
+    "address": "144 Boerum St, Brooklyn, NY 11206",
+    "neighborhood": "East Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Salon on Kingston",
+    "address": "105 Kingston Ave, Brooklyn, NY 11213",
+    "neighborhood": "Crown Heights",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Friends and Lovers Club",
+    "address": "641 Classon Ave, Brooklyn, NY 11238",
+    "neighborhood": "Crown Heights",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Sisyphus Brewing",
+    "address": "712 Ontario Ave W #100, Minneapolis, MN 55403",
+    "neighborhood": "Minneapolis",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Muchmore's",
+    "address": "2 Havemeyer St, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Pete's Candy Store",
+    "address": "709 Lorimer St, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Sid Gold's Request Room",
+    "address": "165 W 26th St, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Slipper Room",
+    "address": "167 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Club Cumming",
+    "address": "505 E 6th St, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Niagara",
+    "address": "112 Avenue A, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Red Room at KGB Bar",
+    "address": "85 E 4th St, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Under St. Marks Theater",
+    "address": "94 St Marks Pl, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "HiFi Bar",
+    "address": "169 Avenue A, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Arlene's Grocery",
+    "address": "95 Stanton St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Creek and the Cave",
+    "address": "10-93 Jackson Ave, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Magnet Theater",
+    "address": "254 W 29th St, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "PIT Loft",
+    "address": "154 W 29th St, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Peoples Improv Theater",
+    "address": "123 E 24th St, New York, NY 10010",
+    "neighborhood": "Flatiron",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Old Man Hustle",
+    "address": "39 Essex St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Lantern",
+    "address": "167 Bleecker St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Grisly Pear Comedy Club",
+    "address": "107 MacDougal St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Sesh Comedy",
+    "address": "140 Eldridge St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Stones Comedy Club",
+    "address": "225 E 44th St, New York, NY 10017",
+    "neighborhood": "Midtown",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Comedy Shop",
+    "address": "167 Bleecker St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Saint Vitus Bar",
+    "address": "1120 Manhattan Ave, Brooklyn, NY 11222",
+    "neighborhood": "Greenpoint",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The People's Improv Theater (The PIT)",
+    "address": "123 E 24th St, New York, NY 10010",
+    "neighborhood": "Flatiron",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Magnet Theater",
+    "address": "254 W 29th St, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Cobra Club",
+    "address": "6 Wyckoff Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Parkside Lounge",
+    "address": "317 E Houston St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Players Theatre",
+    "address": "115 MacDougal St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Village Lantern",
+    "address": "167 Bleecker St, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Bar Lubitsch",
+    "address": "7702 Santa Monica Blvd, West Hollywood, CA 90046",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Unit J",
+    "address": "338 Moffat St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Precious Metal",
+    "address": "143 Troutman St, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Lucky Jack's",
+    "address": "129 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Secret Loft",
+    "address": "14th Street & 6th Avenue, New York, NY 10011",
+    "neighborhood": "Greenwich Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "QED Astoria",
+    "address": "27-16 23rd Ave, Astoria, NY 11105",
+    "neighborhood": "Astoria",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Sultan Room",
+    "address": "234 Starr St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Pianos",
+    "address": "158 Ludlow St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Kraine Theater",
+    "address": "85 E 4th St, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Duplex",
+    "address": "61 Christopher St, New York, NY 10014",
+    "neighborhood": "Greenwich Village",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "The Greene Space",
+    "address": "44 Charlton St, New York, NY 10014",
+    "neighborhood": "SoHo",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Symphony Space",
+    "address": "2537 Broadway, New York, NY 10025",
+    "neighborhood": "Upper West Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Triad Theatre",
+    "address": "158 W 72nd St, New York, NY 10023",
+    "neighborhood": "Upper West Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Old Man Hustle BKLYN Comedy Club",
+    "address": "308 Bedford Ave, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Subject",
+    "address": "188 Suffolk St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Market Hotel",
+    "address": "1140 Myrtle Ave, Brooklyn, NY 11221",
+    "neighborhood": "Bushwick",
+    "category": "comedy clubs standup"
+  },
+  {
+    "name": "Forest Hills Stadium",
+    "address": "1 Tennis Pl, Forest Hills, NY 11375",
+    "neighborhood": "Forest Hills",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Rooftop at Pier 17",
+    "address": "89 South St, New York, NY 10038",
+    "neighborhood": "Financial District",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "SummerStage, Central Park",
+    "address": "Rumsey Playfield, E 71st St, New York, NY 10021",
+    "neighborhood": "Manhattan",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "BRIC Celebrate Brooklyn!",
+    "address": "Lena Horne Bandshell, Prospect Park, Brooklyn, NY 11215",
+    "neighborhood": "Park Slope",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Brooklyn Mirage",
+    "address": "140 Stewart Ave, Brooklyn, NY 11237",
+    "neighborhood": "East Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Northwell Health at Jones Beach Theater",
+    "address": "895 Bay Pkwy, Wantagh, NY 11793",
+    "neighborhood": "Wantagh",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Ford Amphitheater at Coney Island Boardwalk",
+    "address": "3052 W 21st St, Brooklyn, NY 11224",
+    "neighborhood": "Coney Island",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Lincoln Center's Summer for the City",
+    "address": "Lincoln Center Plaza, New York, NY 10023",
+    "neighborhood": "Upper West Side",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Naumburg Bandshell",
+    "address": "Concert Ground, Central Park, New York, NY 10019",
+    "neighborhood": "Manhattan",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Elsewhere (Rooftop)",
+    "address": "599 Johnson Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Bethel Woods Center for the Arts",
+    "address": "200 Hurd Rd, Bethel, NY 12720",
+    "neighborhood": "Bethel",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Gil Scott-Heron Amphitheater",
+    "address": "St Ann's Ave &, E 146th St, Bronx, NY 10455",
+    "neighborhood": "Mott Haven",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Soundview Park Amphitheater",
+    "address": "Rosedale Ave &, Lacombe Ave, Bronx, NY 10472",
+    "neighborhood": "Soundview",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Crotona Park Amphitheatre",
+    "address": "559 Claremont Pkwy, Bronx, NY 10457",
+    "neighborhood": "Crotona Park",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Williamsbridge Oval Recreation Center",
+    "address": "3225 Reservoir Oval E, Bronx, NY 10467",
+    "neighborhood": "Norwood",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Orchard Beach Pavilion",
+    "address": "Orchard Beach, Bronx, NY 10464",
+    "neighborhood": "Pelham Bay Park",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Van Cortlandt Park Parade Ground",
+    "address": "Van Cortlandt Park South between Broadway and Jerome Avenue, Bronx, NY 10462",
+    "neighborhood": "Van Cortlandt Park",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "George Seuffert, Sr. Bandshell",
+    "address": "Forest Park Dr, Queens, NY 11421",
+    "neighborhood": "Woodhaven",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Rockaway Beach Amphitheater",
+    "address": "Shore Front Pkwy, Rockaway Park, NY 11694",
+    "neighborhood": "Rockaway Beach",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Astoria Park Great Lawn",
+    "address": "19 19th St, Queens, NY 11105",
+    "neighborhood": "Astoria",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Unisphere at Flushing Meadows Corona Park",
+    "address": "Unisphere, Queens, NY 11355",
+    "neighborhood": "Flushing",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Gantry Plaza State Park Performance Space",
+    "address": "4-09 47th Rd, Queens, NY 10007",
+    "neighborhood": "Long Island City",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Baisley Pond Park",
+    "address": "157-19 116th Ave, Jamaica, NY 11434",
+    "neighborhood": "Jamaica",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Cunningham Park",
+    "address": "Union Tpke &, 196th St, Fresh Meadows, NY 11366",
+    "neighborhood": "Fresh Meadows",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Hunter's Point South Park",
+    "address": "Center Blvd, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Snug Harbor Cultural Center - South Meadow Stage",
+    "address": "1000 Richmond Terrace, Staten Island, NY 10301",
+    "neighborhood": "Livingston",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Corporal Thompson Park",
+    "address": "166 Broadway, Staten Island, NY 10310",
+    "neighborhood": "West Brighton",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Westerleigh Park Gazebo",
+    "address": "141 Garrison Ave, Staten Island, NY 10314",
+    "neighborhood": "Westerleigh",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Wolfe's Pond Park",
+    "address": "420 Cornelia Ave, Staten Island, NY 10309",
+    "neighborhood": "Prince's Bay",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Conference House Park",
+    "address": "298 Satterlee St, Staten Island, NY 10307",
+    "neighborhood": "Tottenville",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Midland Beach Splaza",
+    "address": "Fr. Capodanno Blvd. & Lincoln Ave., Staten Island, NY 10306",
+    "neighborhood": "Midland Beach",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "South Beach Boardwalk",
+    "address": "Fr. Capodanno Blvd, Staten Island, NY 10305",
+    "neighborhood": "South Beach",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Clove Lakes Park",
+    "address": "1150 Clove Rd, Staten Island, NY 10301",
+    "neighborhood": "Sunnyside",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Fort Wadsworth",
+    "address": "210 New York Ave, Staten Island, NY 10305",
+    "neighborhood": "Fort Wadsworth",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Historic Richmond Town",
+    "address": "441 Clarke Ave, Staten Island, NY 10306",
+    "neighborhood": "Richmond Town",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Freshkills Park North Park",
+    "address": "350 Wild Ave, Staten Island, NY 10314",
+    "neighborhood": "Travis - Chelsea",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Williamsbridge Oval",
+    "address": "3225 Reservoir Oval E, Bronx, NY 10467",
+    "neighborhood": "Norwood",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Al Qui\u00f1ones Playground Amphitheater",
+    "address": "681 Kelly St, Bronx, NY 10455",
+    "neighborhood": "Longwood",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Bronx Park East",
+    "address": "Bronx Park East, Bronx, NY",
+    "neighborhood": "Bronx Park",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "St. Mary's Park",
+    "address": "St Ann's Ave &, E 149th St, Bronx, NY 10455",
+    "neighborhood": "Mott Haven",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Ferry Point Park",
+    "address": "10 Hutchinson Riv Pkwy, Bronx, NY 10465",
+    "neighborhood": "Throgs Neck",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Poe Park Bandshell",
+    "address": "2640 Grand Concourse, Bronx, NY 10458",
+    "neighborhood": "Fordham",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Van Cortlandt House Museum Lawn",
+    "address": "6036 Broadway, Bronx, NY 10471",
+    "neighborhood": "Van Cortlandt Park",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Pelham Bay Park",
+    "address": "Watt Avenue and Middletown Road, Bronx, NY 10465",
+    "neighborhood": "Pelham Bay",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Lou Gehrig Plaza",
+    "address": "E 161st St &, Grand Concourse, Bronx, NY 10451",
+    "neighborhood": "Concourse",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Joyce Kilmer Park",
+    "address": "Grand Concourse bet. E. 161st and E. 164 Sts., Bronx, NY 10451",
+    "neighborhood": "Concourse",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Wave Hill",
+    "address": "4900 Independence Ave, Bronx, NY 10471",
+    "neighborhood": "Riverdale",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Ewen Park",
+    "address": "Riverdale Ave &, W 232nd St, Bronx, NY 10463",
+    "neighborhood": "Kingsbridge",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Henry Hudson Park",
+    "address": "Kappock St &, Independence Ave, Bronx, NY 10463",
+    "neighborhood": "Spuyten Duyvil",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Westerleigh Park",
+    "address": "100-114 Neal Dow Ave, Staten Island, NY 10314",
+    "neighborhood": "Westerleigh",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Silver Lake Park",
+    "address": "Forest Ave. &, Victory Blvd, Staten Island, NY 10301",
+    "neighborhood": "Silver Lake",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Bloomingdale Park",
+    "address": "Ramona Ave &, Lenevar Ave, Staten Island, NY 10309",
+    "neighborhood": "Bloomingdale",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Stapleton Waterfront Park",
+    "address": "Front St &, Thompson St, Staten Island, NY 10304",
+    "neighborhood": "Stapleton",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Willowbrook Park",
+    "address": "1 Eton Pl, Staten Island, NY 10314",
+    "neighborhood": "Willowbrook",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Lemon Creek Park",
+    "address": "175 Johnston Terrace, Staten Island, NY 10309",
+    "neighborhood": "Pleasant Plains",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Blue Heron Park",
+    "address": "222 Poillon Ave, Staten Island, NY 10312",
+    "neighborhood": "Annadale",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Ocean Breeze Park",
+    "address": "625 Father Capodanno Blvd, Staten Island, NY 10305",
+    "neighborhood": "Ocean Breeze",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Father Macris Park",
+    "address": "130-198 Schafter Ave, Staten Island, NY 10314",
+    "neighborhood": "Graniteville",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Corporal Allan F. Kivlehan Park",
+    "address": "New Dorp Ln &, Cedar Grove Ave, Staten Island, NY 10306",
+    "neighborhood": "New Dorp Beach",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Hamilton Park",
+    "address": "101 Hamilton Ave, Staten Island, NY 10301",
+    "neighborhood": "St. George",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Roy Wilkins Park",
+    "address": "Merrick Blvd & Baisley Blvd, Jamaica, NY 11434",
+    "neighborhood": "Jamaica",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Socrates Sculpture Park",
+    "address": "32-01 Vernon Blvd, Long Island City, NY 11106",
+    "neighborhood": "Astoria",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "St. Albans Park",
+    "address": "173rd St &, 121st Ave, Jamaica, NY 11412",
+    "neighborhood": "St. Albans",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Flushing Meadows Corona Park",
+    "address": "Grand Central Pkwy, Van Wyck Expy, Queens, NY 11354",
+    "neighborhood": "Flushing",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Travers Park",
+    "address": "34th Ave bet. 77th and 78th Sts., Jackson Heights, NY 11372",
+    "neighborhood": "Jackson Heights",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Little Island",
+    "address": "Pier 55 at Hudson River Park, New York, NY 10014",
+    "neighborhood": "Meatpacking District",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "City Vineyard",
+    "address": "233 West St, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Roof at Superior Ingredients",
+    "address": "74 Wythe Ave, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Our Wicked Lady",
+    "address": "173 Morgan Ave, Brooklyn, NY 11237",
+    "neighborhood": "East Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "TV EYE",
+    "address": "1647 Weirfield St, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Sultan Room (Rooftop)",
+    "address": "234 Starr St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Brooklyn Bridge Park - Pier 3 Plaza",
+    "address": "Pier 3, Brooklyn Bridge Park, Brooklyn, NY 11201",
+    "neighborhood": "Brooklyn Heights",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Domino Park",
+    "address": "15 River St, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "South Street Seaport Museum - Wavertree",
+    "address": "Pier 16, South Street, New York, NY 10038",
+    "neighborhood": "Seaport",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Rockaway Hotel",
+    "address": "108-10 Rockaway Beach Dr, Rockaway Park, NY 11694",
+    "neighborhood": "Rockaway Park",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Arlo SoHo (A.R.T. SoHo)",
+    "address": "231 Hudson St, New York, NY 10013",
+    "neighborhood": "SoHo",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Roof at Public Hotel",
+    "address": "215 Chrystie St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Magic Hour Rooftop Bar & Lounge",
+    "address": "485 7th Ave, New York, NY 10018",
+    "neighborhood": "Midtown",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "230 Fifth Rooftop Bar",
+    "address": "230 5th Ave, New York, NY 10001",
+    "neighborhood": "Flatiron District",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Press Lounge",
+    "address": "653 11th Ave, New York, NY 10036",
+    "neighborhood": "Hell's Kitchen",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Westlight",
+    "address": "111 N 12th St, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Rooftop at The Hoxton, Williamsburg",
+    "address": "97 Wythe Ave, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "East River Park Amphitheater",
+    "address": "FDR Dr, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Snug Harbor Cultural Center & Botanical Garden",
+    "address": "1000 Richmond Terrace, Staten Island, NY 10301",
+    "neighborhood": "Livingston",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Public Square and Gardens at Hudson Yards",
+    "address": "20 Hudson Yards, New York, NY 10001",
+    "neighborhood": "Hudson Yards",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Stuyvesant Cove Park",
+    "address": "24-20 FDR Dr, New York, NY 10010",
+    "neighborhood": "Stuyvesant Town",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Marsha P. Johnson State Park",
+    "address": "90 Kent Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Manhattan West Plaza",
+    "address": "385 9th Ave, New York, NY 10001",
+    "neighborhood": "Hudson Yards",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Frying Pan",
+    "address": "Pier 66 at W 26th St, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "North River Lobster Company",
+    "address": "Pier 81, W 41st St, New York, NY 10036",
+    "neighborhood": "Hell's Kitchen",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Baylander Steel Beach",
+    "address": "West Harlem Piers, 125th Street and Marginal Street, New York, NY 10027",
+    "neighborhood": "Harlem",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "La Barca Cantina",
+    "address": "Pier 81, W 41st St, New York, NY 10036",
+    "neighborhood": "Hell's Kitchen",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Time Out Market New York (Rooftop)",
+    "address": "55 Water St, Brooklyn, NY 11201",
+    "neighborhood": "DUMBO",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Roof at Park South",
+    "address": "125 E 27th St, New York, NY 10016",
+    "neighborhood": "Rose Hill",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Watermark Bar",
+    "address": "78 South St, New York, NY 10038",
+    "neighborhood": "Seaport",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Bungalow Bar",
+    "address": "377 Beach 92nd St, Rockaway Beach, NY 11693",
+    "neighborhood": "Rockaway Beach",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Brooklyn Army Terminal",
+    "address": "80 58th St, Brooklyn, NY 11220",
+    "neighborhood": "Sunset Park",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Dumbo Archway",
+    "address": "155 Water St, Brooklyn, NY 11201",
+    "neighborhood": "DUMBO",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Industry City",
+    "address": "220 36th St, Brooklyn, NY 11232",
+    "neighborhood": "Sunset Park",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Radio Park at Rockefeller Center",
+    "address": "50 Rockefeller Plaza, New York, NY 10111",
+    "neighborhood": "Midtown",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Somewhere Nowhere NYC",
+    "address": "112 W 25th St, New York, NY 10001",
+    "neighborhood": "Chelsea",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Hotel Chantelle",
+    "address": "92 Ludlow St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Gantry Plaza State Park",
+    "address": "4-09 47th Rd, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Pier 45",
+    "address": "Christopher St. and the West Side Highway, New York, NY, 10014",
+    "neighborhood": "West Village",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Hudson River Park's Pier 57 Rooftop Park",
+    "address": "Pier 57, Hudson River Park, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Sunset Park Rooftop",
+    "address": "14b 53rd St, Brooklyn, NY 11232",
+    "neighborhood": "Sunset Park",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Marquee Skydeck at Edge",
+    "address": "30 Hudson Yards, New York, NY 10001",
+    "neighborhood": "Hudson Yards",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Sultan Room Rooftop",
+    "address": "234 Starr St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Elsewhere Rooftop",
+    "address": "599 Johnson Ave, Brooklyn, NY 11237",
+    "neighborhood": "East Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Rockaway Hotel Rooftop",
+    "address": "108-10 Rockaway Beach Dr, Rockaway Park, NY 11694",
+    "neighborhood": "Rockaway Park",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Greens at Pier 17",
+    "address": "89 South St, New York, NY 10038",
+    "neighborhood": "Seaport",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Rooftop Reds",
+    "address": "299 Sands St, Brooklyn, NY 11201",
+    "neighborhood": "Brooklyn Navy Yard",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Water Tower at the Williamsburg Hotel",
+    "address": "96 Wythe Ave, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Westlight at The William Vale",
+    "address": "111 N 12th St, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Lemon's at The Wythe Hotel",
+    "address": "80 Wythe Ave, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Mr. Purple",
+    "address": "180 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Ready Rooftop Bar",
+    "address": "112 E 11th St, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Cantor Roof Garden Bar at The Met",
+    "address": "1000 5th Ave, New York, NY 10028",
+    "neighborhood": "Upper East Side",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Southpoint Park on Roosevelt Island",
+    "address": "2 E Rd, New York, NY 10044",
+    "neighborhood": "Roosevelt Island",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Hunters Point South Park",
+    "address": "Center Blvd, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Brooklyn Grange Rooftop Farm",
+    "address": "37-18 Northern Blvd, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Rooftop at The Rockaway Hotel",
+    "address": "108-10 Rockaway Beach Dr, Rockaway Park, NY 11694",
+    "neighborhood": "Rockaway Park",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Oasis at The William Vale",
+    "address": "111 N 12th St, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Roof at Whole Foods Market",
+    "address": "214 3rd St, Brooklyn, NY 11215",
+    "neighborhood": "Gowanus",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Nowadays",
+    "address": "56-06 Cooper Ave, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Good Roof at The Good Fork",
+    "address": "391 Van Brunt St, Brooklyn, NY 11231",
+    "neighborhood": "Red Hook",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Springs",
+    "address": "224 Franklin St, Brooklyn, NY 11222",
+    "neighborhood": "Greenpoint",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Ample Hills Creamery at The Fireboat House",
+    "address": "1 Water St, Brooklyn, NY 11201",
+    "neighborhood": "Dumbo",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Forrest Point",
+    "address": "970 Flushing Ave, Brooklyn, NY 11206",
+    "neighborhood": "Bushwick",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The William Vale Pool + Terrace",
+    "address": "111 N 12th St, Brooklyn, NY 11249",
+    "neighborhood": "Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Harriet's Rooftop & Lounge",
+    "address": "60 Furman St, Brooklyn, NY 11201",
+    "neighborhood": "Brooklyn Heights",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Celestine",
+    "address": "1 John St, Brooklyn, NY 11201",
+    "neighborhood": "Dumbo",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Time Out Market New York Rooftop",
+    "address": "55 Water St, Brooklyn, NY 11201",
+    "neighborhood": "Dumbo",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Rooftop at the Box House Hotel",
+    "address": "77 Box St, Brooklyn, NY 11222",
+    "neighborhood": "Greenpoint",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Elsewhere Rooftop",
+    "address": "599 Johnson Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Rooftop at Pier 17",
+    "address": "89 South St, New York, NY 10038",
+    "neighborhood": "Financial District",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "SummerStage in Central Park",
+    "address": "Rumsey Playfield, E 71st St, New York, NY 10021",
+    "neighborhood": "Midtown",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Lena Horne Bandshell",
+    "address": "Prospect Park West & 9th Street, Brooklyn, NY 11215",
+    "neighborhood": "Park Slope",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Richard Rodgers Amphitheater",
+    "address": "Marcus Garvey Park, 18 Mount Morris Park W, New York, NY 10027",
+    "neighborhood": "Harlem",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Damrosch Park",
+    "address": "Amsterdam Ave & W 62nd St, New York, NY 10023",
+    "neighborhood": "Lincoln Square",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Gowanus Dredgers Canoe Club Boathouse",
+    "address": "165 2nd St, Brooklyn, NY 11231",
+    "neighborhood": "Gowanus",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Green-Wood Cemetery",
+    "address": "500 25th St, Brooklyn, NY 11232",
+    "neighborhood": "Greenwood Heights",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Jalopy Theatre",
+    "address": "315 Columbia St, Brooklyn, NY 11231",
+    "neighborhood": "Columbia Street Waterfront District",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Barb\u00e8s",
+    "address": "376 9th St, Brooklyn, NY 11215",
+    "neighborhood": "Park Slope",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Pete's Candy Store",
+    "address": "709 Lorimer St, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "St. Ann's Warehouse",
+    "address": "45 Water St, Brooklyn, NY 11201",
+    "neighborhood": "DUMBO",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Bargemusic",
+    "address": "10 Montague St, Brooklyn, NY 11201",
+    "neighborhood": "Brooklyn Heights",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "LeFrak Center at Lakeside",
+    "address": "171 East Dr, Brooklyn, NY 11225",
+    "neighborhood": "Prospect Lefferts Gardens",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Under the K Bridge Park",
+    "address": "470 Scott Ave, Brooklyn, NY 11222",
+    "neighborhood": "Greenpoint",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Valentino Pier",
+    "address": "Ferris St & Coffey St, Brooklyn, NY 11231",
+    "neighborhood": "Red Hook",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Bryant Park",
+    "address": "42nd Street and 6th Avenue, New York, NY 10018",
+    "neighborhood": "Midtown",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Tompkins Square Park",
+    "address": "E 10th St, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Herbert Von King Park",
+    "address": "670 Lafayette Ave, Brooklyn, NY 11216",
+    "neighborhood": "Bedford-Stuyvesant",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Hudson River Park",
+    "address": "Piers 26, 45, 84, New York, NY",
+    "neighborhood": "Various",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Castle Clinton National Monument",
+    "address": "Battery Park, New York, NY 10004",
+    "neighborhood": "Financial District",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Carl Schurz Park",
+    "address": "East 86th Street & East End Ave, New York, NY 10028",
+    "neighborhood": "Yorkville",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Waterline Square Park",
+    "address": "60 Freedom Pl S, New York, NY 10069",
+    "neighborhood": "Upper West Side",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Hippo Playground",
+    "address": "Riverside Park at 91st Street, New York, NY 10024",
+    "neighborhood": "Upper West Side",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Meadows",
+    "address": "17 Meadow St, Brooklyn, NY 11206",
+    "neighborhood": "East Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Maria Hernandez Park",
+    "address": "Starr St &, Knickerbocker Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Coffey Park",
+    "address": "85 Richards St, Brooklyn, NY 11231",
+    "neighborhood": "Red Hook",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Fort Greene Park",
+    "address": "Myrtle Ave. between Washington Park and St. Edward's St., Brooklyn, NY 11205",
+    "neighborhood": "Fort Greene",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Living Gallery",
+    "address": "1094 Broadway, Brooklyn, NY 11221",
+    "neighborhood": "Bushwick",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Sultan Room",
+    "address": "234 Starr St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Roof at Elsewhere",
+    "address": "599 Johnson Ave, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Union Pool",
+    "address": "484 Union Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Richard Rodgers Amphitheater at Marcus Garvey Park",
+    "address": "18 Mt Morris Park W, New York, NY 10027",
+    "neighborhood": "Harlem",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Bowery Electric",
+    "address": "327 Bowery, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Culture Lab LIC at The Plaxall Gallery",
+    "address": "5-25 46th Ave, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Old American Can Factory",
+    "address": "232 3rd St, Brooklyn, NY 11215",
+    "neighborhood": "Gowanus",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Jalopy Tavern",
+    "address": "317 Columbia St, Brooklyn, NY 11231",
+    "neighborhood": "Columbia Street Waterfront District",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Trans-Pecos",
+    "address": "915 Wyckoff Ave, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Hart Bar",
+    "address": "538 Hart St, Brooklyn, NY 11221",
+    "neighborhood": "Bushwick",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Bar Lun\u00c0tico",
+    "address": "486 Halsey St, Brooklyn, NY 11233",
+    "neighborhood": "Bedford-Stuyvesant",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Naumburg Bandshell",
+    "address": "Concert Ground, Central Park, New York, NY 10019",
+    "neighborhood": "Midtown",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Muse",
+    "address": "350 Moffat St, Brooklyn, NY 11237",
+    "neighborhood": "Bushwick",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Knockdown Center",
+    "address": "52-19 Flushing Ave, Maspeth, NY 11378",
+    "neighborhood": "Maspeth",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Bohemian Hall & Beer Garden",
+    "address": "29-19 24th Ave, Astoria, NY 11102",
+    "neighborhood": "Astoria",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Alice Austen House Museum",
+    "address": "2 Hylan Blvd, Staten Island, NY 10305",
+    "neighborhood": "Rosebank",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "LeFrak Center at Lakeside Prospect Park",
+    "address": "171 East Dr, Brooklyn, NY 11225",
+    "neighborhood": "Prospect Lefferts Gardens",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Ruins at Knockdown Center",
+    "address": "52-19 Flushing Ave, Maspeth, NY 11378",
+    "neighborhood": "Maspeth",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Brooklyn Music School (Outdoor Stage)",
+    "address": "126 St Felix St, Brooklyn, NY 11217",
+    "neighborhood": "Fort Greene",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Bronx Brewery & Empanology",
+    "address": "856 E 136th St, Bronx, NY 10454",
+    "neighborhood": "Port Morris",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Crotona Park Amphitheater",
+    "address": "Crotona Park, Bronx, NY 10457",
+    "neighborhood": "Crotona",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Williamsburg Music Center",
+    "address": "367 Bedford Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Terraza 7",
+    "address": "40-19 Gleane St, Queens, NY 11373",
+    "neighborhood": "Elmhurst",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Owl Music Parlor",
+    "address": "497 Rogers Ave, Brooklyn, NY 11225",
+    "neighborhood": "Prospect Lefferts Gardens",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Fotografiska New York (The Chapel Bar)",
+    "address": "281 Park Ave S, New York, NY 10010",
+    "neighborhood": "Gramercy Park",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "Hudson River Park Pier 45",
+    "address": "Christopher St, New York, NY 10014",
+    "neighborhood": "West Village",
+    "category": "outdoor concert venues amphitheaters"
+  },
+  {
+    "name": "The Metropolitan Museum of Art",
+    "address": "1000 5th Ave, New York, NY 10028",
+    "neighborhood": "Upper East Side",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of Modern Art (MoMA)",
+    "address": "11 W 53rd St, New York, NY 10019",
+    "neighborhood": "Midtown",
+    "category": "museums"
+  },
+  {
+    "name": "American Museum of Natural History",
+    "address": "200 Central Park West, New York, NY 10024",
+    "neighborhood": "Upper West Side",
+    "category": "museums"
+  },
+  {
+    "name": "Solomon R. Guggenheim Museum",
+    "address": "1071 5th Ave, New York, NY 10128",
+    "neighborhood": "Upper East Side",
+    "category": "museums"
+  },
+  {
+    "name": "Whitney Museum of American Art",
+    "address": "99 Gansevoort St, New York, NY 10014",
+    "neighborhood": "Meatpacking District",
+    "category": "museums"
+  },
+  {
+    "name": "Brooklyn Museum",
+    "address": "200 Eastern Pkwy, Brooklyn, NY 11238",
+    "neighborhood": "Prospect Heights",
+    "category": "museums"
+  },
+  {
+    "name": "The Frick Collection",
+    "address": "1 E 70th St, New York, NY 10021",
+    "neighborhood": "Upper East Side",
+    "category": "museums"
+  },
+  {
+    "name": "The Morgan Library & Museum",
+    "address": "225 Madison Ave, New York, NY 10016",
+    "neighborhood": "Murray Hill",
+    "category": "museums"
+  },
+  {
+    "name": "National September 11 Memorial & Museum",
+    "address": "180 Greenwich St, New York, NY 10007",
+    "neighborhood": "Financial District",
+    "category": "museums"
+  },
+  {
+    "name": "Intrepid Sea, Air & Space Museum",
+    "address": "Pier 86, W 46th St, New York, NY 10036",
+    "neighborhood": "Hell's Kitchen",
+    "category": "museums"
+  },
+  {
+    "name": "New Museum",
+    "address": "235 Bowery, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "museums"
+  },
+  {
+    "name": "The Cloisters",
+    "address": "99 Margaret Corbin Dr, New York, NY 10040",
+    "neighborhood": "Fort Tryon Park",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of the City of New York",
+    "address": "1220 5th Ave, New York, NY 10029",
+    "neighborhood": "East Harlem",
+    "category": "museums"
+  },
+  {
+    "name": "Tenement Museum",
+    "address": "103 Orchard St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "museums"
+  },
+  {
+    "name": "Cooper Hewitt, Smithsonian Design Museum",
+    "address": "2 E 91st St, New York, NY 10128",
+    "neighborhood": "Upper East Side",
+    "category": "museums"
+  },
+  {
+    "name": "Ellis Island National Museum of Immigration",
+    "address": "Ellis Island, New York, NY 10004",
+    "neighborhood": "New York Harbor",
+    "category": "museums"
+  },
+  {
+    "name": "New-York Historical Society",
+    "address": "170 Central Park West, New York, NY 10024",
+    "neighborhood": "Upper West Side",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of Jewish Heritage",
+    "address": "36 Battery Pl, New York, NY 10280",
+    "neighborhood": "Battery Park City",
+    "category": "museums"
+  },
+  {
+    "name": "The Jewish Museum",
+    "address": "1109 5th Ave, New York, NY 10128",
+    "neighborhood": "Upper East Side",
+    "category": "museums"
+  },
+  {
+    "name": "Rubin Museum of Art",
+    "address": "150 W 17th St, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of the Moving Image",
+    "address": "36-01 35th Ave, Astoria, NY 11106",
+    "neighborhood": "Astoria",
+    "category": "museums"
+  },
+  {
+    "name": "MoMA PS1",
+    "address": "22-25 Jackson Ave, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "museums"
+  },
+  {
+    "name": "Queens Museum",
+    "address": "New York City Building, Flushing Meadows Corona Park, Queens, NY 11368",
+    "neighborhood": "Flushing Meadows Corona Park",
+    "category": "museums"
+  },
+  {
+    "name": "Bronx Museum of the Art",
+    "address": "1040 Grand Concourse, Bronx, NY 10456",
+    "neighborhood": "Concourse",
+    "category": "museums"
+  },
+  {
+    "name": "El Museo del Barrio",
+    "address": "1230 5th Ave, New York, NY 10029",
+    "neighborhood": "East Harlem",
+    "category": "museums"
+  },
+  {
+    "name": "Studio Museum in Harlem",
+    "address": "144 W 125th St, New York, NY 10027",
+    "neighborhood": "Harlem",
+    "category": "museums"
+  },
+  {
+    "name": "Asia Society and Museum",
+    "address": "725 Park Ave, New York, NY 10021",
+    "neighborhood": "Upper East Side",
+    "category": "museums"
+  },
+  {
+    "name": "Japan Society",
+    "address": "333 E 47th St, New York, NY 10017",
+    "neighborhood": "Turtle Bay",
+    "category": "museums"
+  },
+  {
+    "name": "National Museum of the American Indian",
+    "address": "1 Bowling Green, New York, NY 10004",
+    "neighborhood": "Financial District",
+    "category": "museums"
+  },
+  {
+    "name": "The Skyscraper Museum",
+    "address": "39 Battery Pl, New York, NY 10280",
+    "neighborhood": "Battery Park City",
+    "category": "museums"
+  },
+  {
+    "name": "New York Transit Museum",
+    "address": "99 Schermerhorn St, Brooklyn, NY 11201",
+    "neighborhood": "Brooklyn Heights",
+    "category": "museums"
+  },
+  {
+    "name": "International Center of Photography",
+    "address": "79 Essex St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "museums"
+  },
+  {
+    "name": "American Folk Art Museum",
+    "address": "2 Lincoln Square, New York, NY 10023",
+    "neighborhood": "Lincoln Square",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of Arts and Design",
+    "address": "2 Columbus Cir, New York, NY 10019",
+    "neighborhood": "Midtown",
+    "category": "museums"
+  },
+  {
+    "name": "Children's Museum of Manhattan",
+    "address": "380 Columbus Ave, New York, NY 10024",
+    "neighborhood": "Upper West Side",
+    "category": "museums"
+  },
+  {
+    "name": "New York Hall of Science",
+    "address": "47-01 111th St, Queens, NY 11368",
+    "neighborhood": "Flushing Meadows Corona Park",
+    "category": "museums"
+  },
+  {
+    "name": "South Street Seaport Museum",
+    "address": "12 Fulton St, New York, NY 10038",
+    "neighborhood": "Financial District",
+    "category": "museums"
+  },
+  {
+    "name": "Fraunces Tavern Museum",
+    "address": "54 Pearl St, New York, NY 10004",
+    "neighborhood": "Financial District",
+    "category": "museums"
+  },
+  {
+    "name": "Merchant's House Museum",
+    "address": "29 E 4th St, New York, NY 10003",
+    "neighborhood": "NoHo",
+    "category": "museums"
+  },
+  {
+    "name": "The Noguchi Museum",
+    "address": "9-01 33rd Rd, Long Island City, NY 11106",
+    "neighborhood": "Long Island City",
+    "category": "museums"
+  },
+  {
+    "name": "Socrates Sculpture Park",
+    "address": "32-01 Vernon Blvd, Long Island City, NY 11106",
+    "neighborhood": "Long Island City",
+    "category": "museums"
+  },
+  {
+    "name": "Wave Hill",
+    "address": "4900 Independence Ave, Bronx, NY 10471",
+    "neighborhood": "Riverdale",
+    "category": "museums"
+  },
+  {
+    "name": "Staten Island Museum",
+    "address": "1000 Richmond Terrace, Staten Island, NY 10301",
+    "neighborhood": "Snug Harbor",
+    "category": "museums"
+  },
+  {
+    "name": "Snug Harbor Cultural Center & Botanical Garden",
+    "address": "1000 Richmond Terrace, Staten Island, NY 10301",
+    "neighborhood": "Snug Harbor",
+    "category": "museums"
+  },
+  {
+    "name": "National Lighthouse Museum",
+    "address": "200 The Promenade at Lighthouse Point, Staten Island, NY 10301",
+    "neighborhood": "St. George",
+    "category": "museums"
+  },
+  {
+    "name": "Poster House",
+    "address": "119 W 23rd St, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "museums"
+  },
+  {
+    "name": "The Drawing Center",
+    "address": "35 Wooster St, New York, NY 10013",
+    "neighborhood": "SoHo",
+    "category": "museums"
+  },
+  {
+    "name": "Leslie-Lohman Museum of Art",
+    "address": "26 Wooster St, New York, NY 10013",
+    "neighborhood": "SoHo",
+    "category": "museums"
+  },
+  {
+    "name": "New York City Fire Museum",
+    "address": "278 Spring St, New York, NY 10013",
+    "neighborhood": "Hudson Square",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of American Finance",
+    "address": "48 Wall St, New York, NY 10005",
+    "neighborhood": "Financial District",
+    "category": "museums"
+  },
+  {
+    "name": "Fotografiska New York",
+    "address": "281 Park Ave S, New York, NY 10010",
+    "neighborhood": "Gramercy Park",
+    "category": "museums"
+  },
+  {
+    "name": "Spyscape",
+    "address": "928 8th Ave, New York, NY 10019",
+    "neighborhood": "Midtown",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of Sex",
+    "address": "233 5th Ave, New York, NY 10016",
+    "neighborhood": "Nomad",
+    "category": "museums"
+  },
+  {
+    "name": "Color Factory",
+    "address": "251 Spring St, New York, NY 10013",
+    "neighborhood": "SoHo",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of Ice Cream",
+    "address": "558 Broadway, New York, NY 10012",
+    "neighborhood": "SoHo",
+    "category": "museums"
+  },
+  {
+    "name": "Brooklyn Children's Museum",
+    "address": "145 Brooklyn Ave, Brooklyn, NY 11213",
+    "neighborhood": "Crown Heights",
+    "category": "museums"
+  },
+  {
+    "name": "Staten Island Children's Museum",
+    "address": "1000 Richmond Terrace, Staten Island, NY 10301",
+    "neighborhood": "Snug Harbor",
+    "category": "museums"
+  },
+  {
+    "name": "The Hispanic Society of America",
+    "address": "613 W 155th St, New York, NY 10032",
+    "neighborhood": "Washington Heights",
+    "category": "museums"
+  },
+  {
+    "name": "Nicholas Roerich Museum",
+    "address": "319 W 107th St, New York, NY 10025",
+    "neighborhood": "Upper West Side",
+    "category": "museums"
+  },
+  {
+    "name": "SculptureCenter",
+    "address": "44-19 Purves St, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "museums"
+  },
+  {
+    "name": "Swiss Institute Contemporary Art New York",
+    "address": "38 St Marks Pl, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "museums"
+  },
+  {
+    "name": "Storefront for Art and Architecture",
+    "address": "97 Kenmare St, New York, NY 10012",
+    "neighborhood": "Nolita",
+    "category": "museums"
+  },
+  {
+    "name": "The Kitchen",
+    "address": "512 W 19th St, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "museums"
+  },
+  {
+    "name": "Anthology Film Archives",
+    "address": "32 2nd Ave, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "museums"
+  },
+  {
+    "name": "Film Forum",
+    "address": "209 W Houston St, New York, NY 10014",
+    "neighborhood": "Greenwich Village",
+    "category": "museums"
+  },
+  {
+    "name": "The City Reliquary",
+    "address": "370 Metropolitan Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "museums"
+  },
+  {
+    "name": "Mmuseumm",
+    "address": "4 Cortlandt Alley, New York, NY 10013",
+    "neighborhood": "Tribeca",
+    "category": "museums"
+  },
+  {
+    "name": "Morris-Jumel Mansion",
+    "address": "65 Jumel Terrace, New York, NY 10032",
+    "neighborhood": "Washington Heights",
+    "category": "museums"
+  },
+  {
+    "name": "Dyckman Farmhouse Museum",
+    "address": "4881 Broadway, New York, NY 10034",
+    "neighborhood": "Inwood",
+    "category": "museums"
+  },
+  {
+    "name": "Mount Vernon Hotel Museum & Garden",
+    "address": "421 E 61st St, New York, NY 10065",
+    "neighborhood": "Upper East Side",
+    "category": "museums"
+  },
+  {
+    "name": "Edgar Allan Poe Cottage",
+    "address": "2640 Grand Concourse, Bronx, NY 10458",
+    "neighborhood": "Fordham",
+    "category": "museums"
+  },
+  {
+    "name": "Louis Armstrong House Museum",
+    "address": "34-56 107th St, Corona, NY 11368",
+    "neighborhood": "Corona",
+    "category": "museums"
+  },
+  {
+    "name": "King Manor Museum",
+    "address": "150-03 Jamaica Ave, Jamaica, NY 11432",
+    "neighborhood": "Jamaica",
+    "category": "museums"
+  },
+  {
+    "name": "Weeksville Heritage Center",
+    "address": "158 Buffalo Ave, Brooklyn, NY 11213",
+    "neighborhood": "Crown Heights",
+    "category": "museums"
+  },
+  {
+    "name": "Lefferts Historic House",
+    "address": "452 Flatbush Ave, Brooklyn, NY 11225",
+    "neighborhood": "Prospect Park",
+    "category": "museums"
+  },
+  {
+    "name": "Morgan Library & Museum",
+    "address": "225 Madison Ave, New York, NY 10016",
+    "neighborhood": "Murray Hill",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of Jewish Heritage \u2013 A Living Memorial to the Holocaust",
+    "address": "36 Battery Pl, New York, NY 10280",
+    "neighborhood": "Battery Park City",
+    "category": "museums"
+  },
+  {
+    "name": "Historic Richmond Town",
+    "address": "441 Clarke Ave, Staten Island, NY 10306",
+    "neighborhood": "Richmond Town",
+    "category": "museums"
+  },
+  {
+    "name": "Neue Galerie New York",
+    "address": "1048 5th Ave, New York, NY 10028",
+    "neighborhood": "Upper East Side",
+    "category": "museums"
+  },
+  {
+    "name": "Museum at Eldridge Street",
+    "address": "12 Eldridge St, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of Chinese in America",
+    "address": "215 Centre St, New York, NY 10013",
+    "neighborhood": "Chinatown",
+    "category": "museums"
+  },
+  {
+    "name": "Scandinavia House: The Nordic Center in America",
+    "address": "58 Park Ave, New York, NY 10016",
+    "neighborhood": "Murray Hill",
+    "category": "museums"
+  },
+  {
+    "name": "The AKC Museum of the Dog",
+    "address": "101 Park Ave, New York, NY 10178",
+    "neighborhood": "Midtown East",
+    "category": "museums"
+  },
+  {
+    "name": "The Noble Maritime Collection",
+    "address": "1000 Richmond Terrace, Building D, Staten Island, NY 10301",
+    "neighborhood": "Livingston",
+    "category": "museums"
+  },
+  {
+    "name": "Alice Austen House Museum",
+    "address": "2 Hylan Blvd, Staten Island, NY 10305",
+    "neighborhood": "Rosebank",
+    "category": "museums"
+  },
+  {
+    "name": "Garibaldi-Meucci Museum",
+    "address": "420 Tompkins Ave, Staten Island, NY 10305",
+    "neighborhood": "Rosebank",
+    "category": "museums"
+  },
+  {
+    "name": "Jacques Marchais Museum of Tibetan Art",
+    "address": "338 Lighthouse Ave, Staten Island, NY 10306",
+    "neighborhood": "Lighthouse Hill",
+    "category": "museums"
+  },
+  {
+    "name": "Waterfront Museum",
+    "address": "290 Conover St, Brooklyn, NY 11231",
+    "neighborhood": "Red Hook",
+    "category": "museums"
+  },
+  {
+    "name": "City Reliquary",
+    "address": "370 Metropolitan Ave, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "museums"
+  },
+  {
+    "name": "Kingsbridge Historical Society",
+    "address": "2570 Independence Ave, Bronx, NY 10463",
+    "neighborhood": "Spuyten Duyvil",
+    "category": "museums"
+  },
+  {
+    "name": "Bronx County Historical Society",
+    "address": "3309 Bainbridge Ave, Bronx, NY 10467",
+    "neighborhood": "Norwood",
+    "category": "museums"
+  },
+  {
+    "name": "City Island Nautical Museum",
+    "address": "190 Fordham St, City Island, NY 10464",
+    "neighborhood": "City Island",
+    "category": "museums"
+  },
+  {
+    "name": "Van Cortlandt House Museum",
+    "address": "Van Cortlandt Park, Broadway at W. 246th St, Bronx, NY 10471",
+    "neighborhood": "Van Cortlandt Park",
+    "category": "museums"
+  },
+  {
+    "name": "Bartow-Pell Mansion Museum",
+    "address": "895 Shore Rd, Pelham Bay Park, Bronx, NY 10464",
+    "neighborhood": "Pelham Bay Park",
+    "category": "museums"
+  },
+  {
+    "name": "Queens Historical Society",
+    "address": "143-35 37th Ave, Flushing, NY 11354",
+    "neighborhood": "Flushing",
+    "category": "museums"
+  },
+  {
+    "name": "Greater Astoria Historical Society",
+    "address": "35-20 Broadway, 4th Floor, Astoria, NY 11106",
+    "neighborhood": "Astoria",
+    "category": "museums"
+  },
+  {
+    "name": "Newtown Historical Society",
+    "address": "P.O. Box 780035, Maspeth, NY 11378",
+    "neighborhood": "Maspeth",
+    "category": "museums"
+  },
+  {
+    "name": "Richmond Hill Historical Society",
+    "address": "116-01 91st Ave, Richmond Hill, NY 11418",
+    "neighborhood": "Richmond Hill",
+    "category": "museums"
+  },
+  {
+    "name": "Bayside Historical Society",
+    "address": "208 Totten Ave, Fort Totten, NY 11359",
+    "neighborhood": "Bayside",
+    "category": "museums"
+  },
+  {
+    "name": "Flushing Town Hall",
+    "address": "137-35 Northern Blvd, Flushing, NY 11354",
+    "neighborhood": "Flushing",
+    "category": "museums"
+  },
+  {
+    "name": "Lewis Latimer House Museum",
+    "address": "34-41 137th St, Flushing, NY 11354",
+    "neighborhood": "Flushing",
+    "category": "museums"
+  },
+  {
+    "name": "Center for Brooklyn History",
+    "address": "128 Pierrepont St, Brooklyn, NY 11201",
+    "neighborhood": "Brooklyn Heights",
+    "category": "museums"
+  },
+  {
+    "name": "Old Stone House of Brooklyn",
+    "address": "336 3rd St, Brooklyn, NY 11215",
+    "neighborhood": "Park Slope",
+    "category": "museums"
+  },
+  {
+    "name": "Coney Island Museum",
+    "address": "1208 Surf Ave, Brooklyn, NY 11224",
+    "neighborhood": "Coney Island",
+    "category": "museums"
+  },
+  {
+    "name": "Micro Museum",
+    "address": "123 Smith St, Brooklyn, NY 11201",
+    "neighborhood": "Boerum Hill",
+    "category": "museums"
+  },
+  {
+    "name": "Tottenville Historical Society",
+    "address": "229 Main St, Staten Island, NY 10307",
+    "neighborhood": "Tottenville",
+    "category": "museums"
+  },
+  {
+    "name": "Preservation League of Staten Island",
+    "address": "PO Box 140032, Staten Island, NY 10314",
+    "neighborhood": "Staten Island",
+    "category": "museums"
+  },
+  {
+    "name": "Noble Maritime Collection",
+    "address": "1000 Richmond Terrace, Building D, Staten Island, NY 10301",
+    "neighborhood": "Livingston",
+    "category": "museums"
+  },
+  {
+    "name": "Staten Island Museum at Snug Harbor",
+    "address": "1000 Richmond Terrace, Building A, Staten Island, NY 10301",
+    "neighborhood": "Livingston",
+    "category": "museums"
+  },
+  {
+    "name": "Sandy Ground Historical Society",
+    "address": "1538 Woodrow Rd, Staten Island, NY 10309",
+    "neighborhood": "Rossville",
+    "category": "museums"
+  },
+  {
+    "name": "Conference House Park",
+    "address": "298 Satterlee St, Staten Island, NY 10307",
+    "neighborhood": "Tottenville",
+    "category": "museums"
+  },
+  {
+    "name": "Fort Wadsworth",
+    "address": "210 New York Ave, Staten Island, NY 10305",
+    "neighborhood": "Fort Wadsworth",
+    "category": "museums"
+  },
+  {
+    "name": "Queens County Farm Museum",
+    "address": "73-50 Little Neck Pkwy, Queens, NY 11004",
+    "neighborhood": "Glen Oaks",
+    "category": "museums"
+  },
+  {
+    "name": "Voelker Orth Museum",
+    "address": "149-19 38th Ave, Flushing, NY 11354",
+    "neighborhood": "Flushing",
+    "category": "museums"
+  },
+  {
+    "name": "Bowne House",
+    "address": "37-01 Bowne St, Flushing, NY 11354",
+    "neighborhood": "Flushing",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of Contemporary African Diasporan Arts (MoCADA)",
+    "address": "80 Hanson Pl, Brooklyn, NY 11217",
+    "neighborhood": "Fort Greene",
+    "category": "museums"
+  },
+  {
+    "name": "Harbor Defense Museum",
+    "address": "230 Sheridan Loop, Brooklyn, NY 11252",
+    "neighborhood": "Fort Hamilton",
+    "category": "museums"
+  },
+  {
+    "name": "Bronx Documentary Center",
+    "address": "614 Courtlandt Ave, Bronx, NY 10451",
+    "neighborhood": "Melrose",
+    "category": "museums"
+  },
+  {
+    "name": "The Waterfront Museum",
+    "address": "290 Conover St, Brooklyn, NY 11231",
+    "neighborhood": "Red Hook",
+    "category": "museums"
+  },
+  {
+    "name": "Building 92 at the Brooklyn Navy Yard",
+    "address": "63 Flushing Ave, Brooklyn, NY 11205",
+    "neighborhood": "Brooklyn Navy Yard",
+    "category": "museums"
+  },
+  {
+    "name": "Vander Ende-Onderdonk House",
+    "address": "1820 Flushing Ave, Ridgewood, NY 11385",
+    "neighborhood": "Ridgewood",
+    "category": "museums"
+  },
+  {
+    "name": "Cultural Lab LIC",
+    "address": "5-25 46th Avenue, Long Island City, NY 11101",
+    "neighborhood": "Long Island City",
+    "category": "museums"
+  },
+  {
+    "name": "Newhouse Center for Contemporary Art",
+    "address": "1000 Richmond Terrace, Building C, Staten Island, NY 10301",
+    "neighborhood": "Livingston",
+    "category": "museums"
+  },
+  {
+    "name": "Brooklyn Art Library",
+    "address": "28 Frost St, Brooklyn, NY 11211",
+    "neighborhood": "Williamsburg",
+    "category": "museums"
+  },
+  {
+    "name": "Lower East Side Tenement Museum",
+    "address": "103 Orchard Street, New York, NY 10002",
+    "neighborhood": "Lower East Side",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of Jewish Heritage - A Living Memorial to the Holocaust",
+    "address": "36 Battery Place, New York, NY 10280",
+    "neighborhood": "Battery Park City",
+    "category": "museums"
+  },
+  {
+    "name": "Theodore Roosevelt Birthplace National Historic Site",
+    "address": "28 East 20th Street, New York, NY 10003",
+    "neighborhood": "Flatiron District",
+    "category": "museums"
+  },
+  {
+    "name": "Italian American Museum",
+    "address": "155 Mulberry Street, New York, NY 10013",
+    "neighborhood": "Little Italy",
+    "category": "museums"
+  },
+  {
+    "name": "African Burial Ground National Monument",
+    "address": "290 Broadway, New York, NY 10007",
+    "neighborhood": "Civic Center",
+    "category": "museums"
+  },
+  {
+    "name": "Wyckoff House Museum",
+    "address": "5816 Clarendon Road, Brooklyn, NY 11203",
+    "neighborhood": "East Flatbush",
+    "category": "museums"
+  },
+  {
+    "name": "China Institute Gallery",
+    "address": "100 Washington Street, New York, NY 10006",
+    "neighborhood": "Financial District",
+    "category": "museums"
+  },
+  {
+    "name": "Godwin-Ternbach Museum",
+    "address": "65-30 Kissena Boulevard, Queens, NY 11367",
+    "neighborhood": "Flushing",
+    "category": "museums"
+  },
+  {
+    "name": "Lehman College Art Gallery",
+    "address": "250 Bedford Park Boulevard West, Bronx, NY 10468",
+    "neighborhood": "Bedford Park",
+    "category": "museums"
+  },
+  {
+    "name": "New York City Police Museum",
+    "address": "Currently without a permanent home, previously at 100 Old Slip, New York, NY 10005",
+    "neighborhood": "Financial District",
+    "category": "museums"
+  },
+  {
+    "name": "The Rubin Museum of Art",
+    "address": "150 West 17th Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "museums"
+  },
+  {
+    "name": "Hispanic Society Museum & Library",
+    "address": "613 West 155th Street, New York, NY 10032",
+    "neighborhood": "Washington Heights",
+    "category": "museums"
+  },
+  {
+    "name": "The Studio Museum in Harlem",
+    "address": "144 West 125th Street, New York, NY 10027",
+    "neighborhood": "Harlem",
+    "category": "museums"
+  },
+  {
+    "name": "National Museum of the American Indian - New York",
+    "address": "One Bowling Green, New York, NY 10004",
+    "neighborhood": "Financial District",
+    "category": "museums"
+  },
+  {
+    "name": "Irish Repertory Theatre",
+    "address": "132 West 22nd Street, New York, NY 10011",
+    "neighborhood": "Chelsea",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of Food and Drink (MOFAD)",
+    "address": "Location varies, check website for current exhibitions",
+    "neighborhood": "Varies",
+    "category": "museums"
+  },
+  {
+    "name": "AKC Museum of the Dog",
+    "address": "101 Park Ave, New York, NY 10178",
+    "neighborhood": "Murray Hill",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of Reclaimed Urban Space (MoRUS)",
+    "address": "155 Avenue C, New York, NY 10009",
+    "neighborhood": "East Village",
+    "category": "museums"
+  },
+  {
+    "name": "SPYSCAPE Spy Museum",
+    "address": "928 8th Ave, New York, NY 10019",
+    "neighborhood": "Midtown West",
+    "category": "museums"
+  },
+  {
+    "name": "National Jazz Museum in Harlem",
+    "address": "58 W 129th St, New York, NY 10027",
+    "neighborhood": "Harlem",
+    "category": "museums"
+  },
+  {
+    "name": "The Met Cloisters",
+    "address": "99 Margaret Corbin Dr, New York, NY 10040",
+    "neighborhood": "Fort Tryon Park",
+    "category": "museums"
+  },
+  {
+    "name": "Waterfront Barge Museum",
+    "address": "290 Conover St, Brooklyn, NY 11231",
+    "neighborhood": "Red Hook",
+    "category": "museums"
+  },
+  {
+    "name": "Museum of the American Gangster",
+    "address": "80 St Marks Pl, New York, NY 10003",
+    "neighborhood": "East Village",
+    "category": "museums"
+  },
+  {
+    "name": "The Museum of Mathematics",
+    "address": "11 E 26th St, New York, NY 10010",
+    "neighborhood": "Flatiron District",
+    "category": "museums"
+  },
+  {
+    "name": "Hispanic Society of America",
+    "address": "613 W 155th St, New York, NY 10032",
+    "neighborhood": "Washington Heights",
+    "category": "museums"
+  },
+  {
+    "name": "The Renee & Chaim Gross Foundation",
+    "address": "526 LaGuardia Pl, New York, NY 10012",
+    "neighborhood": "Greenwich Village",
+    "category": "museums"
+  },
+  {
+    "name": "Skyscraper Museum",
+    "address": "39 Battery Pl, New York, NY 10280",
+    "neighborhood": "Battery Park City",
+    "category": "museums"
+  },
+  {
+    "name": "The Jacques Marchais Museum of Tibetan Art",
+    "address": "338 Lighthouse Ave, Staten Island, NY 10306",
+    "neighborhood": "Lighthouse Hill",
+    "category": "museums"
+  },
+  {
+    "name": "Gracie Mansion",
+    "address": "E 88th St & East End Ave, New York, NY 10128",
+    "neighborhood": "Yorkville",
+    "category": "museums"
+  },
+  {
+    "name": "Hamilton Grange National Memorial",
+    "address": "414 W 141st St, New York, NY 10031",
+    "neighborhood": "Hamilton Heights",
+    "category": "museums"
+  },
+  {
+    "name": "Edward Mooney House",
+    "address": "18 Bowery, New York, NY 10013",
+    "neighborhood": "Chinatown",
+    "category": "museums"
+  },
+  {
+    "name": "Hendrick I. Lott House",
+    "address": "1940 E 36th St, Brooklyn, NY 11234",
+    "neighborhood": "Marine Park",
+    "category": "museums"
+  },
+  {
+    "name": "Voelker Orth Museum, Bird Sanctuary and Victorian Garden",
+    "address": "149-19 38th Ave, Flushing, NY 11354",
+    "neighborhood": "Flushing",
+    "category": "museums"
+  },
+  {
+    "name": "Lewis H. Latimer House Museum",
+    "address": "34-41 137th St, Flushing, NY 11354",
+    "neighborhood": "Flushing",
+    "category": "museums"
+  },
+  {
+    "name": "Kingsland Homestead",
+    "address": "143-35 37th Ave, Flushing, NY 11354",
+    "neighborhood": "Flushing",
+    "category": "museums"
+  },
+  {
+    "name": "Valentine-Varian House",
+    "address": "3266 Bainbridge Ave, Bronx, NY 10467",
+    "neighborhood": "Norwood",
+    "category": "museums"
+  },
+  {
+    "name": "Seguine Mansion",
+    "address": "440 Seguine Ave, Staten Island, NY 10309",
+    "neighborhood": "Prince's Bay",
+    "category": "museums"
+  },
+  {
+    "name": "Kreuzer-Pelton House",
+    "address": "1262 Richmond Terrace, Staten Island, NY 10310",
+    "neighborhood": "West New Brighton",
+    "category": "museums"
+  },
+  {
+    "name": "Billiou-Stillwell-Perine House",
+    "address": "1476 Richmond Rd, Staten Island, NY 10304",
+    "neighborhood": "Dongan Hills",
+    "category": "museums"
+  },
+  {
+    "name": "Olmsted-Beil House",
+    "address": "4515 Hylan Blvd, Staten Island, NY 10312",
+    "neighborhood": "Eltingville",
+    "category": "museums"
+  },
+  {
+    "name": "Casa Belvedere",
+    "address": "79 Howard Ave, Staten Island, NY 10301",
+    "neighborhood": "Grymes Hill",
+    "category": "museums"
+  },
+  {
+    "name": "Brooklyn Botanic Garden",
+    "address": "990 Washington Ave, Brooklyn, NY 11225",
+    "neighborhood": "Prospect Heights",
+    "category": "museums"
+  },
+  {
+    "name": "BRIC Arts Media",
+    "address": "647 Fulton St, Brooklyn, NY 11217",
+    "neighborhood": "Fort Greene",
+    "category": "museums"
+  },
+  {
+    "name": "National Museum of Mathematics",
+    "address": "11 E 26th St, New York, NY 10010",
+    "neighborhood": "Nomad",
+    "category": "museums"
+  },
+  {
+    "name": "New York Botanical Garden",
+    "address": "2900 Southern Blvd, Bronx, NY 10458",
+    "neighborhood": "Bronx Park",
+    "category": "museums"
+  },
+  {
+    "name": "Pioneer Works",
+    "address": "159 Pioneer St, Brooklyn, NY 11231",
+    "neighborhood": "Red Hook",
+    "category": "museums"
+  },
+  {
+    "name": "Pregones/Puerto Rican Traveling Theater",
+    "address": "571 Walton Ave, Bronx, NY 10451",
+    "neighborhood": "Mott Haven",
+    "category": "museums"
+  },
+  {
+    "name": "Queens Botanical Garden",
+    "address": "43-50 Main St, Queens, NY 11355",
+    "neighborhood": "Flushing",
+    "category": "museums"
+  }
+]

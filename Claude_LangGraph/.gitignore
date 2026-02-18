@@ -8,13 +8,22 @@ cache/events.csv
 cache/concerts.csv
 cache/cache_metadata.json
 
-# Concert finder secrets
-concert_finder/config.json
-concert_finder/browser.json
+# Config secrets
+config/config.json
+config/browser.json
+config/google_credentials.json
+config/google_token.json
+config/sheets_config.json
+
+# Concert finder cache
 concert_finder/.artists_cache.json
 concert_finder/.concert_results.json
-concert_finder/calendar_credentials.json
-concert_finder/calendar_token.json
+
+# Venue scout data (cached venue info, not code)
+venue_scout/data/venues.json
+venue_scout/data/places_cache.json
+venue_scout/data/venue_cache_metadata.json
+venue_scout/outputs/
 
 # Environment
 .env

@@ -1,62 +1,15 @@
 """Google Calendar API for checking event conflicts."""
 
-import json
-import os
 from datetime import datetime, timedelta
-from pathlib import Path
 
-from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
-# Scopes for read-only calendar access
-SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
-
-# Paths for credentials
-_CONFIG_DIR = Path(__file__).parent.parent / "concert_finder"
-_CREDENTIALS_FILE = _CONFIG_DIR / "calendar_credentials.json"
-_TOKEN_FILE = _CONFIG_DIR / "calendar_token.json"
-
-
-def _get_credentials() -> Credentials | None:
-    """Get valid Google Calendar credentials, refreshing or prompting auth as needed."""
-    creds = None
-
-    # Load existing token
-    if _TOKEN_FILE.exists():
-        creds = Credentials.from_authorized_user_file(str(_TOKEN_FILE), SCOPES)
-
-    # Refresh or get new credentials
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            try:
-                creds.refresh(Request())
-            except Exception:
-                creds = None
-
-        if not creds:
-            if not _CREDENTIALS_FILE.exists():
-                print(f"Calendar credentials file not found: {_CREDENTIALS_FILE}")
-                print("Please download OAuth credentials from Google Cloud Console")
-                print("and save as 'calendar_credentials.json' in the concert_finder folder.")
-                return None
-
-            flow = InstalledAppFlow.from_client_secrets_file(
-                str(_CREDENTIALS_FILE), SCOPES
-            )
-            creds = flow.run_local_server(port=0)
-
-        # Save token for future use
-        with open(_TOKEN_FILE, "w") as token:
-            token.write(creds.to_json())
-
-    return creds
+from .google_auth import get_credentials, is_authenticated, setup_auth
 
 
 def get_calendar_service():
     """Get authenticated Google Calendar service."""
-    creds = _get_credentials()
+    creds = get_credentials()
     if not creds:
         return None
     return build("calendar", "v3", credentials=creds)
@@ -134,13 +87,11 @@ def has_conflict(
 
     conflicts = []
     for cal_event in calendar_events:
-        # Parse calendar event times
         cal_start_str = cal_event["start"]
         cal_end_str = cal_event["end"]
 
         try:
             if cal_event["all_day"]:
-                # All-day events - check date overlap
                 cal_date = datetime.fromisoformat(cal_start_str).date()
                 if event_start.date() == cal_date:
                     conflicts.append(cal_event)
@@ -148,7 +99,6 @@ def has_conflict(
                 cal_start = datetime.fromisoformat(cal_start_str)
                 cal_end = datetime.fromisoformat(cal_end_str)
 
-                # Check for time overlap
                 if cal_start < event_end and cal_end > event_start:
                     conflicts.append(cal_event)
         except Exception:
@@ -162,16 +112,9 @@ def check_event_conflicts(events: list[dict]) -> list[dict]:
     Check a list of events for calendar conflicts.
 
     Adds '_has_conflict' and '_conflicts' fields to each event.
-
-    Args:
-        events: List of event dicts with 'datetime' field
-
-    Returns:
-        Same list with conflict info added
     """
     service = get_calendar_service()
     if not service:
-        # Can't check conflicts, return events unchanged
         for event in events:
             event["_has_conflict"] = None
             event["_conflicts"] = []
@@ -191,51 +134,9 @@ def check_event_conflicts(events: list[dict]) -> list[dict]:
     return events
 
 
-def is_calendar_configured() -> bool:
-    """Check if calendar credentials are set up."""
-    return _CREDENTIALS_FILE.exists()
-
-
 def is_calendar_authenticated() -> bool:
-    """Check if we have valid calendar authentication."""
-    if not _TOKEN_FILE.exists():
-        return False
-    try:
-        creds = Credentials.from_authorized_user_file(str(_TOKEN_FILE), SCOPES)
-        return creds and creds.valid
-    except Exception:
-        return False
-
-
-def setup_calendar_auth():
-    """Interactive setup for Google Calendar authentication."""
-    print("Setting up Google Calendar integration...")
-    print()
-
-    if not _CREDENTIALS_FILE.exists():
-        print("Step 1: Download OAuth credentials")
-        print("  1. Go to https://console.cloud.google.com/apis/credentials")
-        print("  2. Create an OAuth 2.0 Client ID (Desktop app)")
-        print("  3. Download the JSON file")
-        print(f"  4. Save it as: {_CREDENTIALS_FILE}")
-        print()
-        input("Press Enter when ready...")
-
-    if not _CREDENTIALS_FILE.exists():
-        print("Credentials file still not found. Please try again.")
-        return False
-
-    print("\nStep 2: Authorize calendar access")
-    print("A browser window will open for you to authorize access...")
-    print()
-
-    creds = _get_credentials()
-    if creds:
-        print("\nCalendar authentication successful!")
-        return True
-    else:
-        print("\nCalendar authentication failed.")
-        return False
+    """Check if we have valid Google authentication."""
+    return is_authenticated()
 
 
 def test_calendar():
@@ -243,13 +144,9 @@ def test_calendar():
     print("Testing Google Calendar integration...")
     print()
 
-    if not is_calendar_configured():
-        print("Calendar not configured. Run setup_calendar_auth() first.")
-        return
-
-    if not is_calendar_authenticated():
-        print("Calendar not authenticated. Attempting auth...")
-        if not setup_calendar_auth():
+    if not is_authenticated():
+        print("Not authenticated. Running setup...")
+        if not setup_auth():
             return
 
     print("Fetching next 7 days of events...")
@@ -267,8 +164,4 @@ def test_calendar():
 
 
 if __name__ == "__main__":
-    import sys
-    if len(sys.argv) > 1 and sys.argv[1] == "setup":
-        setup_calendar_auth()
-    else:
-        test_calendar()
+    test_calendar()

@@ -206,9 +206,9 @@ def find_concerts_for_liked_artists(
     # Cache results to JSON (detailed)
     RESULTS_CACHE.write_text(json.dumps(results, indent=2))
 
-    # Cache results to CSV (for LangGraph integration)
+    # Cache results to Google Sheets (for LangGraph integration)
     write_concerts_to_cache(results["concerts_found"])
-    print(f"\nCached {len(results['concerts_found'])} concerts to CSV.")
+    print(f"\nCached {len(results['concerts_found'])} concerts to Google Sheets.")
 
     return results
 

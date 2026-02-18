@@ -1,13 +1,27 @@
 """Ticketmaster Discovery API client to find concerts."""
 
+import importlib.util
 import time
 from datetime import datetime, timedelta
 import requests
+from pathlib import Path
 
 try:
     from .config import get_ticketmaster_key
 except ImportError:
     from config import get_ticketmaster_key
+
+
+def _load_settings():
+    """Load settings module directly to avoid circular imports."""
+    settings_path = Path(__file__).parent.parent / "settings.py"
+    spec = importlib.util.spec_from_file_location("settings", settings_path)
+    settings = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(settings)
+    return settings
+
+
+_settings = _load_settings()
 
 TICKETMASTER_API_BASE = "https://app.ticketmaster.com/discovery/v2"
 
@@ -28,7 +42,8 @@ class TicketmasterClient:
         """Make a request with retry logic for rate limits."""
         for attempt in range(max_retries):
             try:
-                response = requests.get(url, params=params, timeout=15)
+                timeout = int(_settings.TICKETMASTER_REQUEST_TIMEOUT_SEC)
+                response = requests.get(url, params=params, timeout=timeout)
 
                 if response.status_code == 429:
                     # Rate limited - wait and retry
@@ -207,6 +222,149 @@ class TicketmasterClient:
         if attractions:
             return attractions[0].get("id")
         return None
+
+    def search_venue_id(self, venue_name: str, city: str | None = None, state_code: str | None = None) -> str | None:
+        """
+        Search for a venue ID by name.
+
+        Args:
+            venue_name: Name of the venue
+            city: City name (optional)
+            state_code: State code (optional, e.g. "NY")
+
+        Returns:
+            Venue ID if found, None otherwise
+        """
+        params = {
+            "apikey": self.api_key,
+            "keyword": venue_name,
+            "size": 5,
+        }
+
+        if state_code:
+            params["stateCode"] = state_code
+
+        response = self._request_with_retry(
+            f"{TICKETMASTER_API_BASE}/venues.json",
+            params=params,
+        )
+
+        if not response or response.status_code != 200:
+            return None
+
+        data = response.json()
+        venues = data.get("_embedded", {}).get("venues", [])
+
+        if not venues:
+            return None
+
+        # Try to find exact match first
+        venue_lower = venue_name.lower()
+        for v in venues:
+            if v.get("name", "").lower() == venue_lower:
+                return v.get("id")
+
+        # Check city match if provided
+        if city:
+            city_lower = city.lower()
+            for v in venues:
+                v_city = v.get("city", {}).get("name", "").lower()
+                if v.get("name", "").lower() in venue_lower or venue_lower in v.get("name", "").lower():
+                    if v_city == city_lower or city_lower in v_city:
+                        return v.get("id")
+
+        # Return first result as fallback
+        return venues[0].get("id")
+
+    def search_events_by_venue(
+        self,
+        venue_name: str,
+        city: str | None = None,
+        state_code: str | None = None,
+        months_ahead: int = 3,
+        venue_id: str | None = None,
+    ) -> list[dict]:
+        """
+        Search for events at a specific venue.
+
+        Args:
+            venue_name: Name of the venue
+            city: City name (optional)
+            state_code: State code (optional)
+            months_ahead: How many months ahead to search
+            venue_id: If known, use this venue ID directly
+
+        Returns:
+            List of events at this venue
+        """
+        # Try to get venue ID if not provided
+        if not venue_id:
+            venue_id = self.search_venue_id(venue_name, city, state_code)
+
+        if not venue_id:
+            # Fallback to keyword search
+            return self.search_events(
+                keyword=venue_name,
+                city=city,
+                state_code=state_code,
+                start_date=datetime.now(),
+                end_date=datetime.now() + timedelta(days=months_ahead * 30),
+                classification_name="",  # Don't filter by classification
+                size=50,
+            )
+
+        # Search by venue ID
+        start_date = datetime.now()
+        end_date = start_date + timedelta(days=months_ahead * 30)
+
+        params = {
+            "apikey": self.api_key,
+            "venueId": venue_id,
+            "size": 50,
+            "sort": "date,asc",
+            "startDateTime": start_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "endDateTime": end_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+
+        response = self._request_with_retry(
+            f"{TICKETMASTER_API_BASE}/events.json",
+            params=params,
+        )
+
+        if not response or response.status_code != 200:
+            return []
+
+        data = response.json()
+        events_data = data.get("_embedded", {}).get("events", [])
+
+        events = []
+        for event in events_data:
+            venues = event.get("_embedded", {}).get("venues", [])
+            venue = venues[0] if venues else {}
+            dates = event.get("dates", {}).get("start", {})
+            price_ranges = event.get("priceRanges", [])
+            attractions = event.get("_embedded", {}).get("attractions", [])
+
+            events.append({
+                "id": event.get("id"),
+                "name": event.get("name"),
+                "date": dates.get("localDate", ""),
+                "time": dates.get("localTime", ""),
+                "datetime_str": f"{dates.get('localDate', '')} {dates.get('localTime', '')}".strip(),
+                "venue_name": venue.get("name"),
+                "venue_id": venue.get("id"),
+                "venue_city": venue.get("city", {}).get("name"),
+                "venue_state": venue.get("state", {}).get("stateCode"),
+                "venue_address": venue.get("address", {}).get("line1"),
+                "artists": [a.get("name") for a in attractions],
+                "url": event.get("url"),
+                "price_min": price_ranges[0].get("min") if price_ranges else None,
+                "price_max": price_ranges[0].get("max") if price_ranges else None,
+                "status": event.get("dates", {}).get("status", {}).get("code"),
+                "source": "ticketmaster",
+            })
+
+        return events
 
     def get_events_by_attraction_id(
         self,

@@ -1,15 +1,93 @@
 """Google Maps Distance Matrix API for travel time estimation."""
 
+import importlib.util
 import json
 import requests
 from pathlib import Path
 
 
+def _load_settings():
+    """Load settings module directly to avoid circular imports."""
+    settings_path = Path(__file__).parent.parent / "settings.py"
+    spec = importlib.util.spec_from_file_location("settings", settings_path)
+    settings = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(settings)
+    return settings
+
+
+_settings = _load_settings()
+
+
 def _load_config() -> dict:
     """Load config from file."""
-    config_path = Path(__file__).parent.parent / "concert_finder" / "config.json"
+    config_path = Path(__file__).parent.parent / "config" / "config.json"
     with open(config_path) as f:
         return json.load(f)
+
+
+def get_travel_times_batch(
+    origin: str,
+    destinations: list[str],
+    mode: str = "transit",
+) -> list[dict]:
+    """
+    Get travel times to multiple destinations in a single API call.
+
+    Distance Matrix API supports up to 25 destinations per request.
+    This is much cheaper than individual calls.
+
+    Returns list of dicts with same structure as get_travel_time().
+    """
+    config = _load_config()
+    api_key = config.get("google_cloud", {}).get("api_key")
+
+    if not api_key:
+        return [{"status": "error", "error": "No API key"} for _ in destinations]
+
+    # API limit is 25 destinations per request
+    if len(destinations) > 25:
+        # Split into batches
+        results = []
+        for i in range(0, len(destinations), 25):
+            batch = destinations[i:i+25]
+            results.extend(get_travel_times_batch(origin, batch, mode))
+        return results
+
+    url = "https://maps.googleapis.com/maps/api/distancematrix/json"
+    params = {
+        "origins": origin,
+        "destinations": "|".join(destinations),
+        "mode": mode,
+        "key": api_key,
+    }
+
+    try:
+        timeout = int(_settings.GOOGLE_DISTANCE_MATRIX_BATCH_TIMEOUT_SEC)
+        response = requests.get(url, params=params, timeout=timeout)
+        response.raise_for_status()
+        data = response.json()
+
+        if data["status"] != "OK":
+            return [{"status": "error", "error": data.get("error_message", data["status"])}
+                    for _ in destinations]
+
+        results = []
+        for element in data["rows"][0]["elements"]:
+            if element["status"] == "OK":
+                results.append({
+                    "status": "OK",
+                    "duration_minutes": element["duration"]["value"] // 60,
+                    "duration_text": element["duration"]["text"],
+                    "distance_km": element["distance"]["value"] / 1000,
+                    "distance_text": element["distance"]["text"],
+                })
+            else:
+                results.append({"status": "error", "error": element["status"]})
+
+        return results
+
+    except requests.RequestException as e:
+        return [{"status": "error", "error": str(e)} for _ in destinations]
 
 
 def get_travel_time(
@@ -48,7 +126,8 @@ def get_travel_time(
     }
 
     try:
-        response = requests.get(url, params=params, timeout=10)
+        timeout = int(_settings.GOOGLE_DISTANCE_MATRIX_SINGLE_TIMEOUT_SEC)
+        response = requests.get(url, params=params, timeout=timeout)
         response.raise_for_status()
         data = response.json()
 
