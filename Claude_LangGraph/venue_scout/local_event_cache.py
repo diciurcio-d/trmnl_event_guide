@@ -2,9 +2,14 @@
 
 Stores events locally during parallel fetching to avoid race conditions
 with Google Sheets writes. Merges to sheets at the end of a run.
+
+Also provides:
+- One-time venue list caching (avoids repeated sheet reads)
+- Rate-limited sheet writer (max once per minute)
 """
 
 import json
+import os
 import threading
 import time
 from datetime import datetime
@@ -16,6 +21,19 @@ from .paths import DATA_DIR, LOCAL_EVENTS_CACHE_FILE, ensure_data_dir
 _CACHE_DIR = DATA_DIR
 _EVENTS_CACHE_FILE = LOCAL_EVENTS_CACHE_FILE
 _LOCK = threading.Lock()
+
+# Global venue cache - loaded once at startup
+_VENUE_CACHE = {
+    "venues": None,
+    "loaded_at": None,
+    "city": None,
+}
+_VENUE_CACHE_LOCK = threading.Lock()
+
+# Rate-limited writer state
+_LAST_SHEET_WRITE = 0
+_SHEET_WRITE_LOCK = threading.Lock()
+_SHEET_WRITE_INTERVAL = 60  # seconds between writes
 
 
 def _load_cache() -> dict:
@@ -232,3 +250,117 @@ def resume_info() -> dict | None:
             "started_at": cache.get("started_at"),
             "last_saved": cache.get("last_saved"),
         }
+
+
+# ============================================================================
+# VENUE CACHE - Load venues once, avoid repeated sheet reads
+# ============================================================================
+
+def load_venues_once(city: str) -> list[dict]:
+    """
+    Load venues from Google Sheets ONCE and cache in memory.
+
+    Subsequent calls return the cached list without hitting the API.
+    This is the key to avoiding rate limits during parallel fetching.
+
+    Args:
+        city: City to load venues for
+
+    Returns:
+        List of venue dicts
+    """
+    global _VENUE_CACHE
+
+    with _VENUE_CACHE_LOCK:
+        # Return cached if available and same city
+        if _VENUE_CACHE["venues"] is not None and _VENUE_CACHE["city"] == city:
+            return _VENUE_CACHE["venues"]
+
+        # Load from sheets (one-time read)
+        from .cache import read_cached_venues
+        print(f"Loading venues from Google Sheets (one-time read)...")
+        venues = read_cached_venues(city)
+
+        # Cache it
+        _VENUE_CACHE["venues"] = venues
+        _VENUE_CACHE["city"] = city
+        _VENUE_CACHE["loaded_at"] = datetime.now(ZoneInfo("America/New_York")).isoformat()
+
+        print(f"Cached {len(venues)} venues in memory")
+        return venues
+
+
+def get_cached_venues(city: str) -> list[dict]:
+    """
+    Get venues from memory cache. Must call load_venues_once() first.
+
+    Returns empty list if cache not loaded (won't hit API).
+    """
+    with _VENUE_CACHE_LOCK:
+        if _VENUE_CACHE["venues"] is not None and _VENUE_CACHE["city"] == city:
+            return _VENUE_CACHE["venues"]
+        return []
+
+
+def clear_venue_cache():
+    """Clear the in-memory venue cache."""
+    global _VENUE_CACHE
+    with _VENUE_CACHE_LOCK:
+        _VENUE_CACHE = {"venues": None, "loaded_at": None, "city": None}
+
+
+# ============================================================================
+# RATE-LIMITED SHEET WRITER - Max one write per minute
+# ============================================================================
+
+def rate_limited_merge_to_sheets() -> int:
+    """
+    Merge events to Google Sheets, but only if enough time has passed.
+
+    This prevents rate limiting when multiple workers want to write.
+    Only one write per minute is allowed.
+
+    Returns:
+        Number of events written, or 0 if skipped due to rate limit
+    """
+    global _LAST_SHEET_WRITE
+
+    with _SHEET_WRITE_LOCK:
+        now = time.time()
+        elapsed = now - _LAST_SHEET_WRITE
+
+        if elapsed < _SHEET_WRITE_INTERVAL:
+            # Too soon, skip this write
+            return 0
+
+        # OK to write - update timestamp first to prevent race
+        _LAST_SHEET_WRITE = now
+
+    # Do the actual merge (outside the lock so other work can continue)
+    try:
+        return merge_to_sheets()
+    except Exception as e:
+        print(f"Error during rate-limited merge: {e}")
+        return 0
+
+
+def force_merge_to_sheets() -> int:
+    """
+    Force a merge to sheets regardless of rate limit.
+
+    Use this at the end of a batch run.
+    """
+    global _LAST_SHEET_WRITE
+
+    with _SHEET_WRITE_LOCK:
+        _LAST_SHEET_WRITE = time.time()
+
+    return merge_to_sheets()
+
+
+def get_time_until_next_write() -> float:
+    """Get seconds until next sheet write is allowed."""
+    with _SHEET_WRITE_LOCK:
+        elapsed = time.time() - _LAST_SHEET_WRITE
+        remaining = _SHEET_WRITE_INTERVAL - elapsed
+        return max(0, remaining)

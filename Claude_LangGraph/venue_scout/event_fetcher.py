@@ -6,6 +6,7 @@ venue category and characteristics.
 
 import importlib.util
 import json
+import os
 import re
 import sys
 import time
@@ -38,6 +39,10 @@ _settings = _load_settings()
 
 def _save_discovered_endpoint(venue_name: str, api_endpoint: str, city: str):
     """Save a discovered API endpoint to the venue cache."""
+    # Skip during batch fetching to avoid rate limits on Sheets API
+    if os.environ.get("EVENT_FETCHER_BATCH_MODE"):
+        return
+
     try:
         from .cache import read_cached_venues, update_venues_batch
 
@@ -107,13 +112,26 @@ def _fetch_from_ticketmaster(
     city: str,
     state_code: str = "NY",
     months_ahead: int = 3,
+    venue_id: str | None = None,
 ) -> list[dict]:
     """
     Fetch events from Ticketmaster for a venue.
 
+    Args:
+        venue_name: Name of the venue
+        city: City name
+        state_code: State code (default NY)
+        months_ahead: How many months ahead to search
+        venue_id: If provided, use direct lookup (fast). If None, skip TM.
+
     Returns:
         List of event dicts
     """
+    # Only use Ticketmaster if we have a venue ID (from scan-ticketmaster)
+    # This avoids slow venue name searches during event fetching
+    if not venue_id or venue_id == "not_found":
+        return []
+
     client = _get_ticketmaster_client()
     if not client:
         return []
@@ -124,6 +142,7 @@ def _fetch_from_ticketmaster(
             city=city,
             state_code=state_code,
             months_ahead=months_ahead,
+            venue_id=venue_id,
         )
         return events
     except Exception as e:
@@ -1138,6 +1157,7 @@ def fetch_venue_events(
     website = venue.get("website", "")
     events_url = venue.get("events_url", "")
     preferred_source = venue.get("preferred_event_source", "")
+    ticketmaster_venue_id = venue.get("ticketmaster_venue_id", "")
 
     result = FetchResult(venue_name=venue_name)
     increment("event_fetcher.fetch_venue.calls")
@@ -1170,7 +1190,7 @@ def fetch_venue_events(
         result.attempted_sources.append("ticketmaster")
         delay = getattr(_settings, "VENUE_FETCH_DELAY", 0.5)
         time.sleep(delay)
-        tm_events = _fetch_from_ticketmaster(venue_name, city, state_code)
+        tm_events = _fetch_from_ticketmaster(venue_name, city, state_code, venue_id=ticketmaster_venue_id)
         if tm_events:
             tm_events = _normalize_tm_events(tm_events, venue_name)
             tm_events = _normalize_event_batch(tm_events, venue_name, "ticketmaster")
@@ -1370,7 +1390,14 @@ def fetch_events_for_venues(
 
     if workers > 1:
         print(f"Using {workers} parallel workers")
-        print(f"Events will be saved locally during fetch, then merged to sheets at end")
+        print(f"Events saved locally, merged to sheets every 60s")
+
+        # Enable batch mode to skip per-venue sheet writes (avoids rate limits)
+        os.environ["EVENT_FETCHER_BATCH_MODE"] = "1"
+
+        # Pre-load venues into memory cache (one-time sheet read)
+        from .local_event_cache import load_venues_once
+        load_venues_once(city)
 
         # Prepare arguments for parallel execution
         fetch_args = [
@@ -1378,8 +1405,10 @@ def fetch_events_for_venues(
             for i, venue in enumerate(venues_to_fetch, 1)
         ]
 
-        # Execute in parallel
+        # Execute in parallel - events saved to local cache, merged to sheets periodically
         all_events = []
+        completed_count = 0
+
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {executor.submit(_fetch_single_venue, args): args for args in fetch_args}
 
@@ -1389,18 +1418,34 @@ def fetch_events_for_venues(
                     results[venue_name] = result
                     if result.events:
                         all_events.extend(result.events)
+                    completed_count += 1
+
+                    # Progress update and rate-limited sheet write every 100 venues
+                    if completed_count % 100 == 0:
+                        from .local_event_cache import get_cache_stats, rate_limited_merge_to_sheets
+                        stats = get_cache_stats()
+                        print(f"\n--- Progress: {completed_count}/{total} venues, {stats['event_count']} events cached ---")
+
+                        # Try to merge to sheets (will skip if <60s since last write)
+                        if save_to_sheet:
+                            written = rate_limited_merge_to_sheets()
+                            if written > 0:
+                                print(f"--- Saved {written} events to Google Sheets ---\n")
+                            else:
+                                print(f"--- Sheet write skipped (rate limited) ---\n")
+
                 except Exception as e:
                     args = futures[future]
                     venue_name = args[0].get("name", "unknown")
                     print(f"  Error fetching {venue_name}: {e}", flush=True)
                     results[venue_name] = FetchResult(venue_name=venue_name, error=str(e))
 
-        # Merge local cache to sheets at the end
+        # Final merge of any remaining events (force write, ignore rate limit)
         if save_to_sheet:
-            from .local_event_cache import merge_to_sheets, get_cache_stats
+            from .local_event_cache import force_merge_to_sheets, get_cache_stats
             stats = get_cache_stats()
             print(f"\nLocal cache: {stats['event_count']} events from {stats['venues_fetched']} venues")
-            merge_to_sheets()
+            force_merge_to_sheets()
 
         # Batch update venue metadata (last_event_fetch, event_count, event_source)
         print("Updating venue metadata...")

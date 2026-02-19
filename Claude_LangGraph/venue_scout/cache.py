@@ -1044,19 +1044,43 @@ def get_stale_venues(venues: list[dict], city: str) -> list[dict]:
     """
     Filter to only venues that need event fetching.
 
+    Uses the last_event_fetch field directly from the venue dict,
+    avoiding extra sheet reads. This is critical for batch operations.
+
     Args:
-        venues: List of Venue dicts
+        venues: List of Venue dicts (must include last_event_fetch field)
         city: City to check
 
     Returns:
         List of venues that are stale or never fetched
     """
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    threshold_days = getattr(_settings, "VENUE_EVENT_CACHE_DAYS", 7)
+    now = datetime.now(ZoneInfo("America/New_York"))
     stale = []
+
     for venue in venues:
-        venue_name = venue.get("name", "")
-        venue_city = venue.get("city", city)
-        if not is_venue_events_fresh(venue_name, venue_city):
+        last_fetch = venue.get("last_event_fetch", "")
+
+        # No fetch recorded = stale
+        if not last_fetch:
             stale.append(venue)
+            continue
+
+        # Check age of last fetch
+        try:
+            last_fetched = datetime.fromisoformat(last_fetch)
+            if last_fetched.tzinfo is None:
+                last_fetched = last_fetched.replace(tzinfo=ZoneInfo("America/New_York"))
+            age = now - last_fetched
+            if age >= timedelta(days=threshold_days):
+                stale.append(venue)
+        except ValueError:
+            # Invalid date = stale
+            stale.append(venue)
+
     return stale
 
 

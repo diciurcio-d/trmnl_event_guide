@@ -213,6 +213,12 @@ def cmd_fetch_all(args):
 
     print(f"Found {len(venues)} verified venues")
 
+    # Apply limit if specified
+    limit = getattr(args, 'limit', None)
+    if limit and limit < len(venues):
+        venues = venues[:limit]
+        print(f"Limited to {limit} venues")
+
     # Show breakdown by source
     with_tm = len([v for v in venues if _has_ticketmaster_id(v)])
     with_api = len([v for v in venues if v.get("api_endpoint")])
@@ -1087,7 +1093,8 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     # All subcommand
-    subparsers.add_parser("all", help="Fetch events for ALL verified venues")
+    all_parser = subparsers.add_parser("all", help="Fetch events for ALL verified venues")
+    all_parser.add_argument("--limit", type=int, help="Limit number of venues to process")
 
     # Venues subcommand
     venues_parser = subparsers.add_parser("venues", help="Fetch events for specific venues")
