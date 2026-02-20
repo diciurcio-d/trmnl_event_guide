@@ -9,11 +9,9 @@ Also provides:
 """
 
 import json
-import os
 import threading
 import time
 from datetime import datetime
-from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from .paths import DATA_DIR, LOCAL_EVENTS_CACHE_FILE, ensure_data_dir
@@ -190,13 +188,21 @@ def merge_to_sheets() -> int:
     # Read existing events from sheets
     existing = read_venue_events_from_sheet()
 
+    # Helper to safely get string value for dedup key
+    def _safe_str(val) -> str:
+        if val is None:
+            return ""
+        if isinstance(val, str):
+            return val.lower()
+        return str(val).lower()
+
     # Build deduplication key set
     existing_keys = set()
     for e in existing:
         key = (
-            e.get("venue_name", "").lower(),
-            e.get("name", "").lower(),
-            e.get("date_str", ""),
+            _safe_str(e.get("venue_name", "")),
+            _safe_str(e.get("name", "")),
+            _safe_str(e.get("date_str", "")),
         )
         existing_keys.add(key)
 
@@ -204,9 +210,9 @@ def merge_to_sheets() -> int:
     new_events = []
     for event in local_events:
         key = (
-            event.get("venue_name", "").lower(),
-            event.get("name", "").lower(),
-            event.get("date_str", ""),
+            _safe_str(event.get("venue_name", "")),
+            _safe_str(event.get("name", "")),
+            _safe_str(event.get("date_str", "")),
         )
         if key not in existing_keys:
             new_events.append(event)

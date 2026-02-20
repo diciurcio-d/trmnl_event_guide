@@ -16,6 +16,16 @@ from utils.google_auth import get_credentials, is_authenticated
 _CONFIG_DIR = Path(__file__).parent.parent / "config"
 _SHEETS_CONFIG = _CONFIG_DIR / "sheets_config.json"
 
+
+def _safe_lower(val) -> str:
+    """Safely convert value to lowercase string."""
+    if val is None:
+        return ""
+    if isinstance(val, str):
+        return val.lower()
+    return str(val).lower()
+
+
 VENUE_EVENTS_COLUMNS = [
     "name",
     "datetime",
@@ -156,7 +166,7 @@ def read_venue_events_from_sheet(venue_name: str | None = None) -> list[dict]:
 
             event = normalize_event(dict(zip(header, row)))
 
-            if venue_name and event.get("venue_name", "").lower() != venue_name.lower():
+            if venue_name and _safe_lower(event.get("venue_name", "")) != venue_name.lower():
                 continue
 
             dt_str = event.get("datetime", "")
@@ -219,8 +229,8 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
 
     if venue_name:
         existing = read_venue_events_from_sheet()
-        existing = [e for e in existing if e.get("venue_name", "").lower() != venue_name.lower()]
-        venue_events = [e for e in events if e.get("venue_name", "").lower() == venue_name.lower()]
+        existing = [e for e in existing if _safe_lower(e.get("venue_name", "")) != venue_name.lower()]
+        venue_events = [e for e in events if _safe_lower(e.get("venue_name", "")) == venue_name.lower()]
         all_events = existing + venue_events
     else:
         all_events = events
@@ -254,7 +264,7 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
 
     future_events.sort(
         key=lambda x: (
-            x.get("venue_name", "").lower(),
+            _safe_lower(x.get("venue_name", "")),
             x.get("datetime").isoformat() if x.get("datetime") else "9999",
         )
     )
@@ -316,8 +326,8 @@ def append_venue_events(events: list[dict], venue_name: str):
     existing_keys = set()
     for event in existing:
         key = (
-            event.get("venue_name", "").lower(),
-            event.get("name", "").lower(),
+            _safe_lower(event.get("venue_name", "")),
+            _safe_lower(event.get("name", "")),
             event.get("date_str", ""),
         )
         existing_keys.add(key)
@@ -327,8 +337,8 @@ def append_venue_events(events: list[dict], venue_name: str):
     for event in events:
         event = normalize_event(event)
         key = (
-            event.get("venue_name", "").lower(),
-            event.get("name", "").lower(),
+            _safe_lower(event.get("venue_name", "")),
+            _safe_lower(event.get("name", "")),
             event.get("date_str", ""),
         )
         if key not in existing_keys:
