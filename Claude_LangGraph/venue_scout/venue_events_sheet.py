@@ -299,16 +299,20 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
         rows.append(row)
 
     try:
-        service.spreadsheets().values().clear(
-            spreadsheetId=sheet_id,
-            range="A:O",
-        ).execute()
-
+        # Write new data first (overwrites existing rows)
         service.spreadsheets().values().update(
             spreadsheetId=sheet_id,
             range="A1",
             valueInputOption="RAW",
             body={"values": rows},
+        ).execute()
+
+        # Only clear extra rows AFTER successful write
+        # This prevents data loss if write fails
+        clear_start_row = len(rows) + 1
+        service.spreadsheets().values().clear(
+            spreadsheetId=sheet_id,
+            range=f"A{clear_start_row}:O",
         ).execute()
 
         print(f"Wrote {len(future_events)} venue events to sheet")
