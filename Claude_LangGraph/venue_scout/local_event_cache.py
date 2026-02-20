@@ -90,10 +90,22 @@ def add_events(events: list[dict], venue_name: str):
                 _save_cache(cache)
         return
 
-    # Serialize events for JSON storage
+    # Serialize and sanitize events for JSON storage
     serialized = []
+    string_fields = ["venue_name", "name", "date_str", "url", "source", "event_type", "description"]
+
     for event in events:
         e = event.copy()
+
+        # Sanitize string fields - ensure they are actually strings
+        for field in string_fields:
+            val = e.get(field)
+            if val is None:
+                e[field] = ""
+            elif not isinstance(val, str):
+                # Convert dicts, lists, etc. to empty string (bad data)
+                e[field] = ""
+
         # Convert datetime to string
         if e.get("datetime"):
             dt = e["datetime"]
@@ -101,6 +113,7 @@ def add_events(events: list[dict], venue_name: str):
                 e["datetime"] = dt.isoformat()
             else:
                 e["datetime"] = str(dt) if dt else ""
+
         serialized.append(e)
 
     with _LOCK:
@@ -211,7 +224,10 @@ def merge_to_sheets() -> int:
         )
         existing_keys.add(key)
 
-    # Filter to only new events
+    # Filter to only new events and set date_added
+    from datetime import datetime
+    now = datetime.now(ZoneInfo("America/New_York")).isoformat()
+
     new_events = []
     for event in local_events:
         key = (
@@ -220,6 +236,9 @@ def merge_to_sheets() -> int:
             _safe_str(event.get("date_str", "")),
         )
         if key not in existing_keys:
+            # Set date_added for new events
+            if not event.get("date_added"):
+                event["date_added"] = now
             new_events.append(event)
             existing_keys.add(key)
 

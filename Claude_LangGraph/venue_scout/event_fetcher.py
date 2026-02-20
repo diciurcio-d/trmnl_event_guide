@@ -13,13 +13,12 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 from urllib.parse import urljoin, urlparse
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from .source_strategy import determine_fetch_strategy, select_best_source, should_skip_ticketmaster
+from .source_strategy import determine_fetch_strategy, select_best_source
 from .event_cache import is_venue_events_fresh, mark_venue_fetched, get_stale_venues
 from .venue_events_sheet import append_venue_events
 from .observability import increment, log_event, record_failure
@@ -1440,16 +1439,21 @@ def fetch_events_for_venues(
                     print(f"  Error fetching {venue_name}: {e}", flush=True)
                     results[venue_name] = FetchResult(venue_name=venue_name, error=str(e))
 
+        # Update venue metadata FIRST (so timestamps are saved even if merge fails)
+        print("Updating venue metadata...")
+        _batch_update_venue_metadata(results, city)
+        print(f"Updated metadata for {len(results)} venues")
+
         # Final merge of any remaining events (force write, ignore rate limit)
         if save_to_sheet:
             from .local_event_cache import force_merge_to_sheets, get_cache_stats
             stats = get_cache_stats()
             print(f"\nLocal cache: {stats['event_count']} events from {stats['venues_fetched']} venues")
-            force_merge_to_sheets()
-
-        # Batch update venue metadata (last_event_fetch, event_count, event_source)
-        print("Updating venue metadata...")
-        _batch_update_venue_metadata(results, city)
+            try:
+                force_merge_to_sheets()
+            except Exception as e:
+                print(f"WARNING: Event merge failed but venue metadata was saved: {e}")
+                print("Events are preserved in local cache for retry")
 
     else:
         # Sequential execution (original behavior - no local cache needed)
