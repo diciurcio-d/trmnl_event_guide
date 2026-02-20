@@ -315,6 +315,7 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
 
     except Exception as e:
         print(f"Error writing venue events to sheet: {e}")
+        raise  # Re-raise so callers know the write failed
 
 
 def append_venue_events(events: list[dict], venue_name: str):

@@ -146,10 +146,15 @@ def has_pending_events() -> bool:
 
 
 def clear_cache():
-    """Clear the local events cache."""
+    """Clear the local events cache, keeping a backup."""
     with _LOCK:
         if _EVENTS_CACHE_FILE.exists():
-            _EVENTS_CACHE_FILE.unlink()
+            # Keep a backup instead of deleting
+            backup_file = _EVENTS_CACHE_FILE.with_suffix(".json.bak")
+            if backup_file.exists():
+                backup_file.unlink()
+            _EVENTS_CACHE_FILE.rename(backup_file)
+            print(f"Backed up cache to {backup_file.name}")
         print("Cleared local events cache")
 
 
@@ -226,14 +231,15 @@ def merge_to_sheets() -> int:
 
     # Combine and write
     all_events = existing + new_events
-    write_venue_events_to_sheet(all_events)
-
-    print(f"Added {len(new_events)} new events to Google Sheets")
-
-    # Clear local cache after successful merge
-    clear_cache()
-
-    return len(new_events)
+    try:
+        write_venue_events_to_sheet(all_events)
+        print(f"Added {len(new_events)} new events to Google Sheets")
+        # Only clear cache after successful write
+        clear_cache()
+        return len(new_events)
+    except Exception as e:
+        print(f"ERROR: Sheet write failed, keeping local cache for recovery: {e}")
+        raise
 
 
 def resume_info() -> dict | None:
