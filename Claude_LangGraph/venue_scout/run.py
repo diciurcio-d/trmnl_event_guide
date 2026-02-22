@@ -22,7 +22,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from venue_scout.discovery import discover_venues
 from venue_scout.cache import (
-    read_cached_venues,
     get_cache_summary,
     get_searched_categories,
 )

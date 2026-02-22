@@ -7,6 +7,8 @@ class Venue(TypedDict):
     """A venue where events happen."""
     name: str
     address: str
+    lat: float | None
+    lng: float | None
     city: str
     neighborhood: str
     website: str

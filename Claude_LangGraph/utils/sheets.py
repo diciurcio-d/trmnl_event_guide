@@ -1,13 +1,17 @@
 """Google Sheets API for storing events and concerts."""
 
-import json
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from googleapiclient.discovery import build
-
-from .google_auth import get_credentials, is_authenticated
+from .google_auth import is_authenticated
+from .sheets_core import (
+    create_spreadsheet as _core_create_spreadsheet,
+    get_sheets_service as _core_get_sheets_service,
+    load_sheets_config as _core_load_sheets_config,
+    save_sheets_config as _core_save_sheets_config,
+    write_sheet_header as _core_write_sheet_header,
+)
 
 # Config file for sheet IDs
 _CONFIG_DIR = Path(__file__).parent.parent / "config"
@@ -28,38 +32,22 @@ CONCERTS_COLUMNS = [
 
 def _get_sheets_service():
     """Get authenticated Google Sheets service."""
-    creds = get_credentials()
-    if not creds:
-        return None
-    return build("sheets", "v4", credentials=creds)
+    return _core_get_sheets_service()
 
 
 def _load_sheets_config() -> dict:
     """Load sheet IDs from config."""
-    if _SHEETS_CONFIG.exists():
-        with open(_SHEETS_CONFIG) as f:
-            return json.load(f)
-    return {}
+    return _core_load_sheets_config(_SHEETS_CONFIG)
 
 
 def _save_sheets_config(config: dict):
     """Save sheet IDs to config."""
-    with open(_SHEETS_CONFIG, "w") as f:
-        json.dump(config, f, indent=2)
+    _core_save_sheets_config(config, _SHEETS_CONFIG)
 
 
 def create_spreadsheet(title: str) -> str | None:
     """Create a new Google Spreadsheet and return its ID."""
-    service = _get_sheets_service()
-    if not service:
-        return None
-
-    spreadsheet = {
-        "properties": {"title": title}
-    }
-
-    result = service.spreadsheets().create(body=spreadsheet).execute()
-    return result.get("spreadsheetId")
+    return _core_create_spreadsheet(title)
 
 
 def get_or_create_events_sheet() -> str | None:
@@ -104,16 +92,7 @@ def get_or_create_concerts_sheet() -> str | None:
 
 def _write_header(sheet_id: str, columns: list[str]):
     """Write header row to a sheet."""
-    service = _get_sheets_service()
-    if not service:
-        return
-
-    service.spreadsheets().values().update(
-        spreadsheetId=sheet_id,
-        range="A1",
-        valueInputOption="RAW",
-        body={"values": [columns]}
-    ).execute()
+    _core_write_sheet_header(sheet_id, columns)
 
 
 def read_events_from_sheet(source_name: str | None = None) -> list[dict]:

@@ -52,12 +52,50 @@ VENUE_DESCRIPTION_DELAY_SEC = 0.5    # 2 QPS / 120 RPM (free tier limit is 10-15
 
 # LLM (Gemini) settings
 GEMINI_MODEL = "gemini-3-flash-preview"  # Fast/low-cost default model for classification/extraction tasks.
+QUERY_RANKING_MODEL = "gemini-2.5-flash-lite"  # Primary model for chat query ranking.
+QUERY_DATE_TOOL_MODEL = "gemini-2.5-flash-lite"  # Model for date-intent/tool extraction in chat queries.
 GEMINI_TEMPERATURE = 0.0                 # Deterministic output for repeatable validation/ranking behavior.
 GEMINI_SEED = 20260213                   # Fixed seed to reduce run-to-run variation in LLM responses.
 GEMINI_MAX_RETRIES = 4                   # Total Gemini attempts per prompt when transient provider errors occur.
 GEMINI_RETRY_INITIAL_DELAY_SEC = 1.5     # First retry sleep for transient Gemini failures (503/overload/timeouts).
 GEMINI_RETRY_BACKOFF_MULTIPLIER = 2.0    # Multiplier applied to each subsequent Gemini retry delay.
 GEMINI_RETRY_MAX_DELAY_SEC = 12.0        # Cap to prevent unbounded Gemini backoff sleeps.
+GEMINI_HTTP_TIMEOUT_SEC = 30             # Per-request HTTP timeout for Gemini API calls.
+QUERY_DATE_TOOL_TIMEOUT_SEC = 10         # Date-tool timeout for interactive event queries.
+QUERY_LLM_TIMEOUT_SEC = 12               # Ranking LLM timeout for interactive event queries.
+QUERY_LLM_MAX_RETRIES = 1                # Single primary ranking attempt before timeout-model fallback.
+QUERY_LLM_TIMEOUT_FALLBACK_MODELS = (    # Timeout fallback order for query ranking.
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+)
+QUERY_SEMANTIC_SKIP_BROAD = True         # Skip semantic retrieval for broad/vague queries.
+QUERY_SEMANTIC_SPECIFICITY_THRESHOLD = 2  # Minimum specificity score to enable semantic retrieval.
+QUERY_BROAD_LEXICAL_TOP_K = 120          # Candidate cap for broad-query lexical pre-rank.
+EVENT_PARSE_LLM_TIMEOUT_SEC = 12         # Scrape parsing timeout for interactive event extraction.
+EVENT_PARSE_LLM_MAX_RETRIES = 1          # Single primary parse attempt before timeout-model fallback chain.
+EVENT_PARSE_LLM_TIMEOUT_FALLBACK_MODELS = (  # Timeout fallback order for event-page parsing.
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+)
+EVENT_PARSE_LLM_CHUNK_THRESHOLD = 7000   # Use chunked extraction for long pages to reduce timeout risk.
+EVENT_PARSE_LLM_CHUNK_SIZE = 5000        # Approx chars per LLM extraction chunk.
+EVENT_PARSE_LLM_CHUNK_OVERLAP = 350      # Overlap between chunks to avoid boundary misses.
+EVENT_PARSE_LLM_MAX_CHUNKS = 8           # Hard cap on extraction chunks per page.
+
+# Semantic retrieval settings (query -> embeddings -> FAISS -> top-N -> LLM ranking)
+SEMANTIC_RETRIEVAL_ENABLED = True
+SEMANTIC_EMBEDDING_MODEL = "gemini-embedding-001"
+SEMANTIC_TOP_K = 60
+SEMANTIC_EMBED_BATCH_SIZE = 64
+# Gemini embedding throughput:
+# - ~3000 embedding requests/minute (practically enforced via contents-per-minute)
+# - up to ~1,000,000 tokens/minute on paid tier
+SEMANTIC_EMBED_TOKENS_PER_MINUTE = 1_000_000
+SEMANTIC_EMBED_CONTENTS_PER_MINUTE = 2800
+SEMANTIC_EMBED_REQUESTS_PER_MINUTE = 1200
+SEMANTIC_EMBED_RATE_LIMIT_HEADROOM = 0.9
+SEMANTIC_EMBED_MAX_TOKENS_PER_CALL = 12000
+LLM_EVENT_CONTEXT_LIMIT = 100
 
 # Jina Reader settings
 JINA_TIMEOUT_SEC = 12                    # Max wait per Jina fetch before falling back or marking as failed.
@@ -96,7 +134,7 @@ WEBSITE_VALIDATOR_JINA_RETRIES = 2       # Attempts per Jina read before treatin
 WEBSITE_VALIDATOR_JINA_RETRY_DELAY_SEC = 0.35  # Delay between Jina retries to reduce burst failures.
 WEBSITE_VALIDATOR_JINA_SEARCH_TIMEOUT_SEC = 8  # Timeout for Jina Search fallback used to find non-standard event URLs.
 WEBSITE_VALIDATOR_JINA_SEARCH_MAX_RESULTS = 8  # Max same-domain URLs accepted from Jina Search fallback.
-WEBSITE_VALIDATOR_SKIP_JINA = False            # Skip Jina Reader entirely, use only direct HTML fetch.
+WEBSITE_VALIDATOR_SKIP_JINA = True             # Default to direct HTML fetch; avoid Jina dependency unless explicitly re-enabled.
 WEBSITE_VALIDATOR_IFRAME_MEDIA_HOST_PATTERNS = (  # iframe hosts treated as media embeds, not event listing pages.
     "instagram.com",
     "cdninstagram.com",
@@ -115,7 +153,7 @@ WEBSITE_VALIDATOR_HTML_TIMEOUT_SEC = 12  # Direct HTML fetch timeout used as Jin
 WEBSITE_VALIDATOR_HEALTH_TIMEOUT_SEC = 6 # HEAD/GET timeout when checking if site is dead/unreachable.
 
 # Event fetcher settings
-EVENT_FETCHER_SKIP_JINA = False   # Skip Jina Reader, use raw HTML for LLM parsing (faster when Jina rate-limited)
+EVENT_FETCHER_SKIP_JINA = True    # Default to raw HTML parsing; avoid Jina dependency unless explicitly re-enabled.
 EVENT_FETCHER_PLAYWRIGHT_FALLBACK = True  # Use Playwright when raw HTML fetch fails (403), empty content, or JS calendar detected
 EVENT_FETCHER_PLAYWRIGHT_TIMEOUT_MS = 12000  # Playwright navigation timeout (faster: domcontentloaded, not networkidle)
 EVENT_FETCHER_PLAYWRIGHT_WAIT_MS = 1500  # Wait for JS to render after domcontentloaded (ms)
@@ -239,3 +277,4 @@ VENUE_EVENT_CACHE_DAYS = 7        # Days before venue events are stale
 VENUE_API_DETECTION_WAIT = 3     # Seconds to wait for API detection with Playwright
 VENUE_FETCH_DELAY = 0.5          # Delay between venue fetches (seconds)
 EVENT_FETCHER_HTML_TIMEOUT_SEC = 20  # Raw HTML timeout when extracting JSON-LD/iframes from venue pages.
+NYC_PARKS_OPEN_DATA_FEED_URL = "https://www.nycgovparks.org/xml/events_300_rss.json"  # NYC Parks open-data upcoming events feed.

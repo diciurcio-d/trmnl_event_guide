@@ -19,9 +19,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from venue_scout.cache import (
-    read_cached_venues,
     VENUE_COLUMNS,
     _venue_to_row,
+    _sheet_full_range,
     _get_sheets_service,
     get_or_create_venues_sheet,
 )
@@ -70,7 +70,7 @@ def verify_address(venue: dict, city: str = "NYC") -> dict:
         return venue
 
     # Look up in Google Places
-    result = lookup_place(name, city)
+    result = lookup_place(name, city, current_address)
 
     if result and result.get("formatted_address"):
         new_address = result["formatted_address"]
@@ -89,6 +89,10 @@ def verify_address(venue: dict, city: str = "NYC") -> dict:
                 venue["neighborhood"] = result["neighborhood"]
         else:
             venue["address_verified"] = "yes"
+
+        if result.get("lat") is not None and result.get("lng") is not None:
+            venue["lat"] = result.get("lat")
+            venue["lng"] = result.get("lng")
     else:
         venue["address_verified"] = "not_found"
 
@@ -226,7 +230,7 @@ def clean_venues(
     try:
         result = service.spreadsheets().values().get(
             spreadsheetId=sheet_id,
-            range="A:R"
+            range=_sheet_full_range()
         ).execute()
 
         rows = result.get("values", [])
@@ -374,7 +378,7 @@ def clean_venues(
             # Clear and write
             service.spreadsheets().values().clear(
                 spreadsheetId=sheet_id,
-                range="A:R"
+                range=_sheet_full_range()
             ).execute()
 
             service.spreadsheets().values().update(

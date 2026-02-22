@@ -1,6 +1,8 @@
 langgraph
 langchain-core
 google-genai
+numpy
+faiss-cpu
 playwright
 requests
 python-dateutil
@@ -8,3 +10,5 @@ google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
 ytmusicapi
+flask
+flask-cors

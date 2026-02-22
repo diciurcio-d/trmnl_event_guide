@@ -3,989 +3,998 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Venue Scout</title>
+    <title>Whats Happening NYC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-1: #f7f5ee;
+            --bg-2: #dde8df;
+            --panel: #fbfaf7;
+            --ink: #1f2a23;
+            --muted: #5d6a60;
+            --line: #c9d3cb;
+            --brand: #176f4f;
+            --brand-2: #0d4d35;
+            --accent: #c66a2e;
+            --bubble-user: #176f4f;
+            --bubble-assistant: #edf2ee;
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --panel-height: clamp(560px, 74vh, 820px);
+        }
+
         * {
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
+
         body {
-            max-width: 900px;
+            margin: 0;
+            min-height: 100vh;
+            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(1200px 600px at 10% -5%, #fff4d9 0%, transparent 55%),
+                radial-gradient(900px 500px at 100% 0%, #d9f1e5 0%, transparent 58%),
+                linear-gradient(160deg, var(--bg-1), var(--bg-2));
+        }
+
+        .app {
+            max-width: 1180px;
             margin: 0 auto;
-            padding: 20px;
-            background: #f5f5f5;
+            padding: 22px 18px 28px;
+            animation: fadeIn 350ms ease;
         }
-        h1 {
-            margin-bottom: 5px;
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        .subtitle {
-            color: #666;
-            margin-bottom: 20px;
+
+        .title {
+            margin: 0;
+            font-family: "Fraunces", serif;
+            font-size: clamp(30px, 5vw, 46px);
+            line-height: 1.05;
+            letter-spacing: -0.02em;
         }
-        .controls {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+        .subhead {
+            margin: 8px 0 16px;
+            color: var(--muted);
         }
-        .controls button {
-            padding: 8px 16px;
-            margin-right: 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .controls button.primary {
-            background: #007bff;
-            color: white;
-        }
-        .controls button.secondary {
-            background: #e0e0e0;
-        }
-        .search-box {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-        .category-group {
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        .category-header {
+
+        .status-row {
             display: flex;
-            align-items: center;
-            padding: 12px 15px;
-            background: #f8f9fa;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
         }
-        .category-header:hover {
-            background: #e9ecef;
-        }
-        .category-header input[type="checkbox"] {
-            margin-right: 10px;
-            transform: scale(1.2);
-        }
-        .category-name {
-            font-weight: 600;
-            flex-grow: 1;
-        }
-        .category-count {
-            color: #666;
-            font-size: 14px;
-        }
-        .category-toggle {
-            color: #999;
-            font-size: 12px;
-            margin-left: 10px;
-        }
-        .venue-list {
-            display: none;
-            padding: 10px 15px;
-        }
-        .venue-list.expanded {
-            display: block;
-        }
-        .venue-item {
-            display: flex;
-            align-items: flex-start;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .venue-item:last-child {
-            border-bottom: none;
-        }
-        .venue-item input[type="checkbox"] {
-            margin-right: 10px;
-            margin-top: 3px;
-        }
-        .venue-info {
-            flex-grow: 1;
-        }
-        .venue-name {
-            font-weight: 500;
-        }
-        .venue-name a {
-            color: #333;
-            text-decoration: none;
-        }
-        .venue-name a:hover {
-            color: #007bff;
-        }
-        .venue-meta {
-            font-size: 12px;
-            color: #666;
-        }
-        .venue-travel {
-            font-size: 12px;
-            color: #007bff;
-            font-weight: 500;
-        }
-        .venue-travel.far {
-            color: #dc3545;
-        }
-        .venue-item.filtered-out {
-            opacity: 0.3;
-        }
-        .calculating {
-            color: #ff9800;
-        }
-        .manual-input {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .manual-input h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-        }
-        .manual-input textarea {
-            width: 100%;
-            height: 80px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            resize: vertical;
-        }
-        .manual-venues {
-            margin-top: 10px;
-        }
-        .manual-venue-tag {
-            display: inline-block;
-            background: #e3f2fd;
-            padding: 4px 10px;
-            border-radius: 15px;
-            margin: 3px;
+
+        .pill {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 6px 12px;
+            background: #ffffffaa;
             font-size: 13px;
         }
-        .manual-venue-tag .remove {
-            margin-left: 5px;
-            cursor: pointer;
-            color: #666;
+
+        .layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 16px;
         }
-        .summary {
-            background: #e8f5e9;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 10px 28px rgba(12, 37, 25, 0.08);
         }
-        .summary strong {
-            font-size: 18px;
+
+        .filters {
+            padding: 14px;
+            height: var(--panel-height);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
-        #export-btn {
-            background: #28a745;
-            color: white;
-            padding: 12px 24px;
-            font-size: 16px;
+
+        .filters h2,
+        .chat h2 {
+            margin: 0 0 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--muted);
         }
-        #fetch-events-btn {
-            background: #6f42c1;
-            color: white;
-            padding: 12px 24px;
-            font-size: 16px;
-            margin-right: 10px;
+
+        .field {
+            margin-bottom: 14px;
         }
-        #fetch-events-btn:disabled {
-            background: #9d7fd1;
-            cursor: not-allowed;
+
+        .field-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 14px;
         }
-        .events-panel {
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+        .field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .field input[type="number"],
+        .field input[type="text"],
+        .field select,
+        .composer input {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 10px 11px;
+            font-size: 14px;
+            background: #fff;
+            color: var(--ink);
+            min-height: 42px;
+        }
+
+        .helper {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .helper.error {
+            color: #b42318;
             display: none;
+            margin-top: 6px;
         }
-        .events-panel.visible {
+
+        .helper.error.visible {
             display: block;
         }
-        .events-header {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
+
+        .checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--ink);
+            margin-top: 8px;
+        }
+
+        .category-field {
+            flex: 1;
+            min-height: 0;
+            margin-bottom: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .category-list {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            background: #fff;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .category-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        .events-header h3 {
-            margin: 0;
-        }
-        .events-tabs {
-            display: flex;
             gap: 10px;
+            padding: 6px 4px;
+            border-bottom: 1px solid #eff4f0;
         }
-        .events-tabs button {
-            padding: 6px 12px;
-            border: 1px solid #ddd;
-            background: white;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .events-tabs button.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-        .events-content {
-            padding: 15px;
-            max-height: 500px;
-            overflow-y: auto;
-        }
-        .query-row {
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .query-row input {
-            flex: 1;
-            min-width: 240px;
-            padding: 8px 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .query-row button {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            background: white;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .query-row button.primary {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
-        .query-status {
-            width: 100%;
-            font-size: 12px;
-            color: #555;
-        }
-        .event-item {
-            padding: 10px;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        .event-item:last-child {
+
+        .category-item:last-child {
             border-bottom: none;
         }
-        .event-name {
-            font-weight: 500;
-            margin-bottom: 4px;
-        }
-        .event-name a {
-            color: #333;
-            text-decoration: none;
-        }
-        .event-name a:hover {
-            color: #007bff;
-        }
-        .event-meta {
+
+        .category-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-size: 13px;
-            color: #666;
         }
-        .event-matched {
-            background: #e8f5e9;
-            border-left: 3px solid #4caf50;
+
+        .count {
+            font-size: 12px;
+            color: var(--muted);
         }
-        .matched-badge {
-            background: #4caf50;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 11px;
-            margin-left: 8px;
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
         }
-        .events-loading {
-            text-align: center;
-            padding: 30px;
-            color: #666;
+
+        .btn {
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 9px 11px;
+            background: #fff;
+            color: var(--ink);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
         }
-        .progress-container {
-            margin: 20px 0;
+
+        .btn.primary {
+            border-color: var(--brand);
+            background: var(--brand);
+            color: #fff;
         }
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: #e0e0e0;
-            border-radius: 10px;
+
+        .btn.primary:hover {
+            background: var(--brand-2);
+        }
+
+        .chat {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            height: var(--panel-height);
             overflow: hidden;
         }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #6f42c1, #9d7fd1);
-            border-radius: 10px;
-            transition: width 0.3s ease;
+
+        .chat-head {
+            padding: 14px 16px 10px;
+            border-bottom: 1px solid var(--line);
         }
-        .progress-text {
+
+        .chat-log {
+            padding: 16px;
+            min-height: 0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 86%;
+            border-radius: 13px;
+            padding: 11px 12px;
+            animation: fadeIn 250ms ease;
+            line-height: 1.42;
+            font-size: 14px;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: var(--bubble-user);
+            color: #fff;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background: var(--bubble-assistant);
+            border: 1px solid #d8e4da;
+            color: var(--ink);
+        }
+
+        .result-list {
             margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .result {
+            border: 1px solid #d8e4da;
+            border-radius: 10px;
+            background: #fff;
+            padding: 8px 10px;
+        }
+
+        .result a {
+            color: var(--brand-2);
+            font-weight: 600;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            text-decoration-thickness: 1.5px;
+        }
+
+        .result-meta {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .result-desc {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #3f4d45;
+            line-height: 1.35;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .dedupe-note {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .more-box {
+            margin-top: 10px;
+            border: 1px solid #d8e4da;
+            border-radius: 10px;
+            background: #f8fbf8;
+            padding: 8px;
+        }
+
+        .more-box-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .more-box-list {
+            margin-top: 0;
+            max-height: 220px;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+
+        .composer {
+            border-top: 1px solid var(--line);
+            padding: 12px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            background: #f6f9f6;
+        }
+
+        .hint-row {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .hint {
+            border: 1px solid #d6e1d8;
+            background: #ffffffcc;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            color: #334139;
+        }
+
+        .empty-note {
+            color: var(--muted);
             font-size: 13px;
         }
-        .progress-venue {
-            color: #333;
-            font-weight: 500;
-        }
-        .progress-stats {
-            color: #666;
-            margin-top: 5px;
-        }
-        .events-empty {
-            text-align: center;
-            padding: 30px;
-            color: #999;
+
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .field-row {
+                grid-template-columns: 1fr;
+            }
+
+            .chat {
+                height: 68vh;
+            }
+
+            .filters {
+                height: 68vh;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Venue Scout</h1>
-    <p class="subtitle">Select venues to include in event searches</p>
+    <main class="app">
+        <h1 class="title">What's Happening NYC</h1>
+        <p class="subhead">Search across NYC for what's happening, find the right event for you</p>
 
-    <div class="summary">
-        <strong><span id="selected-count">0</span></strong> venues selected
-        <button id="export-btn" style="float: right;">Export Selected</button>
-        <button id="fetch-events-btn" style="float: right;" onclick="fetchEvents()">Fetch Events</button>
-    </div>
+        <section class="layout">
+            <aside class="panel filters">
+                <h2>Filters</h2>
 
-    <div class="events-panel" id="events-panel">
-        <div class="events-header">
-            <h3>Events (<span id="events-count">0</span>)</h3>
-            <div class="events-tabs">
-                <button class="active" onclick="showEventsTab('all')">All</button>
-                <button onclick="showEventsTab('matched')">Matched</button>
-                <button onclick="hideEventsPanel()">Close</button>
-            </div>
-        </div>
-        <div class="query-row">
-            <input id="events-query" type="text" placeholder='Try: "things in Greenpoint this Saturday"'>
-            <button class="primary" onclick="filterEventsWithAI()">Filter with AI</button>
-            <button onclick="clearAiFilter()">Clear AI Filter</button>
-            <div class="query-status" id="query-status"></div>
-        </div>
-        <div class="events-content" id="events-content">
-            <div class="events-empty">Select venues and click "Fetch Events"</div>
-        </div>
-    </div>
+                <div class="field">
+                    <label for="origin-address">Origin address</label>
+                    <input
+                        id="origin-address"
+                        type="text"
+                        value="245 W 74th St, New York, NY 10023"
+                        placeholder="Enter starting address"
+                    >
+                    <div id="origin-address-error" class="helper error"></div>
+                </div>
 
-    <div class="controls">
-        <input type="text" class="search-box" id="search" placeholder="Search venues...">
-        <button class="primary" onclick="selectAll()">Select All</button>
-        <button class="secondary" onclick="selectNone()">Select None</button>
-        <button class="secondary" onclick="expandAll()">Expand All</button>
-        <button class="secondary" onclick="collapseAll()">Collapse All</button>
-    </div>
-
-    <div class="controls" id="distance-filter">
-        <h3 style="margin-top:0; margin-bottom:10px;">Filter by Distance</h3>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-            <input type="text" id="origin-address" class="search-box" style="flex: 1; min-width: 250px; margin-bottom: 0;" placeholder="Your address...">
-            <select id="travel-mode" style="padding: 10px; border-radius: 4px; border: 1px solid #ddd;">
-                <option value="transit">Transit</option>
-                <option value="walking">Walking</option>
-                <option value="driving">Driving</option>
-            </select>
-            <input type="number" id="max-minutes" style="width: 80px; padding: 10px; border-radius: 4px; border: 1px solid #ddd;" placeholder="Max min" value="45">
-            <button class="secondary" onclick="previewCost()">Preview Cost</button>
-            <button class="primary" onclick="calculateDistances()">Filter</button>
-            <button class="secondary" onclick="clearDistanceFilter()">Clear</button>
-        </div>
-        <div id="distance-status" style="margin-top: 10px; font-size: 14px; color: #666;"></div>
-        <div id="venue-count-preview" style="margin-top: 5px; font-size: 13px; color: #888;"></div>
-    </div>
-
-    <div class="manual-input">
-        <h3>Add Manual Venues</h3>
-        <textarea id="manual-venues" placeholder="Enter venue names, one per line..."></textarea>
-        <button class="primary" onclick="addManualVenues()">Add Venues</button>
-        <div class="manual-venues" id="manual-venue-list"></div>
-    </div>
-
-    <div id="categories"></div>
-
-    <script>
-        let venueData = null;
-        let manualVenues = [];
-
-        async function loadVenues() {
-            try {
-                const response = await fetch('venues.json');
-                venueData = await response.json();
-                renderCategories();
-                updateCount();
-                updateVenueCountPreview();
-            } catch (e) {
-                document.getElementById('categories').innerHTML =
-                    '<p style="color: red;">Error loading venues.json. Run: python export_venues.py NYC</p>';
-            }
-        }
-
-        function renderCategories() {
-            const container = document.getElementById('categories');
-            const categories = Object.keys(venueData.categories).sort();
-
-            container.innerHTML = categories.map(cat => {
-                const venues = venueData.categories[cat];
-                const catId = cat.replace(/[^a-z0-9]/gi, '_');
-
-                return `
-                    <div class="category-group" data-category="${cat}">
-                        <div class="category-header" onclick="toggleCategory('${catId}')">
-                            <input type="checkbox" onclick="event.stopPropagation(); toggleCategoryCheck('${cat}', this.checked)">
-                            <span class="category-name">${cat}</span>
-                            <span class="category-count">${venues.length} venues</span>
-                            <span class="category-toggle" id="toggle-${catId}">▼</span>
-                        </div>
-                        <div class="venue-list" id="list-${catId}">
-                            ${venues.map((v, i) => `
-                                <div class="venue-item" data-name="${v.name.toLowerCase()}" data-address="${v.address || v.neighborhood || ''}">
-                                    <input type="checkbox" data-category="${cat}" data-index="${i}" onchange="updateCount()">
-                                    <div class="venue-info">
-                                        <div class="venue-name">
-                                            ${v.website ? `<a href="${v.website}" target="_blank">${v.name}</a>` : v.name}
-                                            <span class="venue-travel" data-venue="${v.name}"></span>
-                                        </div>
-                                        <div class="venue-meta">
-                                            ${v.neighborhood ? v.neighborhood + ' · ' : ''}${v.description || ''}
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="distance-mode">Travel mode</label>
+                        <select id="distance-mode">
+                            <option value="none">No travel filter</option>
+                            <option value="walking">Walking</option>
+                            <option value="transit" selected>Transit</option>
+                        </select>
                     </div>
-                `;
-            }).join('');
-        }
 
-        function toggleCategory(catId) {
-            const list = document.getElementById('list-' + catId);
-            const toggle = document.getElementById('toggle-' + catId);
-            list.classList.toggle('expanded');
-            toggle.textContent = list.classList.contains('expanded') ? '▲' : '▼';
-        }
-
-        function toggleCategoryCheck(cat, checked) {
-            const checkboxes = document.querySelectorAll(`input[data-category="${cat}"]`);
-            checkboxes.forEach(cb => cb.checked = checked);
-            updateCount();
-            updateVenueCountPreview();
-        }
-
-        function selectAll() {
-            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
-            updateCount();
-            updateVenueCountPreview();
-        }
-
-        function selectNone() {
-            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-            updateCount();
-            updateVenueCountPreview();
-        }
-
-        function expandAll() {
-            document.querySelectorAll('.venue-list').forEach(el => el.classList.add('expanded'));
-            document.querySelectorAll('.category-toggle').forEach(el => el.textContent = '▲');
-        }
-
-        function collapseAll() {
-            document.querySelectorAll('.venue-list').forEach(el => el.classList.remove('expanded'));
-            document.querySelectorAll('.category-toggle').forEach(el => el.textContent = '▼');
-        }
-
-        function updateCount() {
-            const checked = document.querySelectorAll('.venue-item input:checked').length;
-            document.getElementById('selected-count').textContent = checked + manualVenues.length;
-        }
-
-        function addManualVenues() {
-            const textarea = document.getElementById('manual-venues');
-            const lines = textarea.value.split('\n').map(l => l.trim()).filter(l => l);
-            lines.forEach(name => {
-                if (!manualVenues.includes(name)) {
-                    manualVenues.push(name);
-                }
-            });
-            textarea.value = '';
-            renderManualVenues();
-            updateCount();
-        }
-
-        function renderManualVenues() {
-            const container = document.getElementById('manual-venue-list');
-            container.innerHTML = manualVenues.map((name, i) =>
-                `<span class="manual-venue-tag">${name}<span class="remove" onclick="removeManualVenue(${i})">×</span></span>`
-            ).join('');
-        }
-
-        function removeManualVenue(index) {
-            manualVenues.splice(index, 1);
-            renderManualVenues();
-            updateCount();
-        }
-
-        document.getElementById('search').addEventListener('input', function(e) {
-            const query = e.target.value.toLowerCase();
-            document.querySelectorAll('.venue-item').forEach(item => {
-                const name = item.dataset.name;
-                item.style.display = name.includes(query) ? 'flex' : 'none';
-            });
-        });
-
-        document.getElementById('export-btn').addEventListener('click', function() {
-            const selected = [];
-
-            // Get checked venues from categories
-            document.querySelectorAll('.venue-item input:checked').forEach(cb => {
-                const cat = cb.dataset.category;
-                const idx = parseInt(cb.dataset.index);
-                const venue = venueData.categories[cat][idx];
-                selected.push({
-                    name: venue.name,
-                    category: cat,
-                    website: venue.website,
-                    neighborhood: venue.neighborhood,
-                });
-            });
-
-            // Add manual venues
-            manualVenues.forEach(name => {
-                selected.push({ name: name, category: 'manual', website: '', neighborhood: '' });
-            });
-
-            // Download as JSON
-            const blob = new Blob([JSON.stringify(selected, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'selected_venues.json';
-            a.click();
-        });
-
-        let travelTimes = {};  // venue name -> {minutes, text}
-
-        async function previewCost() {
-            const origin = document.getElementById('origin-address').value.trim();
-            const mode = document.getElementById('travel-mode').value;
-            const statusEl = document.getElementById('distance-status');
-
-            if (!origin) {
-                alert('Please enter your address');
-                return;
-            }
-
-            const destinations = getSelectedDestinations();
-            if (destinations.length === 0) {
-                statusEl.innerHTML = 'No categories selected';
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/preview-cost', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ origin, destinations, mode })
-                });
-                const data = await response.json();
-
-                statusEl.innerHTML = `
-                    <strong>${data.uncached}</strong> new API calls (${data.estimated_cost}) ·
-                    ${data.cached} cached ·
-                    ${data.skipped} skipped (no address)
-                `;
-            } catch (e) {
-                statusEl.innerHTML = 'Error previewing cost';
-            }
-        }
-
-        function getSelectedDestinations() {
-            const destinations = [];
-            const seen = new Set();
-
-            document.querySelectorAll('.category-group').forEach(group => {
-                const headerCheckbox = group.querySelector('.category-header input[type="checkbox"]');
-                if (!headerCheckbox.checked) return;
-
-                group.querySelectorAll('.venue-item').forEach(item => {
-                    const name = item.querySelector('.venue-name a, .venue-name')?.textContent?.trim();
-                    const address = item.dataset.address;
-                    if (name && !seen.has(name)) {
-                        seen.add(name);
-                        destinations.push({ name, address: (address || '') + ', NYC' });
-                    }
-                });
-            });
-
-            return destinations;
-        }
-
-        async function calculateDistances() {
-            const origin = document.getElementById('origin-address').value.trim();
-            const mode = document.getElementById('travel-mode').value;
-            const maxMinutes = parseInt(document.getElementById('max-minutes').value) || 60;
-
-            if (!origin) {
-                alert('Please enter your address');
-                return;
-            }
-
-            const statusEl = document.getElementById('distance-status');
-            statusEl.innerHTML = '<span class="calculating">Calculating travel times...</span>';
-
-            const destinations = getSelectedDestinations();
-            if (destinations.length === 0) {
-                statusEl.innerHTML = 'No categories selected';
-                return;
-            }
-
-            // Send all at once - server handles batching internally
-            try {
-                const response = await fetch('/api/travel-times', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ origin, destinations, mode })
-                });
-
-                const data = await response.json();
-
-                if (data.results) {
-                    data.results.forEach(r => {
-                        if (r && r.name) {
-                            travelTimes[r.name] = { minutes: r.minutes, text: r.text };
-                        }
-                    });
-                }
-
-            } catch (e) {
-                console.error('Error calculating distances:', e);
-                statusEl.innerHTML = '<span style="color:red;">Error calculating distances</span>';
-                return;
-            }
-
-            // Apply filter and update display
-            applyDistanceFilter(maxMinutes);
-
-            // Show cache stats
-            const cacheRes = await fetch('/api/cache-stats');
-            const cacheData = await cacheRes.json();
-            statusEl.innerHTML = `Showing venues within ${maxMinutes} min by ${mode} (${cacheData.total_cached} lookups cached)`;
-        }
-
-        function applyDistanceFilter(maxMinutes) {
-            document.querySelectorAll('.venue-item').forEach(item => {
-                const name = item.querySelector('.venue-name a, .venue-name')?.textContent?.trim();
-                const travelEl = item.querySelector('.venue-travel');
-                const travel = travelTimes[name];
-
-                if (travel && travel.minutes !== null) {
-                    travelEl.textContent = `(${travel.text})`;
-                    if (travel.minutes > maxMinutes) {
-                        travelEl.classList.add('far');
-                        item.classList.add('filtered-out');
-                        item.querySelector('input[type="checkbox"]').checked = false;
-                    } else {
-                        travelEl.classList.remove('far');
-                        item.classList.remove('filtered-out');
-                    }
-                } else {
-                    travelEl.textContent = '';
-                    item.classList.remove('filtered-out');
-                }
-            });
-
-            updateCategoryCheckboxes();
-            updateCount();
-        }
-
-        function updateCategoryCheckboxes() {
-            document.querySelectorAll('.category-group').forEach(group => {
-                const checkboxes = group.querySelectorAll('.venue-item:not(.filtered-out) input[type="checkbox"]');
-                const headerCheckbox = group.querySelector('.category-header input[type="checkbox"]');
-                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-                headerCheckbox.checked = allChecked && checkboxes.length > 0;
-            });
-        }
-
-        function updateVenueCountPreview() {
-            const seen = new Set();
-            document.querySelectorAll('.category-group').forEach(group => {
-                const headerCheckbox = group.querySelector('.category-header input[type="checkbox"]');
-                if (!headerCheckbox.checked) return;
-                group.querySelectorAll('.venue-item').forEach(item => {
-                    const name = item.querySelector('.venue-name a, .venue-name')?.textContent?.trim();
-                    if (name) seen.add(name);
-                });
-            });
-            const count = seen.size;
-            const cost = (count / 1000 * 5).toFixed(2);
-            document.getElementById('venue-count-preview').innerHTML =
-                `Will calculate for <strong>${count}</strong> venues (~$${cost}, free tier covers 40k/month)`;
-        }
-
-        function clearDistanceFilter() {
-            travelTimes = {};
-            document.querySelectorAll('.venue-item').forEach(item => {
-                item.classList.remove('filtered-out');
-                item.querySelector('.venue-travel').textContent = '';
-                item.querySelector('.venue-travel').classList.remove('far');
-            });
-            document.getElementById('distance-status').innerHTML = '';
-            updateCount();
-        }
-
-        // Event fetching
-        let allEvents = [];
-        let aiFilteredEvents = null;
-        let currentEventsTab = 'all';
-        let fetchAborted = false;
-
-        async function fetchEvents() {
-            const btn = document.getElementById('fetch-events-btn');
-            const panel = document.getElementById('events-panel');
-            const content = document.getElementById('events-content');
-
-            // Get selected venues
-            const venues = getSelectedVenues();
-            if (venues.length === 0) {
-                alert('Please select some venues first');
-                return;
-            }
-
-            fetchAborted = false;
-            btn.disabled = true;
-            btn.textContent = 'Stop';
-            btn.onclick = () => { fetchAborted = true; };
-            panel.classList.add('visible');
-            allEvents = [];
-            aiFilteredEvents = null;
-            document.getElementById('query-status').textContent = '';
-
-            // Show progress bar
-            content.innerHTML = `
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
-                    </div>
-                    <div class="progress-text">
-                        <div class="progress-venue" id="progress-venue">Starting...</div>
-                        <div class="progress-stats" id="progress-stats">0 / ${venues.length} venues</div>
+                    <div class="field">
+                        <label for="max-travel">Max travel (minutes)</label>
+                        <select id="max-travel">
+                            <option value="15">15</option>
+                            <option value="30">30</option>
+                            <option value="45">45</option>
+                            <option value="60" selected>60</option>
+                            <option value="75">75</option>
+                            <option value="90">90</option>
+                        </select>
                     </div>
                 </div>
-            `;
 
-            let completed = 0;
-            let totalEvents = 0;
-            let skipped = 0;
-
-            try {
-                for (const venue of venues) {
-                    if (fetchAborted) {
-                        document.getElementById('progress-venue').textContent = 'Stopped by user';
-                        break;
-                    }
-
-                    // Update progress UI
-                    document.getElementById('progress-venue').textContent = `Fetching: ${venue.name}`;
-                    document.getElementById('progress-stats').textContent =
-                        `${completed} / ${venues.length} venues · ${totalEvents} events found`;
-
-                    try {
-                        const response = await fetch('/api/fetch-venue', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                venue: venue,
-                                force_refresh: false,
-                                city: 'NYC'
-                            })
-                        });
-
-                        const data = await response.json();
-
-                        if (data.events && data.events.length > 0) {
-                            data.events.forEach(e => {
-                                e.venue_name = e.venue_name || venue.name;
-                                allEvents.push(e);
-                            });
-                            totalEvents += data.events.length;
-                        }
-
-                        if (data.skipped) {
-                            skipped++;
-                        }
-
-                    } catch (e) {
-                        console.error(`Error fetching ${venue.name}:`, e);
-                    }
-
-                    completed++;
-                    const pct = Math.round((completed / venues.length) * 100);
-                    document.getElementById('progress-fill').style.width = pct + '%';
-                }
-
-                // Done - show final stats
-                document.getElementById('progress-venue').textContent = fetchAborted ? 'Stopped' : 'Complete!';
-                document.getElementById('progress-stats').textContent =
-                    `${completed} venues · ${totalEvents} events · ${skipped} skipped (cached)`;
-
-                // Sort events by date
-                allEvents.sort((a, b) => (a.date_str || '').localeCompare(b.date_str || ''));
-
-                document.getElementById('events-count').textContent = allEvents.length;
-
-                // After a brief pause, show the events
-                setTimeout(() => {
-                    renderEvents();
-                }, 1000);
-
-            } catch (e) {
-                console.error('Error fetching events:', e);
-                content.innerHTML = '<div class="events-empty">Error fetching events: ' + e.message + '</div>';
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Fetch Events';
-                btn.onclick = fetchEvents;
-            }
-        }
-
-        function getSelectedVenues() {
-            const venues = [];
-            const seen = new Set();
-
-            // Get checked venues from categories
-            document.querySelectorAll('.venue-item input:checked').forEach(cb => {
-                const cat = cb.dataset.category;
-                const idx = parseInt(cb.dataset.index);
-                const venue = venueData.categories[cat][idx];
-                if (!seen.has(venue.name)) {
-                    seen.add(venue.name);
-                    venues.push({
-                        name: venue.name,
-                        category: cat,
-                        website: venue.website || '',
-                        address: venue.address || venue.neighborhood || '',
-                        city: 'NYC'
-                    });
-                }
-            });
-
-            // Add manual venues
-            manualVenues.forEach(name => {
-                if (!seen.has(name)) {
-                    seen.add(name);
-                    venues.push({
-                        name: name,
-                        category: 'manual',
-                        website: '',
-                        address: '',
-                        city: 'NYC'
-                    });
-                }
-            });
-
-            return venues;
-        }
-
-        function renderEvents() {
-            const content = document.getElementById('events-content');
-
-            let eventsToShow = aiFilteredEvents || allEvents;
-            if (currentEventsTab === 'matched') {
-                eventsToShow = allEvents.filter(e => e.matched_artist);
-                if (aiFilteredEvents) {
-                    eventsToShow = aiFilteredEvents.filter(e => e.matched_artist);
-                }
-            }
-
-            if (eventsToShow.length === 0) {
-                content.innerHTML = '<div class="events-empty">' +
-                    (currentEventsTab === 'matched' ? 'No events match your YouTube Music artists' : 'No events found') +
-                    '</div>';
-                return;
-            }
-
-            content.innerHTML = eventsToShow.map(e => {
-                const isMatched = e.matched_artist;
-                return `
-                    <div class="event-item ${isMatched ? 'event-matched' : ''}">
-                        <div class="event-name">
-                            ${e.url ? `<a href="${e.url}" target="_blank">${e.name}</a>` : e.name}
-                            ${isMatched ? `<span class="matched-badge">${e.matched_artist}</span>` : ''}
-                        </div>
-                        <div class="event-meta">
-                            ${e.date_str || ''} · ${e.venue_name || ''}
-                            ${e.event_type ? ' · ' + e.event_type : ''}
-                        </div>
+                <div class="field category-field">
+                    <label>Event categories</label>
+                    <div id="categories" class="category-list">
+                        <div class="empty-note">Loading categories...</div>
                     </div>
-                `;
-            }).join('');
+                    <div class="controls">
+                        <button class="btn" id="select-all-categories" type="button">Select All</button>
+                        <button class="btn" id="clear-categories" type="button">Clear</button>
+                    </div>
+                </div>
+            </aside>
+
+            <section class="panel chat">
+                <div class="chat-head">
+                    <h2>Event Search</h2>
+                    <div class="empty-note">Example: "I'm looking for an interesting lecture talk over the next week."</div>
+                    <div class="hint-row">
+                        <button class="hint" type="button">Interesting lecture next week</button>
+                        <button class="hint" type="button">Live music in Brooklyn under 40 minutes</button>
+                        <button class="hint" type="button">Comedy shows this weekend</button>
+                    </div>
+                </div>
+
+                <div id="chat-log" class="chat-log"></div>
+
+                <form id="chat-form" class="composer">
+                    <input id="chat-input" type="text" placeholder="Ask for events..." autocomplete="off" required>
+                    <button class="btn primary" id="send-btn" type="submit">Send</button>
+                </form>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        const categoriesEl = document.getElementById("categories");
+        const chatLogEl = document.getElementById("chat-log");
+        const chatFormEl = document.getElementById("chat-form");
+        const chatInputEl = document.getElementById("chat-input");
+        const sendBtnEl = document.getElementById("send-btn");
+        const originAddressEl = document.getElementById("origin-address");
+        const originAddressErrorEl = document.getElementById("origin-address-error");
+
+        let categoryOptions = [];
+        let originLat = null;
+        let originLng = null;
+        let lastValidatedOrigin = "";
+
+        function normalizeForDedup(value) {
+            return String(value || "")
+                .toLowerCase()
+                .replace(/&amp;/g, "and")
+                .replace(/&#038;/g, "and")
+                .replace(/[^a-z0-9\s]/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
         }
 
-        function showEventsTab(tab) {
-            currentEventsTab = tab;
-            document.querySelectorAll('.events-tabs button').forEach(btn => {
-                btn.classList.toggle('active', btn.textContent.toLowerCase() === tab);
+        function eventDayToken(event) {
+            const dateStr = String(event.date_str || "").trim();
+            if (dateStr) return dateStr;
+            const dt = String(event.datetime || "").trim();
+            if (dt.includes("T")) return dt.split("T")[0];
+            return dt || "unknown-date";
+        }
+
+        function dedupeKey(event) {
+            const name = normalizeForDedup(event.name || "untitled event");
+            const day = eventDayToken(event);
+            const eventType = normalizeForDedup(event.event_type || "");
+            return `${name}|${day}|${eventType}`;
+        }
+
+        function eventQualityScore(event) {
+            let score = 0;
+            if (event.url) score += 4;
+            if (event.description) score += Math.min(3, String(event.description).length / 80);
+            if (event.venue_name) score += 1;
+            if (event.travel_minutes !== null && event.travel_minutes !== undefined && event.travel_minutes !== "") {
+                score += 2;
+            }
+            return score;
+        }
+
+        function dedupeMatches(matches) {
+            const bestByKey = new Map();
+            let duplicateCount = 0;
+
+            matches.forEach((event) => {
+                const key = dedupeKey(event);
+                const existing = bestByKey.get(key);
+                if (!existing) {
+                    bestByKey.set(key, event);
+                    return;
+                }
+                duplicateCount += 1;
+                if (eventQualityScore(event) > eventQualityScore(existing)) {
+                    bestByKey.set(key, event);
+                }
             });
-            renderEvents();
+
+            return {
+                events: Array.from(bestByKey.values()),
+                duplicateCount,
+            };
         }
 
-        function hideEventsPanel() {
-            document.getElementById('events-panel').classList.remove('visible');
+        function normalizedDateForSort(value) {
+            const raw = String(value || "").trim();
+            if (!raw) return "9999-99-99";
+            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+            const m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (m) {
+                const month = m[1].padStart(2, "0");
+                const day = m[2].padStart(2, "0");
+                return `${m[3]}-${month}-${day}`;
+            }
+            return raw;
         }
 
-        async function filterEventsWithAI() {
-            const query = document.getElementById('events-query').value.trim();
-            const statusEl = document.getElementById('query-status');
+        function groupSeriesMatches(matches) {
+            const grouped = new Map();
+            let groupedCount = 0;
 
-            if (!query) {
-                statusEl.textContent = 'Enter a query first.';
-                return;
-            }
+            matches.forEach((event, index) => {
+                const key = `${normalizeForDedup(event.name || "untitled event")}|${normalizeForDedup(event.venue_name || "venue unknown")}`;
+                const dateDisplay = String(event.date_str || eventDayToken(event) || "date TBD").trim();
+                const dateSort = normalizedDateForSort(dateDisplay);
+                const dateKey = `${dateSort}|${dateDisplay}`;
 
-            if (!allEvents.length) {
-                statusEl.textContent = 'Fetch events first, then run AI filtering.';
-                return;
-            }
+                if (!grouped.has(key)) {
+                    const dateMap = new Map();
+                    dateMap.set(dateKey, { sort: dateSort, display: dateDisplay });
+                    grouped.set(key, {
+                        representative: event,
+                        order: index,
+                        dateMap,
+                    });
+                    return;
+                }
 
-            statusEl.textContent = 'Filtering with AI...';
+                groupedCount += 1;
+                const current = grouped.get(key);
+                current.dateMap.set(dateKey, { sort: dateSort, display: dateDisplay });
+                if (eventQualityScore(event) > eventQualityScore(current.representative)) {
+                    current.representative = event;
+                }
+            });
+
+            const merged = Array.from(grouped.values())
+                .sort((a, b) => a.order - b.order)
+                .map((row) => {
+                    const dates = Array.from(row.dateMap.values())
+                        .sort((a, b) => String(a.sort).localeCompare(String(b.sort)))
+                        .map((d) => d.display);
+                    const mergedEvent = { ...row.representative };
+                    mergedEvent._group_dates = dates;
+                    mergedEvent._group_count = dates.length;
+                    return mergedEvent;
+                });
+
+            return {
+                events: merged,
+                groupedCount,
+            };
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function normalizeEventUrl(rawUrl) {
+            const raw = String(rawUrl || "").trim();
+            if (!raw) return "";
+
             try {
-                const response = await fetch('/api/query-events', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        query: query,
-                        events: allEvents,
-                        max_results: 30,
-                    }),
+                const parsed = new URL(raw);
+                if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+                    return parsed.toString();
+                }
+                return "";
+            } catch (_) {
+                if (raw.startsWith("www.")) {
+                    return `https://${raw}`;
+                }
+                return "";
+            }
+        }
+
+        function buildGoogleSearchUrl(event) {
+            const terms = [
+                event.name || "",
+                event.venue_name || "",
+                event.date_str || "",
+            ].map((v) => String(v).trim()).filter(Boolean).join(" ");
+            return `https://www.google.com/search?q=${encodeURIComponent(terms || "event nyc")}`;
+        }
+
+        function shortDescription(rawText, maxChars = 180) {
+            const text = String(rawText || "").replace(/\s+/g, " ").trim();
+            if (!text) return "";
+            if (text.length <= maxChars) return text;
+            const clipped = text.slice(0, maxChars).trimEnd();
+            return `${clipped}...`;
+        }
+
+        function formatCategoryLabel(value) {
+            const text = String(value || "").trim();
+            if (!text) return "";
+            return text.replace(/\b([a-z])/g, (m, c) => c.toUpperCase());
+        }
+
+        function dateLabelForEvent(event) {
+            const dates = Array.isArray(event._group_dates) ? event._group_dates.filter(Boolean) : [];
+            if (!dates.length) return event.date_str || "date TBD";
+            if (dates.length === 1) return dates[0];
+
+            const preview = dates.slice(0, 4).join(", ");
+            if (dates.length > 4) {
+                return `Dates: ${preview} +${dates.length - 4} more`;
+            }
+            return `Dates: ${preview}`;
+        }
+
+        function buildResultNode(event, options = {}) {
+            const includeDescription = Boolean(options.includeDescription);
+            const item = document.createElement("div");
+            item.className = "result";
+
+            const name = escapeHtml(event.name || "Untitled event");
+            const directUrl = normalizeEventUrl(event.url || "");
+            const targetUrl = directUrl || buildGoogleSearchUrl(event);
+            const titleHint = directUrl ? "" : ' <small>(search)</small>';
+            const linkedName =
+                `<a href="${escapeHtml(targetUrl)}" target="_blank" rel="noopener noreferrer">${name}</a>${titleHint}`;
+
+            const travel = event.travel_minutes === null || event.travel_minutes === undefined || event.travel_minutes === ""
+                ? "distance unknown"
+                : `${event.travel_minutes} min`;
+            const categoryLabel = formatCategoryLabel(event.event_type || "uncategorized");
+            const dateLabel = dateLabelForEvent(event);
+            const meta = [
+                dateLabel,
+                event.venue_name || "venue unknown",
+                categoryLabel,
+                travel,
+            ].join(" | ");
+            const preview = includeDescription ? shortDescription(event.description || "") : "";
+            const descHtml = preview ? `<div class="result-desc">${escapeHtml(preview)}</div>` : "";
+
+            item.innerHTML = `
+                <div>${linkedName}</div>
+                <div class="result-meta">${meta}</div>
+                ${descHtml}
+            `;
+            return item;
+        }
+
+        function addMessage(text, role = "assistant", matches = []) {
+            const wrap = document.createElement("div");
+            wrap.className = `message ${role}`;
+            wrap.innerHTML = text;
+
+            if (matches && matches.length) {
+                const { events: dedupedMatches, duplicateCount } = dedupeMatches(matches);
+                const { events: groupedMatches, groupedCount } = groupSeriesMatches(dedupedMatches);
+                const list = document.createElement("div");
+                list.className = "result-list";
+
+                const shouldSplitResults = groupedMatches.length > 10;
+                const primaryMatches = shouldSplitResults ? groupedMatches.slice(0, 5) : groupedMatches;
+                const moreMatches = shouldSplitResults ? groupedMatches.slice(5) : [];
+
+                primaryMatches.forEach((event) => {
+                    list.appendChild(buildResultNode(event, { includeDescription: true }));
+                });
+
+                if (duplicateCount > 0 || groupedCount > 0) {
+                    const note = document.createElement("div");
+                    note.className = "dedupe-note";
+                    const parts = [];
+                    if (duplicateCount > 0) {
+                        parts.push(`${duplicateCount} duplicate listing${duplicateCount === 1 ? "" : "s"} collapsed`);
+                    }
+                    if (groupedCount > 0) {
+                        parts.push(`${groupedCount} same-name venue date entr${groupedCount === 1 ? "y" : "ies"} grouped`);
+                    }
+                    note.textContent = parts.join(" • ");
+                    wrap.appendChild(note);
+                }
+                wrap.appendChild(list);
+
+                if (moreMatches.length) {
+                    const moreBox = document.createElement("div");
+                    moreBox.className = "more-box";
+
+                    const title = document.createElement("div");
+                    title.className = "more-box-title";
+                    title.textContent = `Here's more (${moreMatches.length})`;
+                    moreBox.appendChild(title);
+
+                    const moreList = document.createElement("div");
+                    moreList.className = "result-list more-box-list";
+                    moreMatches.forEach((event) => {
+                        moreList.appendChild(buildResultNode(event));
+                    });
+                    moreBox.appendChild(moreList);
+                    wrap.appendChild(moreBox);
+                }
+            }
+
+            chatLogEl.appendChild(wrap);
+            chatLogEl.scrollTop = chatLogEl.scrollHeight;
+        }
+
+        function getSelectedCategories() {
+            return Array.from(document.querySelectorAll(".category-item input:checked"))
+                .map((cb) => cb.value);
+        }
+
+        function setOriginError(message) {
+            const text = String(message || "").trim();
+            if (!text) {
+                originAddressErrorEl.textContent = "";
+                originAddressErrorEl.classList.remove("visible");
+                return;
+            }
+            originAddressErrorEl.textContent = text;
+            originAddressErrorEl.classList.add("visible");
+        }
+
+        async function validateOriginAddress(options = {}) {
+            const force = Boolean(options.force);
+            const address = originAddressEl.value.trim();
+
+            if (!address) {
+                originLat = null;
+                originLng = null;
+                lastValidatedOrigin = "";
+                setOriginError("Address is not valid.");
+                return false;
+            }
+
+            if (!force && address === lastValidatedOrigin && Number.isFinite(originLat) && Number.isFinite(originLng)) {
+                return true;
+            }
+
+            try {
+                const response = await fetch("/api/geocode-origin", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ address }),
                 });
                 const data = await response.json();
-                aiFilteredEvents = data.matches || [];
-                document.getElementById('events-count').textContent = aiFilteredEvents.length;
-
-                const note = data.warning ? ` Warning: ${data.warning}` : '';
-                statusEl.textContent = `${data.interpretation || 'Filtered.'}${note}`;
-                renderEvents();
-            } catch (e) {
-                statusEl.textContent = `AI filtering failed: ${e.message}`;
+                if (!response.ok || !data.valid) {
+                    originLat = null;
+                    originLng = null;
+                    lastValidatedOrigin = "";
+                    setOriginError(data.error || "Address is not valid.");
+                    return false;
+                }
+                originLat = Number(data.lat);
+                originLng = Number(data.lng);
+                lastValidatedOrigin = address;
+                setOriginError("");
+                return true;
+            } catch (_) {
+                originLat = null;
+                originLng = null;
+                lastValidatedOrigin = "";
+                setOriginError("Address validation failed. Please try again.");
+                return false;
             }
         }
 
-        function clearAiFilter() {
-            aiFilteredEvents = null;
-            document.getElementById('events-count').textContent = allEvents.length;
-            document.getElementById('query-status').textContent = '';
-            renderEvents();
+        function getActiveFilters() {
+            const maxTravelRaw = document.getElementById("max-travel").value.trim();
+            const maxTravelMinutes = maxTravelRaw === "" ? null : Number(maxTravelRaw);
+            const categories = getSelectedCategories();
+            const distanceMode = document.getElementById("distance-mode").value;
+            const originAddress = document.getElementById("origin-address").value.trim();
+
+            return {
+                categories,
+                distance_mode: distanceMode,
+                max_travel_minutes: Number.isFinite(maxTravelMinutes) ? maxTravelMinutes : null,
+                origin_address: originAddress,
+                origin_lat: Number.isFinite(originLat) ? originLat : null,
+                origin_lng: Number.isFinite(originLng) ? originLng : null,
+                enable_fuzzy_categories: false,
+                fuzzy_categories: [],
+                fuzzy_category_threshold: 72,
+            };
         }
 
-        loadVenues();
+        function renderCategories(categories) {
+            if (!categories.length) {
+                categoriesEl.innerHTML = '<div class="empty-note">No categories found in event sheet.</div>';
+                return;
+            }
+
+            categoriesEl.innerHTML = categories.map((cat) => `
+                <label class="category-item">
+                    <span class="category-name">
+                        <input type="checkbox" value="${cat.name}" checked>
+                        ${formatCategoryLabel(cat.name)} (${cat.count})
+                    </span>
+                </label>
+            `).join("");
+        }
+
+        async function loadFilterOptions() {
+            try {
+                const response = await fetch("/api/event-filter-options");
+                const data = await response.json();
+
+                categoryOptions = data.categories || [];
+                renderCategories(categoryOptions);
+            } catch (error) {
+                categoriesEl.innerHTML = '<div class="empty-note">Unable to load categories.</div>';
+                addMessage(`Unable to load filter options: ${error.message}`, "assistant");
+            }
+        }
+
+        const SEARCHING_BUBBLE_DELAY_MS = 300;
+
+        async function submitQuery(queryText) {
+            const originValid = await validateOriginAddress();
+            if (!originValid) {
+                return;
+            }
+
+            const filters = getActiveFilters();
+
+            addMessage(queryText, "user");
+            let loadingNode = null;
+            let requestSettled = false;
+            const loadingTimer = window.setTimeout(() => {
+                if (requestSettled) {
+                    return;
+                }
+                addMessage("Searching...", "assistant");
+                loadingNode = chatLogEl.lastElementChild;
+            }, SEARCHING_BUBBLE_DELAY_MS);
+
+            sendBtnEl.disabled = true;
+            chatInputEl.disabled = true;
+
+            try {
+                const response = await fetch("/api/query-events", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        query: queryText,
+                        max_results: 60,
+                        filters,
+                    }),
+                });
+
+                const data = await response.json();
+                requestSettled = true;
+                window.clearTimeout(loadingTimer);
+                if (loadingNode && loadingNode.parentNode) {
+                    loadingNode.remove();
+                }
+
+                const interpretation = data.interpretation || "Here are the best matches.";
+                const prefix = `Mode: ${data.mode || "unknown"} | Candidates: ${data.filtered_count ?? "?"}/${data.input_count ?? "?"}`;
+                const dateMeta = data.filters && data.filters.date ? data.filters.date : null;
+                let dateSummary = "";
+                if (dateMeta && dateMeta.date_window_applied) {
+                    const start = String(dateMeta.date_window_start || dateMeta.date_start || "").split("T")[0] || "?";
+                    const end = String(dateMeta.date_window_end || dateMeta.date_end || "").split("T")[0] || "?";
+                    const post = dateMeta.post_date_count ?? dateMeta.post_filter_count ?? "?";
+                    const pre = dateMeta.pre_date_count ?? dateMeta.pre_filter_count ?? "?";
+                    dateSummary = `<br><small>Date tool: ${start} to ${end} (${post}/${pre} kept)</small>`;
+                } else if (dateMeta && dateMeta.date_tool_called) {
+                    dateSummary = `<br><small>Date tool: no date window applied</small>`;
+                }
+                const distanceMeta = data.distance_filter || null;
+                let distanceSummary = "";
+                if (distanceMeta && distanceMeta.applied) {
+                    distanceSummary =
+                        `<br><small>Distance tool (${distanceMeta.mode}): ${distanceMeta.kept ?? 0}/${distanceMeta.input_matches ?? 0} kept at <= ${distanceMeta.max_minutes ?? "?"} min</small>`;
+                }
+                const warning = data.warning ? `<br><small>${data.warning}</small>` : "";
+
+                addMessage(`${interpretation}<br><small>${prefix}</small>${dateSummary}${distanceSummary}${warning}`, "assistant", data.matches || []);
+            } catch (error) {
+                requestSettled = true;
+                window.clearTimeout(loadingTimer);
+                if (loadingNode && loadingNode.parentNode) {
+                    loadingNode.remove();
+                }
+                addMessage(`Search failed: ${error.message}`, "assistant");
+            } finally {
+                sendBtnEl.disabled = false;
+                chatInputEl.disabled = false;
+                chatInputEl.focus();
+            }
+        }
+
+        document.getElementById("select-all-categories").addEventListener("click", () => {
+            document.querySelectorAll(".category-item input").forEach((cb) => {
+                cb.checked = true;
+            });
+        });
+
+        document.getElementById("clear-categories").addEventListener("click", () => {
+            document.querySelectorAll(".category-item input").forEach((cb) => {
+                cb.checked = false;
+            });
+        });
+
+        originAddressEl.addEventListener("input", () => {
+            const current = originAddressEl.value.trim();
+            if (current !== lastValidatedOrigin) {
+                originLat = null;
+                originLng = null;
+            }
+            setOriginError("");
+        });
+
+        originAddressEl.addEventListener("blur", async () => {
+            await validateOriginAddress();
+        });
+
+        chatFormEl.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const queryText = chatInputEl.value.trim();
+            if (!queryText) return;
+            chatInputEl.value = "";
+            await submitQuery(queryText);
+        });
+
+        document.querySelectorAll(".hint").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+                await submitQuery(btn.textContent.trim());
+            });
+        });
+
+        addMessage("Ask me what you're interested in, and I will search events for you.");
+        validateOriginAddress();
+        loadFilterOptions();
     </script>
 </body>
 </html>

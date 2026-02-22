@@ -11,7 +11,13 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from venue_scout.cache import read_cached_venues, get_or_create_venues_sheet, _get_sheets_service, VENUE_COLUMNS
+from venue_scout.cache import (
+    VENUE_COLUMNS,
+    _get_sheets_service,
+    _venue_to_row,
+    get_or_create_venues_sheet,
+    read_cached_venues,
+)
 from venue_scout.paths import PLACES_CACHE_FILE, ensure_data_dir
 
 
@@ -61,7 +67,39 @@ def is_bad_address(address: str) -> bool:
     return address.lower().replace(',', '').strip() in BAD_ADDRESSES
 
 
-def lookup_place(venue_name: str, city: str = "NYC") -> dict | None:
+def _sheet_col_label(col_index: int) -> str:
+    """Convert 1-based column index into A1 column label."""
+    if col_index < 1:
+        return "A"
+    out = ""
+    value = col_index
+    while value:
+        value, rem = divmod(value - 1, 26)
+        out = chr(65 + rem) + out
+    return out
+
+
+def _sheet_full_range() -> str:
+    """Return full A1 range covering all venue columns."""
+    return f"A:{_sheet_col_label(len(VENUE_COLUMNS))}"
+
+
+def _parse_coordinate(value) -> float | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+def _has_coordinates(venue: dict) -> bool:
+    """Return True when venue has both latitude and longitude."""
+    return _parse_coordinate(venue.get("lat")) is not None and _parse_coordinate(venue.get("lng")) is not None
+
+
+def lookup_place(venue_name: str, city: str = "NYC", address_hint: str = "") -> dict | None:
     """
     Look up a venue using Google Places API (New).
 
@@ -69,13 +107,20 @@ def lookup_place(venue_name: str, city: str = "NYC") -> dict | None:
         - formatted_address: Full address
         - neighborhood: Extracted neighborhood/area
         - place_id: Google Place ID
+        - lat: Latitude
+        - lng: Longitude
 
     Or None if not found.
     """
     # Check cache first
-    cache_key = f"{venue_name}|{city}"
+    cache_key = f"{venue_name}|{city}|{address_hint.strip().lower()}"
     if cache_key in _places_cache:
-        return _places_cache[cache_key]
+        cached = _places_cache[cache_key]
+        # Old cache entries may not include coordinates; refresh those.
+        if cached is None:
+            return None
+        if cached.get("lat") is not None and cached.get("lng") is not None:
+            return cached
 
     config = _load_config()
     api_key = config.get("google_cloud", {}).get("api_key")
@@ -89,10 +134,13 @@ def lookup_place(venue_name: str, city: str = "NYC") -> dict | None:
     headers = {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": api_key,
-        "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.id",
+        "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.id,places.location",
     }
+    query = f"{venue_name}, {city}"
+    if address_hint.strip():
+        query = f"{venue_name}, {address_hint}, {city}"
     body = {
-        "textQuery": f"{venue_name}, {city}",
+        "textQuery": query,
         "maxResultCount": 1,
     }
 
@@ -110,6 +158,8 @@ def lookup_place(venue_name: str, city: str = "NYC") -> dict | None:
                 "formatted_address": formatted_address,
                 "name": place.get("displayName", {}).get("text", ""),
                 "place_id": place.get("id", ""),
+                "lat": place.get("location", {}).get("latitude"),
+                "lng": place.get("location", {}).get("longitude"),
             }
 
             # Extract neighborhood from address (usually second component)
@@ -164,12 +214,14 @@ def enrich_venues_in_cache(city: str = "NYC") -> int:
         if f"{name}|{city}" not in _places_cache:
             time.sleep(float(getattr(_settings, "VENUE_ENRICH_PLACES_DELAY_SEC", 0.1)))
 
-        result = lookup_place(name, city)
+        result = lookup_place(name, city, venue.get("address", ""))
 
         if result and result.get("formatted_address"):
             venue["address"] = result["formatted_address"]
             if result.get("neighborhood") and not venue.get("neighborhood"):
                 venue["neighborhood"] = result["neighborhood"]
+            venue["lat"] = result.get("lat")
+            venue["lng"] = result.get("lng")
             venue["address_verified"] = "yes"
             updated += 1
         else:
@@ -226,7 +278,7 @@ def enrich_venues(city: str = "NYC", dry_run: bool = True, limit: int = None):
         if f"{name}|{city}" not in _places_cache:
             time.sleep(float(getattr(_settings, "VENUE_ENRICH_PLACES_DELAY_SEC", 0.1)))
 
-        result = lookup_place(name, city)
+        result = lookup_place(name, city, venue.get("address", ""))
 
         if result and result.get("formatted_address"):
             new_addr = result["formatted_address"]
@@ -240,6 +292,8 @@ def enrich_venues(city: str = "NYC", dry_run: bool = True, limit: int = None):
                 venue["address"] = new_addr
                 if new_neighborhood and not venue.get("neighborhood"):
                     venue["neighborhood"] = new_neighborhood
+                venue["lat"] = result.get("lat")
+                venue["lng"] = result.get("lng")
 
             updated += 1
         else:
@@ -275,22 +329,11 @@ def _save_venues_to_sheet(venues: list):
 
     rows = [VENUE_COLUMNS]
     for venue in venues:
-        row = [
-            venue.get("name", ""),
-            venue.get("address", ""),
-            venue.get("city", ""),
-            venue.get("neighborhood", ""),
-            venue.get("website", ""),
-            venue.get("category", ""),
-            venue.get("description", ""),
-            venue.get("source", ""),
-            venue.get("address_verified", ""),
-        ]
-        rows.append(row)
+        rows.append(_venue_to_row(venue))
 
     service.spreadsheets().values().clear(
         spreadsheetId=sheet_id,
-        range="A:I"
+        range=_sheet_full_range()
     ).execute()
 
     service.spreadsheets().values().update(
@@ -301,6 +344,81 @@ def _save_venues_to_sheet(venues: list):
     ).execute()
 
 
+def backfill_venue_coordinates(
+    city: str = "NYC",
+    dry_run: bool = True,
+    limit: int | None = None,
+    include_bad_addresses: bool = False,
+    require_events_url: bool = False,
+) -> dict:
+    """
+    Backfill lat/lng for venues missing coordinates.
+
+    Args:
+        city: City to process
+        dry_run: If True, do not write sheet updates
+        limit: Max venues to process
+        include_bad_addresses: If True, also attempt vague addresses
+        require_events_url: If True, only process venues that have events_url
+    """
+    venues = read_cached_venues(city)
+    to_backfill = []
+    for venue in venues:
+        if require_events_url and not str(venue.get("events_url", "") or "").strip():
+            continue
+        if _has_coordinates(venue):
+            continue
+        address = str(venue.get("address", "") or "").strip()
+        if not address:
+            continue
+        if not include_bad_addresses and is_bad_address(address):
+            continue
+        to_backfill.append(venue)
+
+    if limit:
+        to_backfill = to_backfill[:limit]
+
+    print(f"Venues missing coordinates: {len(to_backfill)}")
+
+    updated = 0
+    not_found = 0
+    for i, venue in enumerate(to_backfill, 1):
+        name = venue.get("name", "")
+        address = venue.get("address", "")
+        print(f"[{i}/{len(to_backfill)}] {name[:50]}...", end=" ", flush=True)
+
+        if f"{name}|{city}|{str(address).strip().lower()}" not in _places_cache:
+            time.sleep(float(getattr(_settings, "VENUE_ENRICH_PLACES_DELAY_SEC", 0.1)))
+
+        result = lookup_place(name, city, str(address or ""))
+        if result and result.get("lat") is not None and result.get("lng") is not None:
+            print("ok")
+            if not dry_run:
+                venue["lat"] = result.get("lat")
+                venue["lng"] = result.get("lng")
+                if result.get("formatted_address") and is_bad_address(str(address)):
+                    venue["address"] = result.get("formatted_address")
+                    venue["address_verified"] = "yes"
+                if result.get("neighborhood") and not venue.get("neighborhood"):
+                    venue["neighborhood"] = result.get("neighborhood")
+            updated += 1
+        else:
+            print("not found")
+            not_found += 1
+
+    print(f"Backfill results: updated={updated}, not_found={not_found}")
+
+    if not dry_run and updated > 0:
+        _save_venues_to_sheet(venues)
+        print("Saved coordinate updates to sheet.")
+
+    return {
+        "targets": len(to_backfill),
+        "updated": updated,
+        "not_found": not_found,
+    }
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -308,7 +426,31 @@ if __name__ == "__main__":
     parser.add_argument("--apply", action="store_true", help="Actually update venues (default is dry run)")
     parser.add_argument("--limit", type=int, help="Limit number of venues to process")
     parser.add_argument("--city", default="NYC", help="City to process")
+    parser.add_argument(
+        "--backfill-coordinates",
+        action="store_true",
+        help="Backfill missing lat/lng for venues in cache",
+    )
+    parser.add_argument(
+        "--include-bad-addresses",
+        action="store_true",
+        help="When backfilling coordinates, also attempt vague addresses",
+    )
+    parser.add_argument(
+        "--events-url-only",
+        action="store_true",
+        help="When backfilling coordinates, only process venues with events_url",
+    )
 
     args = parser.parse_args()
 
-    enrich_venues(city=args.city, dry_run=not args.apply, limit=args.limit)
+    if args.backfill_coordinates:
+        backfill_venue_coordinates(
+            city=args.city,
+            dry_run=not args.apply,
+            limit=args.limit,
+            include_bad_addresses=args.include_bad_addresses,
+            require_events_url=args.events_url_only,
+        )
+    else:
+        enrich_venues(city=args.city, dry_run=not args.apply, limit=args.limit)

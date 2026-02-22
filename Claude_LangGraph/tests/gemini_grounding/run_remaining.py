@@ -16,6 +16,8 @@ from venue_scout.discovery_gemini import discover_venues
 from venue_scout.cache import read_cached_venues, _get_sheets_service
 import settings
 
+OUTPUT_DIR = Path(__file__).parent.parent.parent / "venue_scout" / "outputs" / "gemini_grounding"
+
 # Categories already completed in MVP run
 MVP_CATEGORIES = [
     "art galleries",
@@ -140,7 +142,8 @@ def main():
 
     # Save JSON backup
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    json_path = Path(__file__).parent / f"full_results_{timestamp}.json"
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    json_path = OUTPUT_DIR / f"full_results_{timestamp}.json"
 
     # Convert to regular dicts for JSON serialization
     venues_for_json = [dict(v) for v in all_venues]

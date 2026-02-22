@@ -439,7 +439,6 @@ def discover_venues(
         is_category_searched,
         append_venues_to_cache,
         read_cached_venues,
-        get_searched_categories,
         load_seed_venues,
     )
 

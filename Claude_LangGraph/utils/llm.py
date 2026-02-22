@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from google import genai
 
-_client = None
+_clients = {}
 
 
 def _load_settings():
@@ -31,12 +31,9 @@ def _load_api_key_from_config() -> str | None:
     return None
 
 
-def get_gemini_model():
-    """Get Gemini client (singleton to avoid repeated setup)."""
-    global _client
-
-    if _client is not None:
-        return _client
+def get_gemini_model(timeout_sec: int | None = None):
+    """Get Gemini client keyed by timeout to avoid repeated setup."""
+    global _clients
 
     # Try config file first, then environment variables
     api_key = (
@@ -50,30 +47,52 @@ def get_gemini_model():
             "Gemini API key not found. Add to config.json or set GOOGLE_API_KEY environment variable."
         )
 
-    _client = genai.Client(api_key=api_key)
-    return _client
+    http_timeout_sec = int(
+        timeout_sec if timeout_sec is not None else getattr(_settings, "GEMINI_HTTP_TIMEOUT_SEC", 30)
+    )
+    # google-genai HttpOptions.timeout expects milliseconds.
+    http_timeout_ms = max(5, http_timeout_sec) * 1000
+    cache_key = (api_key, http_timeout_ms)
+    cached = _clients.get(cache_key)
+    if cached is not None:
+        return cached
+
+    client = genai.Client(
+        api_key=api_key,
+        http_options={"timeout": http_timeout_ms},
+    )
+    _clients[cache_key] = client
+    return client
 
 
-def generate_content(prompt: str, max_retries: int | None = None) -> str:
+def generate_content(
+    prompt: str,
+    max_retries: int | None = None,
+    timeout_sec: int | None = None,
+    model_name: str | None = None,
+) -> str:
     """Generate content using Gemini with retry logic for transient errors."""
     import time
 
-    client = get_gemini_model()
+    client = get_gemini_model(timeout_sec=timeout_sec)
     retry_limit = max_retries if max_retries is not None else int(getattr(_settings, "GEMINI_MAX_RETRIES", 3))
     retry_limit = max(1, int(retry_limit))
-    model_name = str(getattr(_settings, "GEMINI_MODEL", "gemini-3-flash-preview"))
+    active_model = str(model_name or getattr(_settings, "GEMINI_MODEL", "gemini-3-flash-preview"))
     temperature = float(getattr(_settings, "GEMINI_TEMPERATURE", 0.0))
     seed = int(getattr(_settings, "GEMINI_SEED", 20260213))
     initial_delay = float(getattr(_settings, "GEMINI_RETRY_INITIAL_DELAY_SEC", 1.0))
     backoff_multiplier = float(getattr(_settings, "GEMINI_RETRY_BACKOFF_MULTIPLIER", 2.0))
     max_retry_delay = float(getattr(_settings, "GEMINI_RETRY_MAX_DELAY_SEC", 8.0))
     retryable_tokens = (
+        "504",
         "503",
         "overloaded",
         "unavailable",
         "timeout",
         "timed out",
+        "deadline_exceeded",
         "deadline exceeded",
+        "deadline expired",
         "429",
         "rate limit",
         "resource exhausted",
@@ -82,7 +101,7 @@ def generate_content(prompt: str, max_retries: int | None = None) -> str:
     for attempt in range(retry_limit):
         try:
             response = client.models.generate_content(
-                model=model_name,
+                model=active_model,
                 contents=prompt,
                 config={
                     "temperature": temperature,

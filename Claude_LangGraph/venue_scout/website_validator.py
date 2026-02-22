@@ -208,6 +208,50 @@ EVENT_PATH_KEYWORDS = (
     "tickets",
 )
 
+_SHARED_EVENTS_FEED_PATTERNS = (
+    ("nycgovparks.org", "/events"),
+    ("nycgovparks.org", "/events/volunteer"),
+)
+
+_GENERIC_VENUE_TOKENS = frozenset(
+    {
+        "the",
+        "new",
+        "york",
+        "nyc",
+        "city",
+        "park",
+        "parks",
+        "center",
+        "centre",
+        "community",
+        "house",
+        "hall",
+        "museum",
+        "garden",
+        "gardens",
+        "playground",
+        "field",
+        "plaza",
+        "square",
+        "north",
+        "south",
+        "east",
+        "west",
+        "street",
+        "avenue",
+        "road",
+        "drive",
+        "lane",
+        "brooklyn",
+        "manhattan",
+        "bronx",
+        "queens",
+        "staten",
+        "island",
+    }
+)
+
 EVENT_SIGNAL_PATTERNS = [
     r"\bupcoming events?\b",
     r"\bupcoming exhibitions?\b",
@@ -380,7 +424,7 @@ def _search_event_candidates_jina(
     return candidates
 
 
-def _events_url_hint_score(url: str, homepage_url: str) -> int:
+def _events_url_hint_score(url: str, homepage_url: str, venue_name: str = "") -> int:
     """Path/query-only confidence used for blocked-content fallback picks."""
     parsed = urlparse(_normalize_url(url))
     path_query = (parsed.path + "?" + parsed.query).lower()
@@ -394,7 +438,45 @@ def _events_url_hint_score(url: str, homepage_url: str) -> int:
         score += 2
     if "iframe" in path_query:
         score -= 1
+    if _is_known_shared_events_feed(url):
+        score -= 2
+        if _url_contains_venue_tokens(url, venue_name):
+            score += 2
     return score
+
+
+def _venue_name_tokens(venue_name: str) -> set[str]:
+    """Get venue-identifying tokens and remove generic words."""
+    tokens = {
+        token
+        for token in re.findall(r"[a-z0-9]{3,}", str(venue_name or "").lower())
+        if token not in _GENERIC_VENUE_TOKENS
+    }
+    return tokens
+
+
+def _is_known_shared_events_feed(url: str) -> bool:
+    """True when URL is known to be a citywide/shared feed endpoint."""
+    norm = _normalize_url(url)
+    parsed = urlparse(norm)
+    domain = parsed.netloc.lower().replace("www.", "")
+    path = (parsed.path or "").rstrip("/").lower()
+    if not path:
+        path = "/"
+    for shared_domain, shared_path in _SHARED_EVENTS_FEED_PATTERNS:
+        if domain.endswith(shared_domain) and path == shared_path:
+            return True
+    return False
+
+
+def _url_contains_venue_tokens(url: str, venue_name: str) -> bool:
+    """Heuristic: URL path/query contains venue-specific token(s)."""
+    if not venue_name:
+        return False
+    parsed = urlparse(_normalize_url(url))
+    path_query = f"{parsed.path}?{parsed.query}".lower()
+    tokens = _venue_name_tokens(venue_name)
+    return any(token in path_query for token in tokens)
 
 
 def verify_official_website(url: str, venue_name: str, city: str = "NYC") -> tuple[bool, str]:
@@ -587,7 +669,7 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
                 retries=jina_retries,
                 retry_delay=jina_retry_delay,
             )
-            if jina_error:
+            if jina_error and jina_error != "jina_skipped":
                 blocked_signal = _capture_probe_error(
                     f"jina_candidate_fetch_failed:{jina_error}",
                     candidate,
@@ -605,14 +687,17 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
                         "candidate_html_fetch",
                     ) or blocked_signal
 
-            if not content or len(content) < 100:
-                if blocked_signal:
-                    hint = _events_url_hint_score(candidate, homepage_url)
-                    if hint >= 2:
-                        blocked_candidates[candidate] = max(hint, blocked_candidates.get(candidate, 0))
-                return best_url, best_score, False
+                if not content or len(content) < 100:
+                    if blocked_signal:
+                        hint = _events_url_hint_score(candidate, homepage_url, venue_name)
+                        if hint >= 2:
+                            blocked_candidates[candidate] = max(hint, blocked_candidates.get(candidate, 0))
+                    return best_url, best_score, False
 
             score = _event_signal_score(content[:20000])
+            if _is_known_shared_events_feed(candidate) and not _url_contains_venue_tokens(candidate, venue_name):
+                # Keep shared feeds as fallback options, but prefer venue-scoped pages when available.
+                score -= 4
             if score > best_score:
                 best_url = candidate
                 best_score = score
@@ -643,7 +728,7 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
                     retries=jina_retries,
                     retry_delay=jina_retry_delay,
                 )
-                if iframe_error:
+                if iframe_error and iframe_error != "jina_skipped":
                     iframe_blocked_signal = _capture_probe_error(
                         f"jina_iframe_fetch_failed:{iframe_error}",
                         iframe_url,
@@ -661,12 +746,14 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
                         ) or iframe_blocked_signal
                 if not iframe_content or len(iframe_content) < 100:
                     if iframe_blocked_signal:
-                        hint = _events_url_hint_score(iframe_url, homepage_url)
+                        hint = _events_url_hint_score(iframe_url, homepage_url, venue_name)
                         if hint >= 2:
                             blocked_candidates[iframe_url] = max(hint, blocked_candidates.get(iframe_url, 0))
                     continue
 
                 iframe_score = _event_signal_score(iframe_content[:20000]) + 1
+                if _is_known_shared_events_feed(iframe_url) and not _url_contains_venue_tokens(iframe_url, venue_name):
+                    iframe_score -= 4
                 if iframe_score > best_score:
                     best_url = iframe_url
                     best_score = iframe_score
@@ -684,6 +771,8 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
             )
         except Exception as e:
             homepage_jina_error = str(e)
+        if homepage_jina_error == "jina_skipped":
+            homepage_jina_error = ""
         if homepage_jina_error:
             _capture_probe_error(
                 f"jina_homepage_fetch_failed:{homepage_jina_error}",
@@ -878,7 +967,7 @@ CONTENT:
                     retries=jina_retries,
                     retry_delay=jina_retry_delay,
                 )
-                if candidate_error:
+                if candidate_error and candidate_error != "jina_skipped":
                     _capture_probe_error(
                         f"jina_llm_candidate_fetch_failed:{candidate_error}",
                         candidate,

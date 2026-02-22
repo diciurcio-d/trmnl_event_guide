@@ -9,9 +9,10 @@ import json
 import os
 import re
 import sys
+import threading
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 from zoneinfo import ZoneInfo
@@ -34,6 +35,9 @@ def _load_settings():
 
 
 _settings = _load_settings()
+_SHARED_FEED_CACHE: dict[str, list[dict]] = {}
+_SHARED_FEED_INFLIGHT: dict[str, threading.Event] = {}
+_SHARED_FEED_LOCK = threading.Lock()
 
 
 def _save_discovered_endpoint(venue_name: str, api_endpoint: str, city: str):
@@ -219,6 +223,31 @@ def _should_skip_jina() -> bool:
         return False
     # Fall back to settings
     return getattr(_settings, "EVENT_FETCHER_SKIP_JINA", False)
+
+
+def _is_timeout_error(exc: Exception) -> bool:
+    """Return True when error text indicates provider timeout/deadline."""
+    lowered = str(exc).lower()
+    timeout_tokens = (
+        "504",
+        "deadline_exceeded",
+        "deadline exceeded",
+        "deadline expired",
+        "timeout",
+        "timed out",
+    )
+    return any(token in lowered for token in timeout_tokens)
+
+
+def _fallback_model_list(value, default: tuple[str, ...]) -> list[str]:
+    """Normalize fallback model setting into an ordered list."""
+    raw = value if value is not None else default
+    if isinstance(raw, (list, tuple)):
+        items = [str(item).strip() for item in raw]
+    else:
+        text = str(raw or "").strip()
+        items = [part.strip() for part in text.split(",")] if text else []
+    return [item for item in items if item]
 
 
 def _fetch_raw_html(url: str) -> str:
@@ -621,6 +650,47 @@ def _extract_iframe_srcs(html: str, base_url: str) -> list[str]:
 
 def _venue_tokens(venue: dict) -> set[str]:
     """Build normalized tokens that represent the venue's location identity."""
+    generic_tokens = {
+        "new",
+        "york",
+        "nyc",
+        "city",
+        "park",
+        "parks",
+        "playground",
+        "beach",
+        "garden",
+        "gardens",
+        "historic",
+        "house",
+        "houses",
+        "center",
+        "centre",
+        "community",
+        "field",
+        "plaza",
+        "square",
+        "north",
+        "south",
+        "east",
+        "west",
+        "street",
+        "avenue",
+        "road",
+        "drive",
+        "lane",
+        "trail",
+        "riverside",
+        "central",
+        "brooklyn",
+        "manhattan",
+        "bronx",
+        "queens",
+        "staten",
+        "island",
+        "the",
+        "venue",
+    }
     text = " ".join(
         [
             venue.get("name", ""),
@@ -629,7 +699,11 @@ def _venue_tokens(venue: dict) -> set[str]:
             venue.get("city", ""),
         ]
     ).lower()
-    tokens = {t for t in re.findall(r"[a-z0-9]{3,}", text) if t not in {"venue", "street"}}
+    tokens = {
+        token
+        for token in re.findall(r"[a-z0-9]{3,}", text)
+        if token not in generic_tokens
+    }
     return tokens
 
 
@@ -642,6 +716,8 @@ def _score_event_relevance(event: dict, venue: dict) -> int:
             str(event.get("name", "")),
             str(event.get("description", "")),
             str(event.get("venue_name", "")),
+            str(event.get("park_names", "")),
+            str(event.get("location", "")),
             str(event.get("url", "")),
         ]
     ).lower()
@@ -664,19 +740,438 @@ def _score_event_relevance(event: dict, venue: dict) -> int:
     return score
 
 
+def _is_shared_multi_location_feed(url: str) -> bool:
+    raw = str(url or "").strip()
+    if not raw:
+        return False
+    try:
+        parsed = urlparse(raw)
+    except Exception:
+        return False
+    domain = parsed.netloc.lower().replace("www.", "")
+    path = (parsed.path or "").rstrip("/").lower()
+    if domain.endswith("nycgovparks.org") and path in ("/events", "/events/volunteer"):
+        return True
+    return False
+
+
+def _is_nyc_parks_shared_feed(url: str) -> bool:
+    """True when URL is the generic NYC Parks shared events listing."""
+    raw = str(url or "").strip()
+    if not raw:
+        return False
+    try:
+        parsed = urlparse(raw)
+    except Exception:
+        return False
+    domain = parsed.netloc.lower().replace("www.", "")
+    path = (parsed.path or "").rstrip("/").lower()
+    return domain.endswith("nycgovparks.org") and path in ("/events", "/events/volunteer")
+
+
+def _strip_tags(text: str) -> str:
+    """Remove basic HTML tags for cleaner event descriptions."""
+    if not text:
+        return ""
+    no_tags = re.sub(r"<[^>]+>", " ", str(text))
+    return re.sub(r"\s+", " ", no_tags).strip()
+
+
+def _parse_nyc_parks_datetime(date_str: str, time_str: str) -> datetime | None:
+    """Parse NYC Parks feed date/time into timezone-aware datetime."""
+    if not date_str:
+        return None
+    date_str = str(date_str).strip()
+    time_str = str(time_str or "").strip()
+    if time_str:
+        for fmt in ("%Y-%m-%d %I:%M %p", "%Y-%m-%d %H:%M"):
+            try:
+                dt = datetime.strptime(f"{date_str} {time_str}", fmt)
+                return dt.replace(tzinfo=ZoneInfo("America/New_York"))
+            except ValueError:
+                continue
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        return dt.replace(tzinfo=ZoneInfo("America/New_York"))
+    except ValueError:
+        return None
+
+
+def _fetch_nyc_parks_open_data_events() -> list[dict]:
+    """
+    Fetch upcoming NYC Parks events from the official open-data JSON feed.
+
+    Uses the dataset linked from NYC Open Data:
+    https://data.cityofnewyork.us/City-Government/NYC-Parks-Events-Listing-Event-Listing/fudw-fgrp/about_data
+    """
+    import requests
+
+    feed_url = str(
+        getattr(
+            _settings,
+            "NYC_PARKS_OPEN_DATA_FEED_URL",
+            "https://www.nycgovparks.org/xml/events_300_rss.json",
+        )
+    ).strip()
+    if not feed_url:
+        return []
+
+    timeout = int(getattr(_settings, "EVENT_FETCHER_HTML_TIMEOUT_SEC", 20))
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json",
+    }
+
+    try:
+        response = requests.get(feed_url, headers=headers, timeout=timeout)
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as e:
+        record_failure(
+            "event_fetcher.nyc_parks_open_data",
+            str(e),
+            feed_url=feed_url,
+        )
+        return []
+
+    if not isinstance(payload, list):
+        return []
+
+    events: list[dict] = []
+    seen_keys: set[tuple[str, str, str]] = set()
+    today = datetime.now(ZoneInfo("America/New_York")).date()
+    one_year_out = today + timedelta(days=366)
+
+    for row in payload:
+        if not isinstance(row, dict):
+            continue
+
+        title = str(row.get("title", "")).strip()
+        if not title:
+            continue
+
+        start_date = str(row.get("startdate", "")).strip()
+        if not start_date:
+            continue
+
+        dt = _parse_nyc_parks_datetime(start_date, str(row.get("starttime", "")))
+        event_date = dt.date() if dt else None
+        if event_date and (event_date < today or event_date > one_year_out):
+            continue
+
+        park_names = str(row.get("parknames", "")).strip()
+        park_id = str(row.get("parkids", "")).strip()
+        location = str(row.get("location", "")).strip()
+        categories = str(row.get("categories", "")).strip()
+        link = str(row.get("link", "")).strip()
+        if link and not re.match(r"^https?://", link, re.IGNORECASE):
+            link = f"https://www.nycgovparks.org{link}" if link.startswith("/") else f"http://{link}"
+
+        date_str = start_date[:10]
+        dedupe_key = (title.lower(), date_str, park_names.lower())
+        if dedupe_key in seen_keys:
+            continue
+        seen_keys.add(dedupe_key)
+
+        description = _strip_tags(str(row.get("description", "") or row.get("snippet", "")))
+        event_type = "event"
+        if categories:
+            event_type = categories.split("|", 1)[0].strip() or "event"
+
+        events.append(
+            {
+                "name": title,
+                "datetime": dt,
+                "date_str": date_str,
+                "venue_name": park_names or location,
+                "park_id": park_id,
+                "park_names": park_names,
+                "location": location,
+                "event_type": event_type,
+                "categories": categories,
+                "url": link,
+                "source": "nyc_parks_open_data",
+                "matched_artist": "",
+                "travel_minutes": None,
+                "description": description,
+                "event_source_url": feed_url,
+                "extraction_method": "nyc_parks_open_data_json",
+                "validation_confidence": 0.98,
+            }
+        )
+
+    log_event(
+        "event_fetch_nyc_parks_open_data",
+        feed_url=feed_url,
+        event_count=len(events),
+    )
+    return events
+
+
+def _normalize_venue_name_key(name: str) -> str:
+    """Normalize venue names for dedupe/upsert matching."""
+    raw = str(name or "").lower().strip()
+    raw = re.sub(r"\s+", " ", raw)
+    raw = re.sub(r"\s+(nyc|ny|club|venue|theater|theatre)$", "", raw)
+    raw = re.sub(r"^the\s+", "", raw)
+    return raw.strip()
+
+
+def _park_name_from_open_data_event(event: dict) -> str:
+    """Extract best park/venue name from NYC Parks open-data event."""
+    park_names = str(event.get("park_names", "")).strip()
+    if park_names:
+        return park_names
+
+    location = str(event.get("location", "")).strip()
+    if location:
+        match = re.search(r"\(in\s+([^)]+)\)", location, flags=re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    return ""
+
+
+def _event_park_name_key(event: dict) -> str:
+    """Best-effort normalized park name key from NYC Parks event rows."""
+    for field in ("park_names", "venue_name", "location"):
+        raw = str(event.get(field, "") or "").strip()
+        if not raw:
+            continue
+        if field == "location":
+            match = re.search(r"\(in\s+([^)]+)\)", raw, flags=re.IGNORECASE)
+            if match:
+                raw = match.group(1).strip()
+        key = _normalize_venue_name_key(raw)
+        if key:
+            return key
+    return ""
+
+
+def _is_nyc_parks_open_data_event(event: dict) -> bool:
+    """Detect events produced by the NYC Parks open-data ingestion path."""
+    source = str(event.get("source", "") or "").strip().lower()
+    method = str(event.get("extraction_method", "") or "").strip().lower()
+    return source == "nyc_parks_open_data" or method == "nyc_parks_open_data_json"
+
+
+def sync_nyc_parks_venues_from_open_data(city: str = "NYC") -> tuple[int, int]:
+    """
+    Ensure NYC Parks venues from open data exist in Venue Scout cache.
+
+    Returns:
+        (added_count, updated_count)
+    """
+    if str(city or "").strip().lower() != "nyc":
+        return 0, 0
+
+    events = _fetch_nyc_parks_open_data_events()
+    if not events:
+        return 0, 0
+
+    from .cache import read_cached_venues, append_venues_to_cache, update_venues_batch
+
+    existing = read_cached_venues(city)
+    existing_by_key = {_normalize_venue_name_key(v.get("name", "")): v for v in existing}
+
+    shared_events_url = "https://www.nycgovparks.org/events"
+    website_default = "https://www.nycgovparks.org"
+    category_default = "nyc parks with free events"
+
+    to_add: list[dict] = []
+    to_update: list[dict] = []
+    added_keys: set[str] = set()
+
+    for event in events:
+        park_name = _park_name_from_open_data_event(event)
+        key = _normalize_venue_name_key(park_name)
+        if not key:
+            continue
+
+        if key in existing_by_key:
+            current = existing_by_key[key]
+            patch: dict = {"name": current.get("name", park_name), "city": city}
+            changed = False
+
+            if not str(current.get("events_url", "")).strip():
+                patch["events_url"] = shared_events_url
+                changed = True
+            if not str(current.get("website", "")).strip():
+                patch["website"] = website_default
+                changed = True
+            if not str(current.get("website_status", "")).strip():
+                patch["website_status"] = "verified"
+                changed = True
+            if not str(current.get("preferred_event_source", "")).strip():
+                patch["preferred_event_source"] = "scrape"
+                changed = True
+
+            if changed:
+                to_update.append(patch)
+            continue
+
+        if key in added_keys:
+            continue
+        added_keys.add(key)
+        to_add.append(
+            {
+                "name": park_name,
+                "address": city,
+                "city": city,
+                "neighborhood": "",
+                "website": website_default,
+                "events_url": shared_events_url,
+                "category": category_default,
+                "description": "Auto-synced NYC Parks venue from open-data events feed.",
+                "source": "nyc_parks_open_data",
+                "address_verified": "",
+                "website_status": "verified",
+                "website_attempts": 0,
+                "preferred_event_source": "scrape",
+                "api_endpoint": "",
+                "ticketmaster_venue_id": "",
+                "last_event_fetch": "",
+                "event_count": 0,
+                "event_source": "",
+            }
+        )
+
+    if to_add:
+        append_venues_to_cache(to_add, city, "nyc_parks_open_data")
+        # Refresh existing map so update lookups stay accurate after append.
+        existing = read_cached_venues(city)
+        existing_by_key = {_normalize_venue_name_key(v.get("name", "")): v for v in existing}
+
+    updated_count = 0
+    if to_update:
+        updated_count = update_venues_batch(to_update, city)
+
+    log_event(
+        "nyc_parks_venues_synced",
+        city=city,
+        added_count=len(to_add),
+        updated_count=updated_count,
+        source_event_count=len(events),
+    )
+    return len(to_add), updated_count
+
+
+def _canonical_feed_key(url: str) -> str:
+    """Normalize feed URL into a stable key for per-run cache reuse."""
+    raw = str(url or "").strip()
+    if not raw:
+        return ""
+    if not re.match(r"^https?://", raw, re.IGNORECASE):
+        raw = f"https://{raw}"
+    try:
+        parsed = urlparse(raw)
+    except Exception:
+        return raw.lower()
+    host = parsed.netloc.lower().replace("www.", "")
+    path = (parsed.path or "/").rstrip("/") or "/"
+    path = path.lower()
+    query = f"?{parsed.query.lower()}" if parsed.query else ""
+    return f"{host}{path}{query}"
+
+
+def _clone_events(events: list[dict]) -> list[dict]:
+    """Return shallow copies so per-venue scoring mutations don't leak across venues."""
+    return [dict(event) for event in events]
+
+
+def _get_or_fetch_shared_feed_events(
+    feed_url: str,
+    fetch_once_fn,
+    venue_name: str,
+) -> tuple[list[dict], bool]:
+    """
+    Fetch shared feed once per run and reuse for all venues with same feed URL.
+
+    Returns:
+        (events, from_cache)
+    """
+    key = _canonical_feed_key(feed_url)
+    if not key:
+        return fetch_once_fn(), False
+
+    while True:
+        with _SHARED_FEED_LOCK:
+            cached = _SHARED_FEED_CACHE.get(key)
+            if cached is not None:
+                increment("event_fetcher.shared_feed.cache_hit")
+                log_event(
+                    "event_fetch_shared_feed_cache_hit",
+                    venue_name=venue_name,
+                    feed_key=key,
+                )
+                return _clone_events(cached), True
+
+            inflight = _SHARED_FEED_INFLIGHT.get(key)
+            if inflight is None:
+                inflight = threading.Event()
+                _SHARED_FEED_INFLIGHT[key] = inflight
+                is_fetcher = True
+            else:
+                is_fetcher = False
+
+        if is_fetcher:
+            break
+        inflight.wait(timeout=120)
+
+    fetched: list[dict] = []
+    try:
+        fetched = fetch_once_fn() or []
+        with _SHARED_FEED_LOCK:
+            _SHARED_FEED_CACHE[key] = _clone_events(fetched)
+        increment("event_fetcher.shared_feed.cache_miss")
+        log_event(
+            "event_fetch_shared_feed_cached",
+            venue_name=venue_name,
+            feed_key=key,
+            event_count=len(fetched),
+        )
+        return _clone_events(fetched), False
+    finally:
+        with _SHARED_FEED_LOCK:
+            marker = _SHARED_FEED_INFLIGHT.pop(key, None)
+            if marker:
+                marker.set()
+
+
 def _filter_events_for_venue(events: list[dict], venue: dict) -> list[dict]:
     """Filter out low-relevance events from shared feeds."""
     if not events:
         return []
+
+    if any(_is_nyc_parks_open_data_event(event) for event in events):
+        venue_key = _normalize_venue_name_key(venue.get("name", ""))
+        exact = []
+        for event in events:
+            park_key = _event_park_name_key(event)
+            if park_key and venue_key and park_key == venue_key:
+                event["relevance_score"] = 100
+                exact.append(event)
+        if exact:
+            return exact
+        # If park name is missing in feed row, do not spray it to arbitrary park venues.
+        return []
+
+    shared_feed = any(
+        _is_shared_multi_location_feed(event.get("event_source_url", "") or event.get("url", ""))
+        for event in events
+    )
+    threshold = 35 if shared_feed else 20
     filtered = []
     for event in events:
         score = _score_event_relevance(event, venue)
         event["relevance_score"] = score
         # Keep high-confidence matches; allow unknown location pages to pass at lower score if tiny set.
-        if score >= 20:
+        if score >= threshold:
             filtered.append(event)
 
     if not filtered:
+        if shared_feed:
+            # Shared citywide feeds should not "spray" events to venue pages.
+            return []
         # Avoid dropping all events for tiny pages with sparse metadata.
         if len(events) <= 2:
             return events
@@ -693,6 +1188,7 @@ def _fetch_from_website(
     venue_name: str,
     events_url: str = "",
     venue_context: dict | None = None,
+    default_event_venue_name: str | None = None,
 ) -> list[dict]:
     """
     Fetch events by scraping venue website.
@@ -715,6 +1211,7 @@ def _fetch_from_website(
     """
     # Use events_url if available, otherwise fall back to homepage
     fetch_url = events_url if events_url else url
+    fallback_venue_name = venue_name if default_event_venue_name is None else default_event_venue_name
 
     if not fetch_url:
         return []
@@ -808,7 +1305,7 @@ def _fetch_from_website(
 
         # Try JSON-LD extraction first (doesn't need Jina)
         if raw_html:
-            structured_events = _extract_events_from_jsonld(raw_html, venue_name, fetch_url)
+            structured_events = _extract_events_from_jsonld(raw_html, fallback_venue_name, fetch_url)
             if structured_events:
                 # Mark if Playwright was used
                 if used_playwright:
@@ -821,7 +1318,7 @@ def _fetch_from_website(
             for iframe_url in iframe_urls[:5]:
                 try:
                     iframe_html = _fetch_raw_html(iframe_url)
-                    iframe_events = _extract_events_from_jsonld(iframe_html, venue_name, iframe_url)
+                    iframe_events = _extract_events_from_jsonld(iframe_html, fallback_venue_name, iframe_url)
                     if iframe_events:
                         for event in iframe_events:
                             event["event_source_url"] = iframe_url
@@ -836,7 +1333,7 @@ def _fetch_from_website(
             content = content[:max_chars]
 
         # Use LLM to extract events
-        events = _parse_events_with_llm(content, venue_name, fetch_url)
+        events = _parse_events_with_llm(content, venue_name, fetch_url, default_venue_name=fallback_venue_name)
         if events:
             # Mark extraction method based on source used
             if used_playwright:
@@ -860,7 +1357,12 @@ def _fetch_from_website(
                     # Truncate if needed
                     if len(pw_text) > max_chars:
                         pw_text = pw_text[:max_chars]
-                    events = _parse_events_with_llm(pw_text, venue_name, fetch_url)
+                    events = _parse_events_with_llm(
+                        pw_text,
+                        venue_name,
+                        fetch_url,
+                        default_venue_name=fallback_venue_name,
+                    )
                     if events:
                         for event in events:
                             event["extraction_method"] = "llm_parse_playwright_retry"
@@ -878,7 +1380,12 @@ def _fetch_from_website(
                     else:
                         iframe_content = fetch_page_text_jina(iframe_url)
 
-                    iframe_events = _parse_events_with_llm(iframe_content, venue_name, iframe_url)
+                    iframe_events = _parse_events_with_llm(
+                        iframe_content,
+                        venue_name,
+                        iframe_url,
+                        default_venue_name=fallback_venue_name,
+                    )
                     if iframe_events:
                         extraction_method = "llm_iframe_raw_html" if skip_jina else "llm_iframe"
                         for event in iframe_events:
@@ -890,7 +1397,7 @@ def _fetch_from_website(
 
         # Try Google Calendar iframe extraction as last resort
         if raw_html:
-            gcal_events = _extract_google_calendar_events(raw_html, venue_name)
+            gcal_events = _extract_google_calendar_events(raw_html, fallback_venue_name)
             if gcal_events:
                 return gcal_events
 
@@ -907,18 +1414,10 @@ def _fetch_from_website(
         return []
 
 
-def _parse_events_with_llm(content: str, venue_name: str, source_url: str) -> list[dict]:
-    """
-    Use LLM to extract events from webpage content.
-
-    Returns:
-        List of event dicts
-    """
-    from utils.llm import generate_content
-
-    today = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
-
-    prompt = f"""Extract upcoming events from this webpage content. Today's date is {today}.
+def _build_event_extraction_prompt(content: str, today_iso: str, chunk_label: str = "") -> str:
+    """Build LLM prompt for event extraction from page text."""
+    chunk_prefix = f"{chunk_label}\n" if chunk_label else ""
+    return f"""{chunk_prefix}Extract upcoming events from this webpage content. Today's date is {today_iso}.
 
 WEBPAGE CONTENT:
 {content}
@@ -927,68 +1426,300 @@ Extract each event and return as a JSON array. For each event include:
 - name: Event/show name
 - date_str: Date in YYYY-MM-DD format (infer year if not shown, assume current/next year)
 - time: Time if available (e.g. "7:00 PM")
+- venue_name: Venue/location shown for the event (empty string if missing)
 - event_type: Type of event (concert, comedy, theater, reading, etc.)
 - url: Event URL if available, otherwise empty string
 - description: Brief description if available
 
-Only include events from today ({today}) onwards.
-If no events are found, return an empty array: []
+Only include events from today ({today_iso}) onwards.
+If this chunk has no events, return: []
 
 Return ONLY the JSON array, no other text."""
 
+
+def _extract_json_array_payload(response: str) -> list[dict]:
+    """Extract first valid JSON array from a model response."""
+    text = str(response or "").strip()
+    if not text:
+        return []
+
+    fenced = re.findall(r"```(?:json)?\s*([\s\S]*?)\s*```", text, flags=re.IGNORECASE)
+    candidates = fenced + re.findall(r"\[[\s\S]*\]", text)
+    for candidate in candidates:
+        try:
+            obj = json.loads(candidate)
+            if isinstance(obj, list):
+                return [row for row in obj if isinstance(row, dict)]
+        except Exception:
+            continue
+    return []
+
+
+def _split_content_for_llm(
+    content: str,
+    chunk_size: int,
+    chunk_overlap: int,
+    max_chunks: int,
+) -> list[str]:
+    """Split long content into bounded chunks, preferring natural boundaries."""
+    text = str(content or "").strip()
+    if not text:
+        return []
+    if len(text) <= chunk_size:
+        return [text]
+
+    chunks: list[str] = []
+    start = 0
+    text_len = len(text)
+    while start < text_len and len(chunks) < max_chunks:
+        end = min(text_len, start + chunk_size)
+        if end < text_len:
+            boundary = text.rfind("\n\n", start + int(chunk_size * 0.55), end)
+            if boundary == -1:
+                boundary = text.rfind(". ", start + int(chunk_size * 0.55), end)
+                if boundary != -1:
+                    boundary += 1
+            if boundary > start:
+                end = boundary
+        chunk = text[start:end].strip()
+        if chunk:
+            chunks.append(chunk)
+        if end >= text_len:
+            break
+        start = max(0, end - max(0, chunk_overlap))
+    return chunks
+
+
+def _looks_eventish_chunk(text: str) -> bool:
+    """Heuristic to prioritize chunks likely to contain event listings."""
+    value = str(text or "")
+    if not value:
+        return False
+    patterns = (
+        r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b",
+        r"\b20\d{2}-\d{2}-\d{2}\b",
+        r"\b\d{1,2}:\d{2}\s*(?:am|pm)\b",
+        r"\b(rsvp|ticket|register|event|workshop|talk|lecture|reading)\b",
+    )
+    lowered = value.lower()
+    return any(re.search(pattern, lowered, flags=re.IGNORECASE) for pattern in patterns)
+
+
+def _invoke_event_llm_with_fallback(
+    prompt: str,
+    parse_timeout_sec: int,
+    parse_max_retries: int,
+    primary_model: str,
+    timeout_fallback_models: list[str],
+) -> str:
+    """Call event extraction LLM with timeout-based fallback model chain."""
+    from utils.llm import generate_content
+
     try:
-        response = generate_content(prompt)
+        return generate_content(
+            prompt,
+            max_retries=max(1, parse_max_retries),
+            timeout_sec=max(5, parse_timeout_sec),
+            model_name=primary_model,
+        )
+    except Exception as primary_exc:
+        if not _is_timeout_error(primary_exc):
+            raise
 
-        # Extract JSON from response
-        json_match = re.search(r'\[[\s\S]*\]', response)
-        if not json_match:
-            return []
+        fallback_error: Exception = primary_exc
+        for fallback_model in timeout_fallback_models:
+            try:
+                print(f"    Primary parse model timed out; retrying with {fallback_model}...")
+                return generate_content(
+                    prompt,
+                    max_retries=1,
+                    timeout_sec=max(5, parse_timeout_sec),
+                    model_name=fallback_model,
+                )
+            except Exception as exc:
+                fallback_error = exc
+        raise fallback_error
 
-        import json
-        events_data = json.loads(json_match.group())
 
-        # Convert to our event format
-        events = []
-        for e in events_data:
-            date_str = e.get("date_str", "")
-            time_str = e.get("time", "")
+def _normalize_llm_event_rows(
+    rows: list[dict],
+    venue_name: str,
+    source_url: str,
+    fallback_venue_name: str,
+    extraction_method: str,
+) -> list[dict]:
+    """Convert extracted rows into canonical event objects."""
+    out: list[dict] = []
+    today = datetime.now(ZoneInfo("America/New_York")).date()
 
-            # Try to parse datetime
-            dt = None
-            if date_str:
-                try:
-                    if time_str:
-                        dt_str = f"{date_str} {time_str}"
-                        for fmt in ["%Y-%m-%d %I:%M %p", "%Y-%m-%d %H:%M", "%Y-%m-%d %I%p", "%Y-%m-%d"]:
-                            try:
-                                dt = datetime.strptime(dt_str, fmt)
-                                dt = dt.replace(tzinfo=ZoneInfo("America/New_York"))
-                                break
-                            except ValueError:
-                                continue
-                    if not dt:
-                        dt = datetime.strptime(date_str, "%Y-%m-%d")
-                        dt = dt.replace(tzinfo=ZoneInfo("America/New_York"))
-                except ValueError:
-                    pass
+    for row in rows:
+        name = str(row.get("name", "") or "").strip()
+        if not name:
+            continue
+        date_raw = str(row.get("date_str", "") or "").strip()
+        time_raw = str(row.get("time", "") or "").strip()
+        dt = None
 
-            events.append({
-                "name": e.get("name", ""),
+        if date_raw and time_raw:
+            dt = _parse_date_flexible(f"{date_raw} {time_raw}")
+        if dt is None and date_raw:
+            dt = _parse_date_flexible(date_raw)
+
+        normalized_date = date_raw
+        if dt is not None:
+            normalized_date = dt.strftime("%Y-%m-%d")
+        elif date_raw:
+            parsed = _parse_date_flexible(date_raw)
+            if parsed:
+                dt = parsed
+                normalized_date = parsed.strftime("%Y-%m-%d")
+
+        if dt is not None and dt.date() < today:
+            continue
+        if normalized_date:
+            try:
+                parsed_date = datetime.strptime(normalized_date, "%Y-%m-%d").date()
+                if parsed_date < today:
+                    continue
+            except Exception:
+                pass
+
+        parsed_venue_name = str(row.get("venue_name", "") or "").strip()
+        out.append(
+            {
+                "name": name,
                 "datetime": dt,
-                "date_str": date_str,
-                "venue_name": venue_name,
-                "event_type": e.get("event_type", ""),
-                "url": e.get("url", source_url),
+                "date_str": normalized_date,
+                "venue_name": parsed_venue_name or fallback_venue_name or venue_name,
+                "event_type": str(row.get("event_type", "") or "").strip(),
+                "url": str(row.get("url", "") or "").strip() or source_url,
                 "source": "scrape",
                 "matched_artist": "",
                 "travel_minutes": None,
-                "description": e.get("description", ""),
+                "description": str(row.get("description", "") or "").strip(),
                 "event_source_url": source_url,
-                "extraction_method": "llm_parse",
+                "extraction_method": extraction_method,
                 "validation_confidence": 0.6,
-            })
+            }
+        )
 
-        return events
+    return out
+
+
+def _dedupe_llm_events(events: list[dict]) -> list[dict]:
+    """Deduplicate LLM extracted events by normalized name/date/url."""
+    best: dict[tuple[str, str, str], dict] = {}
+    for event in events:
+        key = (
+            str(event.get("name", "")).strip().lower(),
+            str(event.get("date_str", "")).strip(),
+            str(event.get("url", "")).strip().lower(),
+        )
+        existing = best.get(key)
+        if existing is None:
+            best[key] = event
+            continue
+        current_desc = str(event.get("description", "") or "")
+        existing_desc = str(existing.get("description", "") or "")
+        if len(current_desc) > len(existing_desc):
+            best[key] = event
+    return list(best.values())
+
+
+def _parse_events_with_llm(
+    content: str,
+    venue_name: str,
+    source_url: str,
+    default_venue_name: str | None = None,
+) -> list[dict]:
+    """
+    Use LLM to extract events from webpage content.
+
+    Returns:
+        List of event dicts
+    """
+    try:
+        parse_timeout_sec = int(getattr(_settings, "EVENT_PARSE_LLM_TIMEOUT_SEC", 12))
+        parse_max_retries = int(getattr(_settings, "EVENT_PARSE_LLM_MAX_RETRIES", 1))
+        primary_model = str(getattr(_settings, "GEMINI_MODEL", "gemini-3-flash-preview")).strip()
+        timeout_fallback_models = _fallback_model_list(
+            getattr(
+                _settings,
+                "EVENT_PARSE_LLM_TIMEOUT_FALLBACK_MODELS",
+                ("gemini-2.5-flash", "gemini-2.0-flash"),
+            ),
+            default=("gemini-2.5-flash", "gemini-2.0-flash"),
+        )
+        timeout_fallback_models = [m for m in timeout_fallback_models if m != primary_model]
+
+        chunk_threshold = int(getattr(_settings, "EVENT_PARSE_LLM_CHUNK_THRESHOLD", 7000))
+        chunk_size = int(getattr(_settings, "EVENT_PARSE_LLM_CHUNK_SIZE", 5000))
+        chunk_overlap = int(getattr(_settings, "EVENT_PARSE_LLM_CHUNK_OVERLAP", 350))
+        max_chunks = int(getattr(_settings, "EVENT_PARSE_LLM_MAX_CHUNKS", 8))
+        today_iso = datetime.now(ZoneInfo("America/New_York")).strftime("%Y-%m-%d")
+        fallback_venue_name = venue_name if default_venue_name is None else default_venue_name
+
+        def _parse_block(block: str, chunk_label: str, extraction_method: str) -> list[dict]:
+            prompt = _build_event_extraction_prompt(block, today_iso=today_iso, chunk_label=chunk_label)
+            response = _invoke_event_llm_with_fallback(
+                prompt=prompt,
+                parse_timeout_sec=parse_timeout_sec,
+                parse_max_retries=parse_max_retries,
+                primary_model=primary_model,
+                timeout_fallback_models=timeout_fallback_models,
+            )
+            payload = _extract_json_array_payload(response)
+            if not payload:
+                return []
+            return _normalize_llm_event_rows(
+                rows=payload,
+                venue_name=venue_name,
+                source_url=source_url,
+                fallback_venue_name=fallback_venue_name,
+                extraction_method=extraction_method,
+            )
+
+        text = str(content or "").strip()
+        if not text:
+            return []
+
+        if len(text) < chunk_threshold:
+            events = _parse_block(text, chunk_label="", extraction_method="llm_parse")
+            if events:
+                return _dedupe_llm_events(events)
+
+        chunks = _split_content_for_llm(
+            content=text,
+            chunk_size=max(1200, chunk_size),
+            chunk_overlap=max(0, chunk_overlap),
+            max_chunks=max(1, max_chunks),
+        )
+        if len(chunks) > max_chunks:
+            chunks = chunks[:max_chunks]
+
+        eventish = [chunk for chunk in chunks if _looks_eventish_chunk(chunk)]
+        if eventish:
+            chunks = eventish[:max_chunks]
+
+        if not chunks:
+            return []
+
+        print(f"    Using chunked LLM extraction: {len(chunks)} chunk(s)")
+        collected: list[dict] = []
+        for idx, chunk in enumerate(chunks, start=1):
+            try:
+                chunk_label = f"CONTENT CHUNK {idx}/{len(chunks)}"
+                chunk_events = _parse_block(
+                    block=chunk,
+                    chunk_label=chunk_label,
+                    extraction_method="llm_parse_chunked",
+                )
+                if chunk_events:
+                    collected.extend(chunk_events)
+            except Exception as exc:
+                print(f"    Chunk {idx} parse error: {exc}")
+
+        return _dedupe_llm_events(collected)
 
     except Exception as e:
         print(f"    LLM parsing error: {e}")
@@ -1222,22 +1953,80 @@ def fetch_venue_events(
                     result.source_errors["api"] = "known_endpoint_returned_no_events_or_failed"
                     increment("event_fetcher.source.api.empty")
 
-            # Use Jina scraping if no known API or API failed
+            # Use shared-feed cache or website scraping if no known API or API failed
             if not scrape_events:
-                scrape_events = _fetch_from_website(
-                    website,
-                    venue_name,
-                    events_url,
-                    venue_context=venue,
-                )
-                if scrape_events:
-                    scrape_events = _normalize_event_batch(scrape_events, venue_name, "scrape")
-                    print(f"    Scrape: {len(scrape_events)} events")
-                    website_source = "scrape"
-                    increment("event_fetcher.source.scrape.success")
+                used_nyc_parks_open_data = False
+                shared_feed = _is_shared_multi_location_feed(events_url)
+                if shared_feed and events_url:
+                    if _is_nyc_parks_shared_feed(events_url):
+                        used_nyc_parks_open_data = True
+                        def _fetch_nyc_parks_shared_once() -> list[dict]:
+                            fetched = _fetch_nyc_parks_open_data_events()
+                            return _normalize_event_batch(fetched, "", "nyc_parks_open_data") if fetched else []
+
+                        scrape_events, from_cache = _get_or_fetch_shared_feed_events(
+                            events_url,
+                            _fetch_nyc_parks_shared_once,
+                            venue_name=venue_name,
+                        )
+                        if scrape_events:
+                            website_source = (
+                                "nyc_parks_open_data_cached" if from_cache else "nyc_parks_open_data"
+                            )
+                            print(
+                                "    NYC Parks open-data feed "
+                                f"({'cache' if from_cache else 'fresh'}): {len(scrape_events)} events"
+                            )
+                            increment("event_fetcher.source.nyc_parks_open_data.success")
+                    else:
+                        def _fetch_shared_once() -> list[dict]:
+                            fetched = _fetch_from_website(
+                                website,
+                                venue_name,
+                                events_url,
+                                venue_context=venue,
+                                default_event_venue_name="",
+                            )
+                            return _normalize_event_batch(fetched, "", "scrape") if fetched else []
+
+                        scrape_events, from_cache = _get_or_fetch_shared_feed_events(
+                            events_url,
+                            _fetch_shared_once,
+                            venue_name=venue_name,
+                        )
+                        if scrape_events:
+                            website_source = "scrape_shared_cached" if from_cache else "scrape_shared"
+                            print(
+                                f"    Shared feed ({'cache' if from_cache else 'fresh'}): {len(scrape_events)} events"
+                            )
+                            increment("event_fetcher.source.scrape.success")
                 else:
-                    result.source_errors["scrape"] = "website_scrape_returned_no_events_or_failed"
-                    increment("event_fetcher.source.scrape.empty")
+                    scrape_events = _fetch_from_website(
+                        website,
+                        venue_name,
+                        events_url,
+                        venue_context=venue,
+                    )
+                if scrape_events:
+                    if website_source not in (
+                        "scrape_shared",
+                        "scrape_shared_cached",
+                        "nyc_parks_open_data",
+                        "nyc_parks_open_data_cached",
+                    ):
+                        scrape_events = _normalize_event_batch(scrape_events, venue_name, "scrape")
+                    print(f"    Scrape: {len(scrape_events)} events")
+                    if not website_source:
+                        website_source = "scrape"
+                    if website_source == "scrape":
+                        increment("event_fetcher.source.scrape.success")
+                else:
+                    if used_nyc_parks_open_data:
+                        result.source_errors["nyc_parks_open_data"] = "open_data_feed_returned_no_events_or_failed"
+                        increment("event_fetcher.source.nyc_parks_open_data.empty")
+                    else:
+                        result.source_errors["scrape"] = "website_scrape_returned_no_events_or_failed"
+                        increment("event_fetcher.source.scrape.empty")
         else:
             result.source_errors["website"] = "missing_website_url"
 
@@ -1343,6 +2132,11 @@ def fetch_events_for_venues(
 
     results = {}
     use_local_cache = workers > 1  # Use local cache for parallel fetching
+
+    # Reset per-run shared-feed cache so each run fetches fresh once, then reuses.
+    with _SHARED_FEED_LOCK:
+        _SHARED_FEED_CACHE.clear()
+        _SHARED_FEED_INFLIGHT.clear()
 
     # Handle resume
     if resume and use_local_cache:

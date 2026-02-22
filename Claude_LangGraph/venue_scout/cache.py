@@ -11,7 +11,13 @@ from zoneinfo import ZoneInfo
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.google_auth import get_credentials, is_authenticated
-from googleapiclient.discovery import build
+from utils.sheets_core import (
+    create_spreadsheet as _core_create_spreadsheet,
+    get_sheets_service as _core_get_sheets_service,
+    load_sheets_config as _core_load_sheets_config,
+    save_sheets_config as _core_save_sheets_config,
+    write_sheet_header as _core_write_sheet_header,
+)
 
 from .state import Venue
 from .paths import DATA_DIR, SEED_VENUES_FILE, VENUE_CACHE_METADATA_FILE
@@ -36,7 +42,7 @@ _METADATA_FILE = VENUE_CACHE_METADATA_FILE
 
 # Column definitions for venues sheet
 VENUE_COLUMNS = [
-    "name", "address", "city", "neighborhood",
+    "name", "address", "lat", "lng", "city", "neighborhood",
     "website", "events_url", "category", "description", "source", "address_verified",
     "website_status", "website_attempts",
     "preferred_event_source", "api_endpoint", "ticketmaster_venue_id",
@@ -44,11 +50,50 @@ VENUE_COLUMNS = [
 ]
 
 
+def _sheet_col_label(col_index: int) -> str:
+    """Convert a 1-based column index to A1 column label."""
+    if col_index < 1:
+        return "A"
+
+    out = ""
+    value = col_index
+    while value:
+        value, rem = divmod(value - 1, 26)
+        out = chr(65 + rem) + out
+    return out
+
+
+def _sheet_full_range() -> str:
+    """Return the full A1 range for all venue columns."""
+    return f"A:{_sheet_col_label(len(VENUE_COLUMNS))}"
+
+
+def _parse_coordinate(value) -> float | None:
+    """Parse a sheet coordinate cell into float (or None)."""
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+def _format_coordinate(value) -> str:
+    """Format a coordinate for sheet storage."""
+    parsed = _parse_coordinate(value)
+    if parsed is None:
+        return ""
+    return f"{parsed:.7f}".rstrip("0").rstrip(".")
+
+
 def _venue_to_row(venue: dict) -> list:
     """Convert a venue dict to a row for the sheet."""
     return [
         venue.get("name", ""),
         venue.get("address", ""),
+        _format_coordinate(venue.get("lat")),
+        _format_coordinate(venue.get("lng")),
         venue.get("city", ""),
         venue.get("neighborhood", ""),
         venue.get("website", ""),
@@ -70,25 +115,17 @@ def _venue_to_row(venue: dict) -> list:
 
 def _get_sheets_service():
     """Get authenticated Google Sheets service."""
-    creds = get_credentials()
-    if not creds:
-        return None
-    return build("sheets", "v4", credentials=creds)
+    return _core_get_sheets_service()
 
 
 def _load_sheets_config() -> dict:
     """Load sheet IDs from config."""
-    if _SHEETS_CONFIG.exists():
-        with open(_SHEETS_CONFIG) as f:
-            return json.load(f)
-    return {}
+    return _core_load_sheets_config(_SHEETS_CONFIG)
 
 
 def _save_sheets_config(config: dict):
     """Save sheet IDs to config."""
-    _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    with open(_SHEETS_CONFIG, "w") as f:
-        json.dump(config, f, indent=2)
+    _core_save_sheets_config(config, _SHEETS_CONFIG, ensure_dir=True)
 
 
 def _load_metadata() -> dict:
@@ -116,27 +153,12 @@ def _save_metadata(metadata: dict):
 
 def _create_spreadsheet(title: str) -> str | None:
     """Create a new Google Spreadsheet and return its ID."""
-    service = _get_sheets_service()
-    if not service:
-        return None
-
-    spreadsheet = {"properties": {"title": title}}
-    result = service.spreadsheets().create(body=spreadsheet).execute()
-    return result.get("spreadsheetId")
+    return _core_create_spreadsheet(title)
 
 
 def _write_header(sheet_id: str, columns: list[str]):
     """Write header row to a sheet."""
-    service = _get_sheets_service()
-    if not service:
-        return
-
-    service.spreadsheets().values().update(
-        spreadsheetId=sheet_id,
-        range="A1",
-        valueInputOption="RAW",
-        body={"values": [columns]}
-    ).execute()
+    _core_write_sheet_header(sheet_id, columns)
 
 
 def get_or_create_venues_sheet() -> str | None:
@@ -285,7 +307,7 @@ def read_cached_venues(city: str | None = None) -> list[Venue]:
     try:
         result = service.spreadsheets().values().get(
             spreadsheetId=sheet_id,
-            range="A:R"  # All venue columns including event tracking fields
+            range=_sheet_full_range(),  # All venue columns including event tracking fields
         ).execute()
 
         rows = result.get("values", [])
@@ -326,6 +348,8 @@ def read_cached_venues(city: str | None = None) -> list[Venue]:
             venues.append(Venue(
                 name=venue.get("name", ""),
                 address=venue.get("address", ""),
+                lat=_parse_coordinate(venue.get("lat", "")),
+                lng=_parse_coordinate(venue.get("lng", "")),
                 city=venue.get("city", ""),
                 neighborhood=venue.get("neighborhood", ""),
                 website=venue.get("website", ""),
@@ -418,7 +442,7 @@ def append_venues_to_cache(venues: list[Venue], city: str, category: str):
     try:
         service.spreadsheets().values().clear(
             spreadsheetId=sheet_id,
-            range="A:R"
+            range=_sheet_full_range()
         ).execute()
 
         service.spreadsheets().values().update(
@@ -487,7 +511,7 @@ def write_venues_to_cache(venues: list[Venue], city: str):
         # Clear existing data
         service.spreadsheets().values().clear(
             spreadsheetId=sheet_id,
-            range="A:R"
+            range=_sheet_full_range()
         ).execute()
 
         # Write new data
@@ -572,6 +596,8 @@ def load_seed_venues(city: str) -> int:
             new_seeds.append(Venue(
                 name=seed["name"],
                 address=seed.get("address", city),
+                lat=None,
+                lng=None,
                 city=city,
                 neighborhood=seed.get("neighborhood", ""),
                 website=seed.get("website", ""),
@@ -662,7 +688,7 @@ def deduplicate_venues(city: str) -> int:
     try:
         service.spreadsheets().values().clear(
             spreadsheetId=sheet_id,
-            range="A:R"
+            range=_sheet_full_range()
         ).execute()
 
         service.spreadsheets().values().update(
@@ -733,7 +759,7 @@ def update_venue_category(name: str, city: str, new_category: str) -> bool:
     try:
         service.spreadsheets().values().clear(
             spreadsheetId=sheet_id,
-            range="A:R"
+            range=_sheet_full_range()
         ).execute()
 
         service.spreadsheets().values().update(
@@ -786,6 +812,8 @@ def add_manual_venue(
     venue = Venue(
         name=name,
         address=address or city,
+        lat=None,
+        lng=None,
         city=city,
         neighborhood=neighborhood,
         website=website,
@@ -870,7 +898,8 @@ def update_venues_batch(updated_venues: list[dict], city: str) -> int:
         if key in updates:
             # Merge updates into venue
             update = updates[key]
-            for field in ["website", "events_url", "website_status", "website_attempts",
+            for field in ["address", "lat", "lng", "neighborhood", "address_verified",
+                          "website", "events_url", "website_status", "website_attempts",
                           "preferred_event_source", "api_endpoint", "ticketmaster_venue_id",
                           "last_event_fetch", "event_count", "event_source"]:
                 if field in update:
@@ -903,7 +932,7 @@ def update_venues_batch(updated_venues: list[dict], city: str) -> int:
     try:
         service.spreadsheets().values().clear(
             spreadsheetId=sheet_id,
-            range="A:R"
+            range=_sheet_full_range()
         ).execute()
 
         service.spreadsheets().values().update(
@@ -976,7 +1005,7 @@ def update_venue_event_tracking(
     try:
         service.spreadsheets().values().clear(
             spreadsheetId=sheet_id,
-            range="A:R"
+            range=_sheet_full_range()
         ).execute()
 
         service.spreadsheets().values().update(

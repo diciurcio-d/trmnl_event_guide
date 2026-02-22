@@ -23,11 +23,20 @@ concert_finder/.concert_results.json
 venue_scout/data/venues.json
 venue_scout/data/places_cache.json
 venue_scout/data/venue_cache_metadata.json
+venue_scout/data/local_events_cache.json
+venue_scout/data/travel_cache.json
+venue_scout/data/semantic_events.faiss
+venue_scout/data/semantic_events_metadata.json
 venue_scout/outputs/
 
 # Environment
 .env
 *.env
+*.log
+
+# Generated previews/benchmarks
+trmnl/preview*.html
+tests/gemini_grounding/*_results_*.json
 
 # IDE
 .idea/

@@ -15,6 +15,8 @@ LOCAL_EVENTS_CACHE_FILE = DATA_DIR / "local_events_cache.json"
 PLACES_CACHE_FILE = DATA_DIR / "places_cache.json"
 TRAVEL_CACHE_FILE = DATA_DIR / "travel_cache.json"
 VENUES_EXPORT_FILE = DATA_DIR / "venues.json"
+SEMANTIC_EVENTS_INDEX_FILE = DATA_DIR / "semantic_events.faiss"
+SEMANTIC_EVENTS_METADATA_FILE = DATA_DIR / "semantic_events_metadata.json"
 
 # Output files
 WEBSITE_VALIDATOR_OUTPUTS_DIR = OUTPUTS_DIR / "website_validator"

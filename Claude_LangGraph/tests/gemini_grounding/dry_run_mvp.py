@@ -24,6 +24,7 @@ client = genai.Client(api_key=config["gemini"]["api_key"])
 
 GROUNDING_MODEL = "gemini-2.5-pro"
 FAST_MODEL = "gemini-3-flash-preview"
+OUTPUT_DIR = Path(__file__).parent.parent.parent / "venue_scout" / "outputs" / "gemini_grounding"
 
 MAX_VENUES_PER_CATEGORY = 250
 GROUNDING_DELAY = 13  # ~5 RPM for Gemini 2.5 Pro
@@ -323,7 +324,8 @@ def main():
 
     # Save to JSON backup first
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-    json_path = Path(__file__).parent / f"mvp_results_{timestamp}.json"
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    json_path = OUTPUT_DIR / f"mvp_results_{timestamp}.json"
     with open(json_path, 'w') as f:
         json.dump(all_venues, f, indent=2)
     print(f"\nSaved backup to: {json_path}")

@@ -30,19 +30,19 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from venue_scout.cache import read_cached_venues, update_venues_batch
 from venue_scout.event_cache import get_cache_summary, clear_venue_cache
-from venue_scout.event_fetcher import fetch_events_for_venues, fetch_venue_events
+from venue_scout.event_fetcher import fetch_events_for_venues, sync_nyc_parks_venues_from_open_data
 from venue_scout.concert_matcher import match_events_to_artists, get_user_artists, highlight_matched_events
 from venue_scout.venue_events_sheet import (
     read_venue_events_from_sheet,
+    sync_semantic_index_membership,
     write_venue_events_to_sheet,
-    get_matched_events,
 )
 from venue_scout.website_validator import (
     validate_venue_website,
     is_aggregator_url,
-    get_validation_summary,
 )
 from venue_scout.venue_cleaner import clean_venues
+from venue_scout.semantic_search import build_semantic_index, get_semantic_index_membership
 
 
 def _load_settings():
@@ -203,6 +203,12 @@ def cmd_fetch_all(args):
     city = args.city
     force = args.force
 
+    # Keep NYC Parks as first-class venues by syncing from live open-data feed.
+    if city.lower().strip() == "nyc":
+        added, updated = sync_nyc_parks_venues_from_open_data(city)
+        if added or updated:
+            print(f"NYC Parks sync: added={added}, updated={updated}")
+
     # Get all verified venues
     all_venues = read_cached_venues(city)
     venues = [v for v in all_venues if v.get("website_status") in ("verified", "reachable_no_events_page")]
@@ -258,6 +264,16 @@ def cmd_fetch_all(args):
                 print(f"    @ {event.get('venue_name')}")
             if len(matched) > 20:
                 print(f"  ... and {len(matched) - 20} more")
+
+
+def cmd_sync_nyc_parks_venues(args):
+    """Sync NYC Parks venues from live open-data feed into venue cache."""
+    city = args.city
+    if city.lower().strip() != "nyc":
+        print("NYC Parks venue sync currently supports only city=NYC")
+        return
+    added, updated = sync_nyc_parks_venues_from_open_data(city)
+    print(f"NYC Parks venue sync complete: added={added}, updated={updated}")
 
 
 def cmd_show_matched(args):
@@ -1069,6 +1085,82 @@ def cmd_validate_websites_sample(args):
         )
 
 
+def cmd_build_semantic_index(args):
+    """Build/update persisted semantic index for event search."""
+    all_events = read_venue_events_from_sheet()
+    if not all_events:
+        print("No events found in Venue Events Cache. Fetch events first.")
+        return 1
+
+    is_limited_build = False
+    limit = getattr(args, "limit", None)
+    if limit and limit > 0 and limit < len(all_events):
+        is_limited_build = True
+
+    # Normalize/canonicalize before full rebuild so indexed keys match persisted sheet rows.
+    if not is_limited_build:
+        print("Canonicalizing Venue Events sheet before semantic index build...")
+        write_venue_events_to_sheet(all_events)
+        all_events = read_venue_events_from_sheet()
+        if not all_events:
+            print("No events found after canonicalization. Aborting semantic index build.")
+            return 1
+
+    events = all_events
+    if is_limited_build:
+        events = events[:limit]
+        print(f"Limiting index build to first {len(events)} events")
+
+    stats = build_semantic_index(
+        events=events,
+        force=bool(getattr(args, "force", False)),
+        batch_size=getattr(args, "batch_size", None),
+    )
+
+    if "error" in stats:
+        print(f"Error building semantic index: {stats['error']}")
+        if stats.get("message"):
+            print(stats["message"])
+        return 1
+
+    membership_sync_stats = {}
+    membership_sync_error = ""
+    if is_limited_build:
+        print("\nSkipping sheet semantic-membership sync for limited build.")
+    else:
+        try:
+            indexed_keys, indexed_at = get_semantic_index_membership()
+            membership_sync_stats = sync_semantic_index_membership(
+                included_event_keys=indexed_keys,
+                indexed_at=indexed_at,
+            )
+        except Exception as exc:
+            membership_sync_error = str(exc)
+
+    print("\nSemantic index build complete:")
+    for key in (
+        "status",
+        "event_count",
+        "indexed_event_count",
+        "input_event_count",
+        "skipped_past_count",
+        "embedding_model",
+        "embedding_dim",
+        "index_file",
+        "metadata_file",
+    ):
+        if key in stats:
+            print(f"  {key}: {stats[key]}")
+    if membership_sync_stats:
+        print("\nVenue Events sheet semantic flags updated:")
+        for key in ("sheet_event_count", "included_count", "excluded_count", "semantic_indexed_at"):
+            if key in membership_sync_stats:
+                print(f"  {key}: {membership_sync_stats[key]}")
+    if membership_sync_error:
+        print(f"\nWarning: semantic-membership sheet sync failed: {membership_sync_error}")
+    return 0
+
+
 def main():
     default_validator_max_attempts = int(getattr(_settings, "WEBSITE_VALIDATOR_MAX_ATTEMPTS", 3))
     default_validator_delay = float(getattr(_settings, "WEBSITE_VALIDATOR_CLI_DELAY_SEC", 0.4))
@@ -1206,6 +1298,20 @@ def main():
     clean_parser.add_argument("--skip-dedup", action="store_true", help="Skip deduplication step")
     clean_parser.add_argument("--skip-descriptions", action="store_true", help="Skip description generation step")
 
+    # Semantic index build subcommand
+    semantic_parser = subparsers.add_parser(
+        "build-semantic-index",
+        help="Build/update persisted semantic index for query retrieval",
+    )
+    semantic_parser.add_argument("--limit", type=int, help="Limit number of events to index")
+    semantic_parser.add_argument("--batch-size", type=int, help="Override embedding batch size")
+
+    # NYC Parks venue sync subcommand
+    subparsers.add_parser(
+        "sync-nyc-parks-venues",
+        help="Sync NYC Parks venues from open-data feed into venue cache",
+    )
+
     # Legacy args for backward compatibility
     parser.add_argument("--venues", nargs="+", help="Venue names (legacy)")
     parser.add_argument("--categories", nargs="+", help="Category names (legacy)")
@@ -1243,6 +1349,10 @@ def main():
         cmd_scan_ticketmaster(args)
     elif args.command == "clean-venues":
         cmd_clean_venues(args)
+    elif args.command == "build-semantic-index":
+        cmd_build_semantic_index(args)
+    elif args.command == "sync-nyc-parks-venues":
+        cmd_sync_nyc_parks_venues(args)
     # Legacy argument handling
     elif args.status:
         cmd_show_status(args)
