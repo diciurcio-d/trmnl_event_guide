@@ -1,2 +1,18 @@
 # Repository-wide ignores
 .DS_Store
+
+# Secrets — never commit these
+Whats_Happening_NYC/config/config.json
+Whats_Happening_NYC/config/service_account.json
+Whats_Happening_NYC/config/google_credentials.json
+Whats_Happening_NYC/config/google_token.json
+Whats_Happening_NYC/config/sheets_config.json
+Whats_Happening_NYC/config/browser.json
+
+# Local data / cache
+Whats_Happening_NYC/cache/*.csv
+Whats_Happening_NYC/venue_scout/data/
+Whats_Happening_NYC/venue_scout/outputs/
+
+# IDE / workspace files
+*.code-workspace

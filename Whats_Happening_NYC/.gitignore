@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Cache files
+cache/events.csv
+cache/concerts.csv
+cache/cache_metadata.json
+
+# Config secrets
+config/config.json
+config/browser.json
+config/google_credentials.json
+config/google_token.json
+config/sheets_config.json
+config/*.code-workspace
+
+# Concert finder cache
+concert_finder/.artists_cache.json
+concert_finder/.concert_results.json
+
+# Venue scout data (cached venue info, not code)
+venue_scout/data/venues.json
+venue_scout/data/places_cache.json
+venue_scout/data/venue_cache_metadata.json
+venue_scout/data/local_events_cache.json
+venue_scout/data/local_events_cache.json.bak
+venue_scout/data/travel_cache.json
+venue_scout/data/semantic_events.faiss
+venue_scout/data/semantic_events_metadata.json
+venue_scout/outputs/
+
+# Environment
+.env
+*.env
+*.log
+
+# Generated previews/benchmarks
+trmnl/preview*.html
+tests/gemini_grounding/*_results_*.json
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# macOS
+.DS_Store

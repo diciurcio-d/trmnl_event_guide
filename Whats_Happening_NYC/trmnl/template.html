@@ -1,0 +1,25 @@
+<div class="screen">
+  <div class="layout layout--col gap--space-between">
+    <!-- Title bar -->
+    <div class="title-bar">
+      <img class="image" src="https://usetrmnl.com/images/plugins/trmnl--render.svg" />
+      <span class="title">NYC Events</span>
+      <span class="instance"></span>
+    </div>
+
+    <!-- Events grid: 2 rows x 3 columns -->
+    <div class="grid grid--cols-3 gap--md flex-grow">
+      {% for event in events %}
+      <div class="flex flex--col gap--xs border rounded p--sm">
+        <div class="flex gap--xs">
+          <span class="label label--underline">{{ event.day }}</span>
+          <span class="label">{{ event.date }}</span>
+        </div>
+        <span class="value value--sm">{{ event.time }}</span>
+        <div class="description description--sm">{{ event.name }}</div>
+        <span class="label label--xs opacity-50">{{ event.source }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
