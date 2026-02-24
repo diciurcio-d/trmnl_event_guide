@@ -22,8 +22,8 @@ RUN playwright install --with-deps chromium
 # Copy application code (secrets and data/ are NOT copied — see .dockerignore)
 COPY . .
 
-# Make entrypoint executable
-RUN chmod +x /app/entrypoint.sh
+# Make entrypoints executable
+RUN chmod +x /app/entrypoint.sh /app/job_entrypoint.sh
 
 # Create directories that Cloud Run will mount over at runtime:
 #   - venue_scout/data/  -> GCS bucket (persistent caches, FAISS index)
