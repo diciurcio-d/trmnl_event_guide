@@ -51,7 +51,7 @@ VENUE_ENRICH_PLACES_DELAY_SEC = 0.1  # 10 QPS (limit is ~100 QPS)
 VENUE_DESCRIPTION_DELAY_SEC = 0.5    # 2 QPS / 120 RPM (free tier limit is 10-15 RPM, paid is 150+ RPM)
 
 # LLM (Gemini) settings
-GEMINI_MODEL = "gemini-3-flash-preview"  # Fast/low-cost default model for classification/extraction tasks.
+GEMINI_MODEL = "gemini-2.5-flash-lite"   # Fast/low-cost default model for classification/extraction tasks.
 QUERY_RANKING_MODEL = "gemini-2.5-flash-lite"  # Primary model for chat query ranking.
 QUERY_DATE_TOOL_MODEL = "gemini-2.5-flash-lite"  # Model for date-intent/tool extraction in chat queries.
 GEMINI_TEMPERATURE = 0.0                 # Deterministic output for repeatable validation/ranking behavior.
