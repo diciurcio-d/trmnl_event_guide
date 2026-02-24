@@ -1899,8 +1899,16 @@ def fetch_venue_events(
     print(f"  Fetching events for: {venue_name}")
 
     # Determine strategy
-    strategy = determine_fetch_strategy(venue_name, category, website, preferred_source)
+    strategy = determine_fetch_strategy(
+        venue_name, category, website, preferred_source, ticketmaster_venue_id
+    )
     print(f"    Strategy: {strategy}")
+
+    if strategy == "skip":
+        result.skipped = True
+        result.skip_reason = "no_fetchable_source"
+        increment("event_fetcher.fetch_venue.skip_no_source")
+        return result
 
     tm_events = None
     scrape_events = None

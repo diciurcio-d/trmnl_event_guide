@@ -120,6 +120,7 @@ def determine_fetch_strategy(
     category: str,
     website: str = "",
     preferred_source: str = "",
+    ticketmaster_venue_id: str = "",
 ) -> str:
     """
     Determine the optimal fetch strategy for a venue.
@@ -129,33 +130,43 @@ def determine_fetch_strategy(
         category: Venue category
         website: Venue website URL
         preferred_source: Previously determined preferred source
+        ticketmaster_venue_id: Ticketmaster venue ID if known
 
     Returns:
-        One of: "ticketmaster_only", "scrape_only", "both", "scrape_first"
+        One of: "ticketmaster_only", "scrape_only", "both", "skip"
     """
+    has_website = bool(website)
+    has_tm_id = bool(ticketmaster_venue_id)
+
     # If we've already determined the best source, use it
     if preferred_source:
         if preferred_source == "ticketmaster":
-            return "ticketmaster_only"
+            return "ticketmaster_only" if has_tm_id else "skip"
         elif preferred_source == "scrape":
-            return "scrape_only"
+            return "scrape_only" if has_website else "skip"
+
+    # Nothing to fetch — skip entirely
+    if not has_website and not has_tm_id:
+        return "skip"
 
     # Check if venue category suggests scraping only
     if should_skip_ticketmaster(category, venue_name):
-        return "scrape_only"
+        return "scrape_only" if has_website else "skip"
 
     # Check if venue category is primarily on Ticketmaster
     cat_lower = category.lower().strip()
     if cat_lower in TICKETMASTER_CATEGORIES:
-        if website:
-            return "both"  # Try both for first fetch to compare
-        return "ticketmaster_only"
+        if has_tm_id and has_website:
+            return "both"
+        if has_tm_id:
+            return "ticketmaster_only"
+        return "scrape_only" if has_website else "skip"
 
-    # For venues with websites that are in mixed categories, try both
-    if website:
+    # Mixed category: try both sources if available, otherwise whichever exists
+    if has_website and has_tm_id:
         return "both"
-
-    # Default: try Ticketmaster first
+    if has_website:
+        return "scrape_only"
     return "ticketmaster_only"
 
 

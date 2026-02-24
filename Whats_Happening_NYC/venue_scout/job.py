@@ -42,8 +42,16 @@ def main():
         print("ERROR: No venues found. Exiting.")
         sys.exit(1)
 
+    # --- 1b. Filter to venues that have something to fetch ---
+    # Only include venues with an events_url or a ticketmaster_venue_id.
+    fetchable = [
+        v for v in all_venues
+        if v.get("events_url") or v.get("ticketmaster_venue_id")
+    ]
+    print(f"  {len(fetchable)} fetchable venues ({len(all_venues) - len(fetchable)} skipped — no events_url or TM ID)")
+
     # --- 2. Sort by last_event_fetch ASC (never-fetched first), take top BATCH_SIZE ---
-    sorted_venues = sorted(all_venues, key=_sort_key)
+    sorted_venues = sorted(fetchable, key=_sort_key)
     batch = sorted_venues[:BATCH_SIZE]
 
     never_fetched = sum(1 for v in batch if not (v.get("last_event_fetch") or "").strip())
