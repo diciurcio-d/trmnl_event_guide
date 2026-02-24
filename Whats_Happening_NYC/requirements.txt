@@ -13,3 +13,4 @@ ytmusicapi
 flask
 flask-cors
 flask-limiter
+beautifulsoup4

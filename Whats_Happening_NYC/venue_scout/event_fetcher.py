@@ -509,37 +509,27 @@ def _strip_html_for_llm(html: str) -> str:
     """Strip HTML tags to get plain text for LLM parsing.
 
     Used when skipping Jina Reader to still allow LLM event extraction.
+    Uses BeautifulSoup for robust handling of malformed markup.
     """
     if not html:
         return ""
 
-    # Remove script and style elements entirely
-    html = re.sub(r'<script[^>]*>[\s\S]*?</script>', '', html, flags=re.IGNORECASE)
-    html = re.sub(r'<style[^>]*>[\s\S]*?</style>', '', html, flags=re.IGNORECASE)
+    from bs4 import BeautifulSoup
 
-    # Remove HTML comments
-    html = re.sub(r'<!--[\s\S]*?-->', '', html)
+    soup = BeautifulSoup(html, "html.parser")
 
-    # Replace common block elements with newlines for readability
-    html = re.sub(r'<(br|hr|p|div|li|tr|h[1-6])[^>]*/?>', '\n', html, flags=re.IGNORECASE)
-    html = re.sub(r'</(p|div|li|tr|h[1-6])>', '\n', html, flags=re.IGNORECASE)
+    # Drop elements that contribute no readable content
+    for tag in soup(["script", "style", "noscript", "head", "meta", "link"]):
+        tag.decompose()
 
-    # Remove all remaining HTML tags
-    html = re.sub(r'<[^>]+>', ' ', html)
-
-    # Decode common HTML entities
-    html = html.replace('&nbsp;', ' ')
-    html = html.replace('&amp;', '&')
-    html = html.replace('&lt;', '<')
-    html = html.replace('&gt;', '>')
-    html = html.replace('&quot;', '"')
-    html = html.replace('&#39;', "'")
+    # Get text with newlines between block elements for readability
+    text = soup.get_text(separator="\n")
 
     # Collapse multiple whitespace and newlines
-    html = re.sub(r'[ \t]+', ' ', html)
-    html = re.sub(r'\n\s*\n+', '\n\n', html)
+    text = re.sub(r'[ \t]+', ' ', text)
+    text = re.sub(r'\n\s*\n+', '\n\n', text)
 
-    return html.strip()
+    return text.strip()
 
 
 def _extract_jsonld_blocks(html: str) -> list[dict]:
