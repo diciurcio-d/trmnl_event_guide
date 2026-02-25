@@ -588,6 +588,12 @@ def query_events_with_llm(
     llm_event_context_limit = max(25, llm_event_context_limit)
 
     context_section = f"\nCONTEXT (user's answer to follow-up): {context}" if context else ""
+    no_date_window = not date_filters.get("date_window_applied")
+    near_term_hint = (
+        "\nSCORING: No time window was specified. When two events are otherwise equally relevant,"
+        " prefer the one happening sooner — events within the next 30 days should rank slightly"
+        " above events many months away."
+    ) if no_date_window else ""
     prompt = f"""You are filtering NYC events for a user query.
 Return strict JSON with keys:
 - interpretation: string (brief description of what you found, or what you are asking)
@@ -604,7 +610,7 @@ FOLLOW-UP QUESTION RULES:
 - If the user said "I don't know", "anything", "surprise me", or provided any preference context, set follow_up_question to ""
 - For specific queries (specific genre, artist, venue, or date), set follow_up_question to ""
 - Default: follow_up_question is ""
-
+{near_term_hint}
 Only include events that truly match the query. Sort by score desc.
 Limit to top {max_results}.
 

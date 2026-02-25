@@ -124,7 +124,64 @@
         }
 
         .filters-toggle {
-            display: none; /* hidden on desktop */
+            display: none; /* mobile only */
+        }
+
+        .filters-body {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Category section collapse — desktop + mobile */
+        .category-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .category-header label {
+            margin-bottom: 0;
+        }
+
+        .category-toggle {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: none;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 3px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            cursor: pointer;
+        }
+
+        .category-toggle .category-chevron {
+            transition: transform 0.2s ease;
+        }
+
+        .category-body {
+            display: none; /* collapsed by default */
+        }
+
+        .category-body.open {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .category-body.open ~ .category-toggle .category-chevron,
+        .category-toggle[aria-expanded="true"] .category-chevron {
+            transform: rotate(0deg);
+        }
+
+        .category-toggle[aria-expanded="false"] .category-chevron {
+            transform: rotate(-90deg);
         }
 
         .field {
@@ -516,13 +573,23 @@
                     </div>
 
                     <div class="field category-field">
-                        <label>Event categories</label>
-                        <div id="categories" class="category-list">
-                            <div class="empty-note">Loading categories...</div>
+                        <div class="category-header">
+                            <label>Event categories</label>
+                            <button class="category-toggle" id="category-toggle" type="button" aria-expanded="false" aria-controls="category-body">
+                                <span class="category-toggle-label">Show</span>
+                                <svg class="category-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
                         </div>
-                        <div class="controls">
-                            <button class="btn" id="select-all-categories" type="button">Select All</button>
-                            <button class="btn" id="clear-categories" type="button">Clear</button>
+                        <div class="category-body" id="category-body">
+                            <div id="categories" class="category-list">
+                                <div class="empty-note">Loading categories...</div>
+                            </div>
+                            <div class="controls">
+                                <button class="btn" id="select-all-categories" type="button">Select All</button>
+                                <button class="btn" id="clear-categories" type="button">Clear</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1050,7 +1117,7 @@
             }
         }
 
-        // Collapsible filters on mobile
+        // Collapsible filters panel (mobile only)
         const filtersToggleEl = document.getElementById("filters-toggle");
         const filtersPanelEl  = document.getElementById("filters-panel");
         const toggleLabelEl   = filtersToggleEl.querySelector(".filters-toggle-label");
@@ -1059,6 +1126,17 @@
             const isCollapsed = filtersPanelEl.classList.toggle("collapsed");
             filtersToggleEl.setAttribute("aria-expanded", String(!isCollapsed));
             toggleLabelEl.textContent = isCollapsed ? "Show" : "Hide";
+        });
+
+        // Collapsible event categories (desktop + mobile)
+        const categoryToggleEl = document.getElementById("category-toggle");
+        const categoryBodyEl   = document.getElementById("category-body");
+        const categoryLabelEl  = categoryToggleEl.querySelector(".category-toggle-label");
+
+        categoryToggleEl.addEventListener("click", () => {
+            const isOpen = categoryBodyEl.classList.toggle("open");
+            categoryToggleEl.setAttribute("aria-expanded", String(isOpen));
+            categoryLabelEl.textContent = isOpen ? "Hide" : "Show";
         });
 
         document.getElementById("select-all-categories").addEventListener("click", () => {
