@@ -148,7 +148,7 @@
         .field input[type="number"],
         .field input[type="text"],
         .field select,
-        .composer input {
+        .composer textarea {
             width: 100%;
             border: 1px solid var(--line);
             border-radius: var(--radius-md);
@@ -157,6 +157,17 @@
             background: #fff;
             color: var(--ink);
             min-height: 42px;
+        }
+
+        .composer textarea {
+            resize: none;
+            overflow-y: hidden;
+            line-height: 1.45;
+            max-height: calc(1.45em * 3 + 20px); /* 3 lines + vertical padding */
+        }
+
+        .composer textarea.scrollable {
+            overflow-y: auto;
         }
 
         .helper {
@@ -531,7 +542,7 @@
                 <div id="chat-log" class="chat-log"></div>
 
                 <form id="chat-form" class="composer">
-                    <input id="chat-input" type="text" placeholder="Ask for events..." autocomplete="off" required>
+                    <textarea id="chat-input" placeholder="Ask for events..." autocomplete="off" rows="1"></textarea>
                     <button class="btn primary" id="send-btn" type="submit">Send</button>
                 </form>
             </section>
@@ -1075,11 +1086,38 @@
             await validateOriginAddress();
         });
 
+        function resizeChatInput() {
+            const maxHeight = parseFloat(getComputedStyle(chatInputEl).maxHeight);
+            chatInputEl.style.height = "auto";
+            const natural = chatInputEl.scrollHeight;
+            if (natural >= maxHeight) {
+                chatInputEl.style.height = maxHeight + "px";
+                chatInputEl.classList.add("scrollable");
+            } else {
+                chatInputEl.style.height = natural + "px";
+                chatInputEl.classList.remove("scrollable");
+            }
+        }
+
+        chatInputEl.addEventListener("input", resizeChatInput);
+
+        chatInputEl.addEventListener("keydown", async (event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                const queryText = chatInputEl.value.trim();
+                if (!queryText) return;
+                chatInputEl.value = "";
+                resizeChatInput();
+                await submitQuery(queryText);
+            }
+        });
+
         chatFormEl.addEventListener("submit", async (event) => {
             event.preventDefault();
             const queryText = chatInputEl.value.trim();
             if (!queryText) return;
             chatInputEl.value = "";
+            resizeChatInput();
             await submitQuery(queryText);
         });
 
