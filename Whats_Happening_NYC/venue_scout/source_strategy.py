@@ -136,7 +136,8 @@ def determine_fetch_strategy(
         One of: "ticketmaster_only", "scrape_only", "both", "skip"
     """
     has_website = bool(website)
-    has_tm_id = bool(ticketmaster_venue_id)
+    _tm = str(ticketmaster_venue_id or "").strip()
+    has_tm_id = bool(_tm and _tm.lower() != "not_found")
 
     # If we've already determined the best source, use it
     if preferred_source:

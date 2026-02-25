@@ -4,6 +4,7 @@ Coordinates between Ticketmaster and website scraping based on
 venue category and characteristics.
 """
 
+import html as html_lib
 import importlib.util
 import json
 import os
@@ -250,8 +251,23 @@ def _fallback_model_list(value, default: tuple[str, ...]) -> list[str]:
     return [item for item in items if item]
 
 
+def _is_cloudflare_response(response) -> bool:
+    """Return True if the response is a Cloudflare block or challenge page."""
+    if "cloudflare" in response.headers.get("server", "").lower():
+        return True
+    if "cf-ray" in response.headers:
+        return True
+    body = response.text[:2000].lower()
+    if "just a moment" in body and "cloudflare" in body:
+        return True
+    return False
+
+
 def _fetch_raw_html(url: str) -> str:
-    """Fetch raw HTML for structured extraction and iframe discovery."""
+    """Fetch raw HTML for structured extraction and iframe discovery.
+
+    Retries with curl_cffi impersonating Chrome when a Cloudflare 403 is detected.
+    """
     import requests
 
     headers = {
@@ -259,6 +275,12 @@ def _fetch_raw_html(url: str) -> str:
     }
     timeout = int(_settings.EVENT_FETCHER_HTML_TIMEOUT_SEC)
     response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
+    if response.status_code == 403 and _is_cloudflare_response(response):
+        time.sleep(1.0)  # Brief pause before retry — avoids burst on CF-protected sites
+        from curl_cffi import requests as cf_requests
+        cf_resp = cf_requests.get(url, impersonate="chrome124", timeout=timeout, allow_redirects=True)
+        cf_resp.raise_for_status()
+        return cf_resp.text
     response.raise_for_status()
     return response.text
 
@@ -760,11 +782,12 @@ def _is_nyc_parks_shared_feed(url: str) -> bool:
 
 
 def _strip_tags(text: str) -> str:
-    """Remove basic HTML tags for cleaner event descriptions."""
+    """Remove HTML tags and decode entities for cleaner event descriptions."""
     if not text:
         return ""
     no_tags = re.sub(r"<[^>]+>", " ", str(text))
-    return re.sub(r"\s+", " ", no_tags).strip()
+    decoded = html_lib.unescape(no_tags)
+    return re.sub(r"\s+", " ", decoded).strip()
 
 
 def _parse_nyc_parks_datetime(date_str: str, time_str: str) -> datetime | None:
@@ -1173,6 +1196,67 @@ def _filter_events_for_venue(events: list[dict], venue: dict) -> list[dict]:
     return filtered
 
 
+def _fetch_from_feed(
+    feed_url: str,
+    feed_type: str,
+    venue_name: str,
+) -> list[dict]:
+    """Fetch and normalize events from an iCal or RSS feed."""
+    from .feed_finder import fetch_and_parse_feed
+    from datetime import date, timedelta
+
+    raw_events = fetch_and_parse_feed(feed_url, feed_type)
+    if not raw_events:
+        return []
+
+    today = date.today()
+    cutoff = today + timedelta(days=365)
+    events = []
+
+    for e in raw_events:
+        date_raw = e.get("date_str", "")
+        try:
+            event_date = datetime.strptime(date_raw, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+
+        # Skip past events and events beyond 1 year (e.g. permanent exhibitions)
+        if event_date < today or event_date > cutoff:
+            continue
+
+        time_raw = e.get("time", "")
+        dt = None
+        if time_raw:
+            try:
+                dt = datetime.strptime(f"{date_raw} {time_raw}", "%Y-%m-%d %H:%M")
+            except ValueError:
+                pass
+
+        events.append(_normalize_event_schema(
+            {
+                "name": e.get("title", ""),
+                "datetime": dt,
+                "date_str": date_raw,
+                "end_date": e.get("end_date", ""),
+                "venue_name": venue_name,
+                "event_type": "",
+                "url": e.get("event_url", ""),
+                "source": f"feed_{feed_type}",
+                "matched_artist": "",
+                "travel_minutes": None,
+                "description": e.get("description", ""),
+                "event_source_url": feed_url,
+                "extraction_method": f"feed_{feed_type}",
+                "relevance_score": None,
+                "validation_confidence": 1.0,
+            },
+            venue_name,
+            f"feed_{feed_type}",
+        ))
+
+    return events
+
+
 def _fetch_from_website(
     url: str,
     venue_name: str,
@@ -1414,14 +1498,15 @@ WEBPAGE CONTENT:
 
 Extract each event and return as a JSON array. For each event include:
 - name: Event/show name
-- date_str: Date in YYYY-MM-DD format (infer year if not shown, assume current/next year)
+- date_str: Start date in YYYY-MM-DD format (infer year if not shown, assume current/next year)
+- end_date: End date in YYYY-MM-DD format for multi-day events like exhibitions, festivals, or runs (empty string if single-day)
 - time: Time if available (e.g. "7:00 PM")
 - venue_name: Venue/location shown for the event (empty string if missing)
-- event_type: Type of event (concert, comedy, theater, reading, etc.)
+- event_type: Type of event (concert, comedy, theater, exhibition, festival, reading, etc.)
 - url: Event URL if available, otherwise empty string
 - description: Brief description if available
 
-Only include events from today ({today_iso}) onwards.
+Only include events whose start date OR end date is on or after today ({today_iso}).
 If this chunk has no events, return: []
 
 Return ONLY the JSON array, no other text."""
@@ -1580,13 +1665,14 @@ def _normalize_llm_event_rows(
                 "name": name,
                 "datetime": dt,
                 "date_str": normalized_date,
+                "end_date": str(row.get("end_date", "") or "").strip(),
                 "venue_name": parsed_venue_name or fallback_venue_name or venue_name,
                 "event_type": str(row.get("event_type", "") or "").strip(),
                 "url": str(row.get("url", "") or "").strip() or source_url,
                 "source": "scrape",
                 "matched_artist": "",
                 "travel_minutes": None,
-                "description": str(row.get("description", "") or "").strip(),
+                "description": _strip_tags(str(row.get("description", "") or "")),
                 "event_source_url": source_url,
                 "extraction_method": extraction_method,
                 "validation_confidence": 0.6,
@@ -1897,6 +1983,30 @@ def fetch_venue_events(
         return result
 
     print(f"  Fetching events for: {venue_name}")
+
+    # Feed-based fetching (iCal/RSS) — preferred over HTML scraping
+    feed_url = venue.get("feed_url", "")
+    feed_type = venue.get("feed_type", "")
+    if feed_url and feed_type in ("ical", "rss"):
+        feed_events = _fetch_from_feed(feed_url, feed_type, venue_name)
+        if feed_events:
+            feed_source = f"feed_{feed_type}"
+            result.events = feed_events
+            result.source_used = feed_source
+            increment("event_fetcher.fetch_venue.success")
+            log_event(
+                "event_fetch_success",
+                venue_name=venue_name,
+                city=city,
+                strategy=feed_source,
+                source_used=feed_source,
+                event_count=len(feed_events),
+            )
+            if not skip_metadata_update:
+                mark_venue_fetched(venue_name, city, len(feed_events), feed_source)
+            print(f"    Result: {len(feed_events)} events (source: {feed_source})")
+            return result
+        print(f"    Feed returned no events, falling back to normal strategy")
 
     # Determine strategy
     strategy = determine_fetch_strategy(

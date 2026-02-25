@@ -515,6 +515,7 @@ def query_events_with_llm(
     events: list[dict],
     max_results: int = 10,
     force_fallback: bool = False,
+    context: str = "",
 ) -> dict:
     """Rank events for a natural-language query with deterministic fallback."""
     if not events:
@@ -586,16 +587,28 @@ def query_events_with_llm(
     llm_event_context_limit = int(getattr(_settings, "LLM_EVENT_CONTEXT_LIMIT", 250))
     llm_event_context_limit = max(25, llm_event_context_limit)
 
+    context_section = f"\nCONTEXT (user's answer to follow-up): {context}" if context else ""
     prompt = f"""You are filtering NYC events for a user query.
 Return strict JSON with keys:
-- interpretation: string
+- interpretation: string (brief description of what you found, or what you are asking)
 - filters: object
 - matched_events: list of objects with keys index (int), score (0-100), reason (string)
+- follow_up_question: string
+
+FOLLOW-UP QUESTION RULES:
+- Set follow_up_question to a short clarifying question ONLY when ALL of these are true:
+  1. The query is intentionally vague or open-ended (e.g. "date spot", "fun night out", "something to do", "good show")
+  2. A single question would meaningfully narrow the results (e.g. asking about vibe, activity type, or budget)
+  3. No context has already been provided
+- When follow_up_question is non-empty, set matched_events to [] — the user will answer before seeing results
+- If the user said "I don't know", "anything", "surprise me", or provided any preference context, set follow_up_question to ""
+- For specific queries (specific genre, artist, venue, or date), set follow_up_question to ""
+- Default: follow_up_question is ""
 
 Only include events that truly match the query. Sort by score desc.
 Limit to top {max_results}.
 
-QUERY: {query}
+QUERY: {query}{context_section}
 NOW: {datetime.now(_TZ).isoformat()}
 EVENTS:
 {json.dumps(_event_view(ranked_events, max_events=min(llm_event_context_limit, len(ranked_events))), ensure_ascii=True)}
@@ -651,6 +664,22 @@ EVENTS:
                     raise fallback_error
             payload = _safe_json_obj(response or "")
             if payload:
+                follow_up_question = str(payload.get("follow_up_question", "") or "").strip()
+                # If LLM wants to ask a follow-up, return immediately with no matches
+                if follow_up_question:
+                    merged_filters = payload.get("filters", {})
+                    if date_filters:
+                        merged_filters["date"] = date_filters
+                    if semantic_filters:
+                        merged_filters["semantic"] = semantic_filters
+                    return {
+                        "interpretation": payload.get("interpretation", ""),
+                        "filters": merged_filters,
+                        "matches": [],
+                        "warning": warning,
+                        "mode": "follow_up",
+                        "follow_up_question": follow_up_question,
+                    }
                 matches = _apply_index_matches(ranked_events, payload.get("matched_events", []), max_results)
                 merged_filters = payload.get("filters", {})
                 if date_filters:

@@ -43,10 +43,15 @@ def main():
         sys.exit(1)
 
     # --- 1b. Filter to venues that have something to fetch ---
-    # Only include venues with an events_url or a ticketmaster_venue_id.
+    # Only include venues with an events_url or a real ticketmaster_venue_id.
+    # "not_found" is a sentinel written by the TM lookup tool — not a real ID.
+    def _has_real_tm_id(v: dict) -> bool:
+        tm = str(v.get("ticketmaster_venue_id", "") or "").strip()
+        return bool(tm and tm.lower() != "not_found")
+
     fetchable = [
         v for v in all_venues
-        if v.get("events_url") or v.get("ticketmaster_venue_id")
+        if v.get("events_url") or _has_real_tm_id(v)
     ]
     print(f"  {len(fetchable)} fetchable venues ({len(all_venues) - len(fetchable)} skipped — no events_url or TM ID)")
 

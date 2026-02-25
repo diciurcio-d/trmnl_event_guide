@@ -46,6 +46,8 @@ VENUE_COLUMNS = [
     "website", "events_url", "category", "description", "source", "address_verified",
     "website_status", "website_attempts",
     "preferred_event_source", "api_endpoint", "ticketmaster_venue_id",
+    "cloudflare_protected",
+    "feed_url", "feed_type",
     "last_event_fetch", "event_count", "event_source",
 ]
 
@@ -107,6 +109,9 @@ def _venue_to_row(venue: dict) -> list:
         venue.get("preferred_event_source", ""),
         venue.get("api_endpoint", ""),
         venue.get("ticketmaster_venue_id", ""),
+        venue.get("cloudflare_protected", ""),
+        venue.get("feed_url", ""),
+        venue.get("feed_type", ""),
         venue.get("last_event_fetch", ""),
         str(venue.get("event_count", 0) or ""),
         venue.get("event_source", ""),
@@ -363,6 +368,9 @@ def read_cached_venues(city: str | None = None) -> list[Venue]:
                 preferred_event_source=venue.get("preferred_event_source", ""),
                 api_endpoint=venue.get("api_endpoint", ""),
                 ticketmaster_venue_id=venue.get("ticketmaster_venue_id", ""),
+                cloudflare_protected=venue.get("cloudflare_protected", ""),
+                feed_url=venue.get("feed_url", ""),
+                feed_type=venue.get("feed_type", ""),
                 last_event_fetch=venue.get("last_event_fetch", ""),
                 event_count=event_count,
                 event_source=venue.get("event_source", ""),
@@ -610,6 +618,9 @@ def load_seed_venues(city: str) -> int:
                 preferred_event_source="",
                 api_endpoint="",
                 ticketmaster_venue_id="",
+                cloudflare_protected="",
+                feed_url="",
+                feed_type="",
                 last_event_fetch="",
                 event_count=0,
                 event_source="",
@@ -826,6 +837,9 @@ def add_manual_venue(
         preferred_event_source="",
         api_endpoint="",
         ticketmaster_venue_id="",
+        cloudflare_protected="",
+        feed_url="",
+        feed_type="",
         last_event_fetch="",
         event_count=0,
         event_source="",
@@ -901,6 +915,8 @@ def update_venues_batch(updated_venues: list[dict], city: str) -> int:
             for field in ["address", "lat", "lng", "neighborhood", "address_verified",
                           "website", "events_url", "website_status", "website_attempts",
                           "preferred_event_source", "api_endpoint", "ticketmaster_venue_id",
+                          "cloudflare_protected",
+                          "feed_url", "feed_type",
                           "last_event_fetch", "event_count", "event_source"]:
                 if field in update:
                     all_venues[i][field] = update[field]

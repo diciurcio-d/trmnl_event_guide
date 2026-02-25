@@ -14,3 +14,4 @@ flask
 flask-cors
 flask-limiter
 beautifulsoup4
+curl_cffi

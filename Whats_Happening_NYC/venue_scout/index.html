@@ -298,6 +298,17 @@
             color: var(--ink);
         }
 
+        @keyframes searching-dots {
+            0%   { content: ''; }
+            25%  { content: '.'; }
+            50%  { content: '..'; }
+            75%  { content: '...'; }
+        }
+        .searching-dots::after {
+            content: '';
+            animation: searching-dots 1.6s steps(1, end) infinite;
+        }
+
         .result-list {
             margin-top: 10px;
             display: flex;
@@ -535,6 +546,11 @@
         const sendBtnEl = document.getElementById("send-btn");
         const originAddressEl = document.getElementById("origin-address");
         const originAddressErrorEl = document.getElementById("origin-address-error");
+
+        // Follow-up state: when the assistant asks a clarifying question,
+        // we hold the original query here and send it with the user's answer as context.
+        let _pendingQuery = null;
+        let _pendingFollowUpQuestion = null;
 
         let categoryOptions = [];
         let originLat = null;
@@ -932,6 +948,17 @@
 
             const filters = getActiveFilters();
 
+            // If we're answering a follow-up question, send the original query
+            // with the follow-up + user's answer as context, then clear pending state.
+            let actualQuery = queryText;
+            let context = "";
+            if (_pendingQuery !== null) {
+                actualQuery = _pendingQuery;
+                context = `${_pendingFollowUpQuestion} ${queryText}`;
+                _pendingQuery = null;
+                _pendingFollowUpQuestion = null;
+            }
+
             addMessage(queryText, "user");
             let loadingNode = null;
             let requestSettled = false;
@@ -939,7 +966,7 @@
                 if (requestSettled) {
                     return;
                 }
-                addMessage("Searching...", "assistant");
+                addMessage("Searching<span class='searching-dots'></span>", "assistant");
                 loadingNode = chatLogEl.lastElementChild;
             }, SEARCHING_BUBBLE_DELAY_MS);
 
@@ -951,7 +978,8 @@
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        query: queryText,
+                        query: actualQuery,
+                        context,
                         max_results: 60,
                         filters,
                     }),
@@ -962,6 +990,14 @@
                 window.clearTimeout(loadingTimer);
                 if (loadingNode && loadingNode.parentNode) {
                     loadingNode.remove();
+                }
+
+                // If the assistant wants to ask a clarifying question, show it and wait.
+                if (data.follow_up_question) {
+                    _pendingQuery = actualQuery;
+                    _pendingFollowUpQuestion = data.follow_up_question;
+                    addMessage(data.follow_up_question, "assistant");
+                    return;
                 }
 
                 const interpretation = data.interpretation || "Here are the best matches.";
@@ -992,6 +1028,9 @@
                 if (loadingNode && loadingNode.parentNode) {
                     loadingNode.remove();
                 }
+                // Clear pending state on error so the user isn't stuck
+                _pendingQuery = null;
+                _pendingFollowUpQuestion = null;
                 addMessage(`Search failed: ${error.message}`, "assistant");
             } finally {
                 sendBtnEl.disabled = false;

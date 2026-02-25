@@ -252,18 +252,6 @@ _GENERIC_VENUE_TOKENS = frozenset(
     }
 )
 
-EVENT_SIGNAL_PATTERNS = [
-    r"\bupcoming events?\b",
-    r"\bupcoming exhibitions?\b",
-    r"\bexhibitions?\b",
-    r"\bevent(s)? calendar\b",
-    r"\bwhat'?s on\b",
-    r"\bshow(s)?\b",
-    r"\bget tickets?\b",
-    r"\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}",
-    r"\b\d{1,2}[:.]\d{2}\s?(?:am|pm)\b",
-    r"\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b",
-]
 
 DEAD_SITE_PATTERNS = [
     r"domain is for sale",
@@ -542,22 +530,108 @@ Be strict - if uncertain, say AGGREGATOR."""
         return False, f"Verification error: {e}"
 
 
-def find_events_page(homepage_url: str, venue_name: str) -> str | None:
+def _llm_pick_events_page(
+    venue_name: str,
+    homepage_url: str,
+    candidate_snippets: list[tuple[str, str]],
+) -> str | None:
+    """
+    Ask the LLM to pick the best upcoming-events page from fetched candidates.
+
+    Args:
+        venue_name: Human-readable venue name (for context).
+        homepage_url: The venue's homepage (so the LLM can say HOMEPAGE).
+        candidate_snippets: List of (url, content_snippet) pairs already fetched.
+
+    Returns:
+        The chosen URL, or None if the LLM cannot identify a good events page.
+    """
+    from utils.llm import generate_content
+
+    if not candidate_snippets:
+        return None
+
+    parts = []
+    for i, (url, snippet) in enumerate(candidate_snippets, 1):
+        parts.append(f"--- Candidate {i}: {url} ---\n{snippet[:2000].strip()}\n")
+
+    candidates_text = "\n".join(parts)
+
+    prompt = f"""You are helping find the EVENTS / CALENDAR page for a venue.
+
+Venue: {venue_name}
+Homepage: {homepage_url}
+
+Below are {len(candidate_snippets)} candidate pages with content snippets.
+Pick the page that BEST shows UPCOMING events, shows, performances, or exhibitions.
+
+Prefer pages that:
+- List multiple UPCOMING events with future dates
+- Have ticket links, booking options, or reservation info
+- Use words like "upcoming", "on now", "schedule", or show date/time grids
+- Have clean, short paths — strongly prefer /events over /exhibitions, /calendar over /calendar/film
+- Have clean paths without query-string filters (e.g. /events beats /events?category=film)
+
+Avoid:
+- Past/archived events, history pages, "exhibitions archive"
+- Permanent collection pages (no specific dates)
+- General about/contact/host pages
+- Homepages unless events are clearly listed inline
+- URLs with query-string filters that narrow results to a single category
+- Sub-category pages when a broader listing page is available (e.g. avoid /events/film if /events exists)
+
+If events are shown on the homepage, return: HOMEPAGE
+If no candidate clearly shows upcoming events, return: NONE
+Otherwise return ONLY the exact URL of the best events page. No explanation.
+
+{candidates_text}"""
+
+    try:
+        increment("website_validator.llm_pick_events_page.calls")
+        response = generate_content(prompt).strip()
+
+        if response.upper() == "HOMEPAGE":
+            log_event("events_page_llm_picked_homepage", venue_name=venue_name, homepage_url=homepage_url)
+            return homepage_url
+
+        if response.upper() == "NONE":
+            log_event("events_page_llm_returned_none", venue_name=venue_name, homepage_url=homepage_url)
+            return None
+
+        match = re.search(r'https?://[^\s<>"]+', response)
+        if match:
+            chosen = _normalize_url(match.group())
+            log_event("events_page_llm_picked", venue_name=venue_name, homepage_url=homepage_url, events_url=chosen)
+            return chosen
+
+        return None
+
+    except Exception as e:
+        record_failure(
+            "website_validator.find_events_page",
+            f"llm_pick_failed:{e}",
+            venue_name=venue_name,
+            homepage_url=homepage_url,
+        )
+        return None
+
+
+def find_events_page(homepage_url: str, venue_name: str) -> tuple[str | None, bool]:
     """
     Find the events/calendar page URL for a venue by reading the homepage.
 
-    Fetches the homepage, asks LLM to find event page links, then verifies
-    the linked page actually contains events.
+    Fetches the homepage, probes candidate URLs, then uses an LLM to pick
+    the best events/calendar page.
 
     Args:
         homepage_url: The venue's homepage URL
         venue_name: Name of the venue
 
     Returns:
-        The verified events page URL, or None if not found
+        Tuple of (events_url, cloudflare_detected):
+        - events_url: The verified events page URL, or None if not found
+        - cloudflare_detected: True if any fetch encountered a Cloudflare challenge
     """
-    from utils.llm import generate_content
-
     if not homepage_url:
         return None
 
@@ -609,6 +683,7 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
         transient_errors = 0
         blocked_errors = 0
         blocked_candidates: dict[str, int] = {}
+        _cf_flag: list[bool] = []  # Appended to by _fetch_html whenever a CF retry fires
         print(f"    Fetching homepage to find events page...")
         homepage_content = ""
         homepage_jina_error = ""
@@ -658,9 +733,11 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
             )
             return False
 
-        def _probe_candidate(candidate: str, best_url: str | None, best_score: int) -> tuple[str | None, int, bool]:
+        def _probe_candidate(candidate: str) -> None:
+            """Fetch candidate content and append (url, snippet) to candidate_snippets.
+            Updates blocked_candidates when we get a 403 but no content."""
             if not _candidate_preflight_ok(candidate):
-                return best_url, best_score, False
+                return
 
             blocked_signal = False
             content, jina_error = _fetch_text_via_jina_with_retries(
@@ -678,7 +755,7 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
 
             if not content or len(content) < 100:
                 try:
-                    html_fallback = _fetch_html(candidate)
+                    html_fallback = _fetch_html(candidate, _cf_flag=_cf_flag)
                     content = _html_to_text(html_fallback)
                 except Exception as e:
                     blocked_signal = _capture_probe_error(
@@ -692,21 +769,14 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
                         hint = _events_url_hint_score(candidate, homepage_url, venue_name)
                         if hint >= 2:
                             blocked_candidates[candidate] = max(hint, blocked_candidates.get(candidate, 0))
-                    return best_url, best_score, False
+                    return
 
-            score = _event_signal_score(content[:20000])
-            if _is_known_shared_events_feed(candidate) and not _url_contains_venue_tokens(candidate, venue_name):
-                # Keep shared feeds as fallback options, but prefer venue-scoped pages when available.
-                score -= 4
-            if score > best_score:
-                best_url = candidate
-                best_score = score
-            if score >= 18:
-                return best_url, best_score, True
+            candidate_snippets.append((candidate, content[:3000]))
 
+            # Discover and collect iframe event widgets (e.g. embedded Ticketmaster/Eventbrite calendars).
             candidate_html = ""
             try:
-                candidate_html = _fetch_html(candidate)
+                candidate_html = _fetch_html(candidate, _cf_flag=_cf_flag)
             except Exception as e:
                 _capture_probe_error(
                     f"html_candidate_fetch_failed:{e}",
@@ -717,7 +787,7 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
             iframe_urls = _extract_iframe_links_html(candidate_html, candidate)
             for iframe_url in iframe_urls[:max_iframe_candidates]:
                 if not _has_budget():
-                    return best_url, best_score, True
+                    return
                 if not _candidate_preflight_ok(iframe_url):
                     continue
 
@@ -736,7 +806,7 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
                     ) or iframe_blocked_signal
                 if not iframe_content or len(iframe_content) < 100:
                     try:
-                        iframe_html = _fetch_html(iframe_url)
+                        iframe_html = _fetch_html(iframe_url, _cf_flag=_cf_flag)
                         iframe_content = _html_to_text(iframe_html)
                     except Exception as e:
                         iframe_blocked_signal = _capture_probe_error(
@@ -751,16 +821,7 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
                             blocked_candidates[iframe_url] = max(hint, blocked_candidates.get(iframe_url, 0))
                     continue
 
-                iframe_score = _event_signal_score(iframe_content[:20000]) + 1
-                if _is_known_shared_events_feed(iframe_url) and not _url_contains_venue_tokens(iframe_url, venue_name):
-                    iframe_score -= 4
-                if iframe_score > best_score:
-                    best_url = iframe_url
-                    best_score = iframe_score
-                if iframe_score >= 18:
-                    return best_url, best_score, True
-
-            return best_url, best_score, False
+                candidate_snippets.append((iframe_url, iframe_content[:3000]))
 
         try:
             homepage_content, homepage_jina_error = _fetch_text_via_jina_with_retries(
@@ -783,7 +844,7 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
         homepage_html = ""
         homepage_html_error = ""
         try:
-            homepage_html = _fetch_html(homepage_url)
+            homepage_html = _fetch_html(homepage_url, _cf_flag=_cf_flag)
         except Exception as e:
             homepage_html_error = str(e)
             _capture_probe_error(
@@ -836,8 +897,8 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
             candidates = ordered
             candidate_set = set(candidates)
 
-        best_url = None
-        best_score = -1
+        # (url, content_snippet) pairs collected while probing — fed to LLM for final decision.
+        candidate_snippets: list[tuple[str, str]] = []
         timed_out = False
 
         for candidate in candidates[:max_candidates]:
@@ -845,12 +906,10 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
                 timed_out = True
                 break
             print(f"    Verifying events page: {candidate}")
-            best_url, best_score, strong_hit = _probe_candidate(candidate, best_url, best_score)
-            if strong_hit and best_url and best_score >= 18:
-                break
+            _probe_candidate(candidate)
 
         should_try_search_fallback = (
-            not best_url
+            not candidate_snippets
             and not timed_out
             and (blocked_errors > 0 or transient_errors > 0)
         )
@@ -880,30 +939,29 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
                         timed_out = True
                         break
                     print(f"    Verifying events page: {candidate}")
-                    best_url, best_score, strong_hit = _probe_candidate(candidate, best_url, best_score)
-                    if strong_hit and best_url and best_score >= 18:
-                        break
+                    _probe_candidate(candidate)
 
-        # Strong heuristic confidence threshold.
-        if best_url and best_score >= 8:
-            # If homepage wins but event-like candidate URLs were blocked (403/timeout),
-            # prefer the blocked event URL so downstream fetchers can target listing paths.
-            is_homepage_best = _normalize_url(best_url).rstrip("/") == homepage_url.rstrip("/")
-            if is_homepage_best and blocked_candidates:
-                fallback_url, fallback_hint = max(blocked_candidates.items(), key=lambda item: item[1])
-                if fallback_hint >= 3:
-                    log_event(
-                        "events_page_blocked_preferred_over_homepage",
-                        venue_name=venue_name,
-                        homepage_url=homepage_url,
-                        homepage_score=best_score,
-                        events_url=fallback_url,
-                        hint_score=fallback_hint,
-                    )
-                    return fallback_url
-            print(f"    ✓ Events page confirmed: {best_url}")
-            log_event("events_page_verified", venue_name=venue_name, events_url=best_url, score=best_score)
-            return best_url
+        # LLM picks the best events page from all collected snippets.
+        if candidate_snippets:
+            chosen_url = _llm_pick_events_page(venue_name, homepage_url, candidate_snippets)
+            if chosen_url:
+                # If the LLM picks the homepage but a plausible blocked event URL exists,
+                # prefer the blocked URL so downstream fetchers target the listing path.
+                is_homepage_best = _normalize_url(chosen_url).rstrip("/") == homepage_url.rstrip("/")
+                if is_homepage_best and blocked_candidates:
+                    fallback_url, fallback_hint = max(blocked_candidates.items(), key=lambda item: item[1])
+                    if fallback_hint >= 3:
+                        log_event(
+                            "events_page_blocked_preferred_over_homepage",
+                            venue_name=venue_name,
+                            homepage_url=homepage_url,
+                            events_url=fallback_url,
+                            hint_score=fallback_hint,
+                        )
+                        return fallback_url, bool(_cf_flag)
+                print(f"    ✓ Events page confirmed: {chosen_url}")
+                log_event("events_page_verified", venue_name=venue_name, events_url=chosen_url)
+                return chosen_url, bool(_cf_flag)
 
         if blocked_candidates:
             fallback_url, fallback_hint = max(blocked_candidates.items(), key=lambda item: item[1])
@@ -915,84 +973,18 @@ def find_events_page(homepage_url: str, venue_name: str) -> str | None:
                 hint_score=fallback_hint,
                 blocked_errors=blocked_errors,
             )
-            return fallback_url
-
-        # If we hit the time budget, skip slow LLM fallback path.
-        if timed_out:
-            record_failure(
-                "website_validator.find_events_page",
-                "reachable_no_events_page_budget_limited",
-                venue_name=venue_name,
-                homepage_url=homepage_url,
-                budget_sec=current_budget_sec,
-            )
-            return None
-
-        # LLM fallback when heuristics are inconclusive.
-        short_content = (homepage_content or "")[:15000]
-        if not short_content:
-            record_failure(
-                "website_validator.find_events_page",
-                "reachable_no_events_page",
-                venue_name=venue_name,
-                homepage_url=homepage_url,
-                blocked_errors=blocked_errors,
-                transient_errors=transient_errors,
-            )
-            return None
-
-        prompt = f"""Find the BEST events/calendar/shows/exhibitions URL on this site.
-Venue: {venue_name}
-Homepage URL: {homepage_url}
-If events are on homepage return HOMEPAGE.
-If unsure return NONE.
-
-CONTENT:
-{short_content}
-"""
-        response = generate_content(prompt).strip()
-        if response.upper() == "HOMEPAGE":
-            candidate = homepage_url
-        elif response.upper() == "NONE":
-            candidate = ""
-        else:
-            match = re.search(r'https?://[^\s<>"]+', response)
-            candidate = _normalize_url(match.group()) if match else _normalize_url(urljoin(homepage_url, response))
-
-        if candidate:
-            try:
-                candidate_content, candidate_error = _fetch_text_via_jina_with_retries(
-                    candidate,
-                    timeout=jina_timeout,
-                    retries=jina_retries,
-                    retry_delay=jina_retry_delay,
-                )
-                if candidate_error and candidate_error != "jina_skipped":
-                    _capture_probe_error(
-                        f"jina_llm_candidate_fetch_failed:{candidate_error}",
-                        candidate,
-                        "llm_candidate_jina_fetch",
-                    )
-                if not candidate_content or len(candidate_content) < 100:
-                    html_fallback = _fetch_html(candidate)
-                    candidate_content = _html_to_text(html_fallback)
-                score = _event_signal_score(candidate_content[:20000])
-                if score >= 6:
-                    print(f"    ✓ Events page confirmed: {candidate}")
-                    log_event("events_page_verified", venue_name=venue_name, events_url=candidate, score=score)
-                    return candidate
-            except Exception:
-                pass
+            return fallback_url, bool(_cf_flag)
 
         record_failure(
             "website_validator.find_events_page",
-            "reachable_no_events_page",
+            "reachable_no_events_page_budget_limited" if timed_out else "reachable_no_events_page",
             venue_name=venue_name,
             homepage_url=homepage_url,
             blocked_errors=blocked_errors,
             transient_errors=transient_errors,
+            budget_sec=current_budget_sec,
         )
-        return None
+        return None, bool(_cf_flag)
 
     except Exception as e:
         print(f"    Error finding events page: {e}")
@@ -1002,7 +994,7 @@ CONTENT:
             venue_name=venue_name,
             homepage_url=homepage_url,
         )
-        return None
+        return None, False
 
 
 def is_aggregator_url(url: str) -> bool:
@@ -1072,14 +1064,28 @@ def _same_site(url_a: str, url_b: str) -> bool:
     return a == b or a.endswith("." + b) or b.endswith("." + a)
 
 
-def _fetch_html(url: str, timeout: int | None = None) -> str:
-    """Fetch raw HTML directly from site."""
+def _fetch_html(url: str, timeout: int | None = None, _cf_flag: list | None = None) -> str:
+    """Fetch raw HTML directly from site. Retries with curl_cffi on Cloudflare 403.
+
+    Args:
+        _cf_flag: Optional mutable list; if provided, True is appended when a CF retry fires.
+                  Callers can use this to detect and record Cloudflare protection.
+    """
     default_timeout = int(_settings.WEBSITE_VALIDATOR_HTML_TIMEOUT_SEC)
     timeout = _int_env("WEBSITE_VALIDATOR_HTML_TIMEOUT_SEC", timeout or default_timeout)
     headers = {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
     }
-    response = requests.get(_normalize_url(url), headers=headers, timeout=timeout, allow_redirects=True)
+    normalized = _normalize_url(url)
+    response = requests.get(normalized, headers=headers, timeout=timeout, allow_redirects=True)
+    if response.status_code == 403 and _is_cloudflare_response(response):
+        if _cf_flag is not None:
+            _cf_flag.append(True)
+        time.sleep(1.0)  # Brief pause before retry — avoids burst on CF-protected sites
+        from curl_cffi import requests as cf_requests
+        cf_resp = cf_requests.get(normalized, impersonate="chrome124", timeout=timeout, allow_redirects=True)
+        cf_resp.raise_for_status()
+        return cf_resp.text
     response.raise_for_status()
     return response.text
 
@@ -1153,22 +1159,6 @@ def _extract_links_from_text(text: str, base_url: str) -> list[str]:
     return links
 
 
-def _event_signal_score(content: str) -> int:
-    """Heuristic score for whether content appears to be an events listing page."""
-    if not content:
-        return 0
-    text = content.lower()
-    score = 0
-    for pattern in EVENT_SIGNAL_PATTERNS:
-        hits = len(re.findall(pattern, text, re.IGNORECASE))
-        score += min(hits, 5) * 2
-    # Prefer pages with many repeated date/time tokens
-    if len(re.findall(r'\b20\d{2}\b', text)) >= 3:
-        score += 4
-    if len(re.findall(r'\b(?:ticket|reserve|rsvp)\b', text)) >= 3:
-        score += 3
-    return score
-
 
 def _html_to_text(html: str) -> str:
     """Very lightweight HTML->text conversion for heuristic scoring fallback."""
@@ -1179,6 +1169,19 @@ def _html_to_text(html: str) -> str:
     text = re.sub(r"(?s)<[^>]+>", " ", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip()
+
+
+def _is_cloudflare_response(response: requests.Response) -> bool:
+    """Return True if the HTTP response is a Cloudflare block or challenge page."""
+    server = response.headers.get("server", "").lower()
+    if "cloudflare" in server:
+        return True
+    if "cf-ray" in response.headers:
+        return True
+    body = response.text[:2000].lower()
+    if "just a moment" in body and "cloudflare" in body:
+        return True
+    return False
 
 
 def _is_dead_site(url: str) -> tuple[bool, str]:
@@ -1213,6 +1216,8 @@ def _is_dead_site(url: str) -> tuple[bool, str]:
             return True, f"http_status_{status}"
         if status >= 500:
             return True, f"http_status_{status}"
+        if status == 403 and _is_cloudflare_response(response):
+            return False, "cloudflare_blocked"
         body = response.text[:10000].lower()
         for pattern in DEAD_SITE_PATTERNS:
             if re.search(pattern, body):
@@ -1343,7 +1348,7 @@ def _resolve_reachable_url_variant(url: str) -> tuple[str, str]:
     for candidate in variants:
         dead, reason = _is_dead_site(candidate)
         if not dead:
-            return candidate, ""
+            return candidate, reason  # reason may be "cloudflare_blocked" or ""
         if not first_reason:
             first_reason = reason
     return "", first_reason or "unreachable"
@@ -1386,6 +1391,29 @@ def _build_events_candidates(homepage_url: str, homepage_text: str, homepage_htm
         # Skip deep event detail pages (we want listing endpoints).
         if re.search(r"/20\d{2}/\d{1,2}/\d{1,2}/", path):
             continue
+        # Skip individual event/exhibition detail pages identified by a numeric ID.
+        if re.search(r"/\d{4,}$", path) and not is_common_candidate:
+            continue
+        # Skip event/exhibition detail pages: /exhibitions/slug, /events/slug, /shows/slug, etc.
+        # These are individual item pages; we want the parent listing (e.g. /exhibitions, /events).
+        # Keep known sub-listing segments like /upcoming, /film, /current that are valid listing views.
+        _EVENTS_PARENT_SEGS = frozenset({
+            "exhibitions", "exhibition", "events", "shows", "show",
+            "performances", "performance", "talks", "talk",
+            "calendar", "whats-on", "whatson", "happenings",
+        })
+        _SUBLISTING_SEGS = frozenset({
+            "upcoming", "current", "past", "history", "archive", "all",
+            "film", "films", "programs", "series", "special",
+            "exhibitions", "shows", "performances",
+        })
+        if (
+            len(segments) >= 2
+            and segments[0] in _EVENTS_PARENT_SEGS
+            and segments[1] not in _SUBLISTING_SEGS
+            and not is_common_candidate
+        ):
+            continue
         if len(segments) > 4 and not is_common_candidate:
             continue
         if len(path) > 80 and not is_common_candidate:
@@ -1418,10 +1446,24 @@ def _build_events_candidates(homepage_url: str, homepage_text: str, homepage_htm
             score -= 1
         if any(k in path_query for k in ("calendarid=", "calendar=")):
             score -= 1
+        # Penalise archive/history pages — they have past events, not upcoming ones.
+        if any(k in path_query for k in ("/history", "/archive", "/past", "/previous")):
+            score += 4
+        # Penalise URLs with query strings — prefer clean root paths over filtered variants.
+        if parsed.query:
+            score += 2
         return (score, seg_count)
 
     filtered.sort(key=_priority)
-    return filtered[:12]
+
+    # Guarantee the top common candidates (generic event paths) are always included
+    # even when many discovered links push them past the slice limit.
+    guaranteed = [c for c in filtered if c in common_candidates][:3]
+    top = filtered[:12]
+    for c in guaranteed:
+        if c not in top:
+            top.append(c)
+    return top
 
 
 def search_venue_website(venue_name: str, city: str = "NYC") -> tuple[str | None, bool]:
@@ -1590,6 +1632,7 @@ def validate_venue_website(
     max_attempts: int | None = None,
     verify_with_llm: bool = True,
     find_events: bool = True,
+    refresh_events_url_if_no_events: bool = False,
 ) -> dict:
     """
     Validate and potentially discover a venue's website.
@@ -1607,6 +1650,9 @@ def validate_venue_website(
         max_attempts: Max search attempts before giving up (defaults to settings value)
         verify_with_llm: If True, use LLM to verify URLs aren't aggregators (default True)
         find_events: If True, also find and store the events page URL (default True)
+        refresh_events_url_if_no_events: If True, re-run find_events_page for verified venues
+            that have event_count == 0, even if events_url is already set. Useful for
+            correcting bad events_url values on venues that have never returned events.
 
     Returns:
         Updated venue dict with:
@@ -1642,14 +1688,31 @@ def validate_venue_website(
     # Check if already validated
     status = venue.get("website_status", "")
     if status in ("verified", "reachable_no_events_page", "search_failed", "closed", "ambiguous", "dead_site", "unreachable"):
-        # If already verified/reachable but no events_url, try to find it.
-        if status in ("verified", "reachable_no_events_page") and find_events and not venue.get("events_url"):
-            events_url = find_events_page(venue.get("website", ""), name)
+        # Re-run find_events_page if: no events_url yet, OR venue is verified with zero
+        # events and the caller has opted in to refreshing stale event URLs.
+        has_no_events_url = not venue.get("events_url")
+        zero_event_venue = (
+            refresh_events_url_if_no_events
+            and (venue.get("event_count") or 0) == 0
+        )
+        if status in ("verified", "reachable_no_events_page") and find_events and (has_no_events_url or zero_event_venue):
+            events_url, cf_detected = find_events_page(venue.get("website", ""), name)
+            if cf_detected:
+                venue["cloudflare_protected"] = "yes"
             if events_url:
                 venue["events_url"] = events_url
                 venue["website_status"] = "verified"
             else:
                 venue["website_status"] = "reachable_no_events_page"
+            if venue.get("website_status") == "verified" and venue.get("website") and not venue.get("feed_url"):
+                from .feed_finder import find_feeds
+                feed_result = find_feeds(venue["website"])
+                for _feed_type in ("ical", "rss"):
+                    _feed_url = feed_result.get("feeds", {}).get(_feed_type)
+                    if _feed_url:
+                        venue["feed_url"] = _feed_url
+                        venue["feed_type"] = _feed_type
+                        break
             return venue
 
         # Allow retrying prior search failures while attempts remain.
@@ -1657,6 +1720,16 @@ def validate_venue_website(
             venue["website_status"] = ""
             venue["validation_reason"] = ""
         else:
+            # Opportunistically discover feeds for verified venues that don't have one yet
+            if status == "verified" and venue.get("website") and not venue.get("feed_url"):
+                from .feed_finder import find_feeds
+                feed_result = find_feeds(venue["website"])
+                for _feed_type in ("ical", "rss"):
+                    _feed_url = feed_result.get("feeds", {}).get(_feed_type)
+                    if _feed_url:
+                        venue["feed_url"] = _feed_url
+                        venue["feed_type"] = _feed_type
+                        break
             return venue
 
     # Check current website against blocklist first
@@ -1669,6 +1742,8 @@ def validate_venue_website(
             venue["website"] = ""
             current_url = ""
         else:
+            if health_reason == "cloudflare_blocked":
+                venue["cloudflare_protected"] = "yes"
             if _normalize_url(resolved_current) != _normalize_url(current_url):
                 log_event(
                     "website_variant_selected",
@@ -1695,13 +1770,24 @@ def validate_venue_website(
                 venue["validation_reason"] = reason
                 # Find events page
                 if find_events:
-                    events_url = find_events_page(current_url, name)
+                    events_url, cf_detected = find_events_page(current_url, name)
+                    if cf_detected:
+                        venue["cloudflare_protected"] = "yes"
                     if events_url:
                         venue["events_url"] = events_url
                         venue["website_status"] = "verified"
                     else:
                         venue["website_status"] = "reachable_no_events_page"
                 log_event("website_validate_success", venue_name=name, website=current_url)
+                if venue.get("website_status") == "verified" and venue.get("website") and not venue.get("feed_url"):
+                    from .feed_finder import find_feeds
+                    feed_result = find_feeds(venue["website"])
+                    for _feed_type in ("ical", "rss"):
+                        _feed_url = feed_result.get("feeds", {}).get(_feed_type)
+                        if _feed_url:
+                            venue["feed_url"] = _feed_url
+                            venue["feed_type"] = _feed_type
+                            break
                 return venue
             else:
                 print(f"    ✗ Rejected: {reason}")
@@ -1714,9 +1800,20 @@ def validate_venue_website(
             # No LLM verification - trust blocklist
             venue["website_status"] = "verified"
             if find_events:
-                events_url = find_events_page(current_url, name)
+                events_url, cf_detected = find_events_page(current_url, name)
+                if cf_detected:
+                    venue["cloudflare_protected"] = "yes"
                 if events_url:
                     venue["events_url"] = events_url
+            if venue.get("website") and not venue.get("feed_url"):
+                from .feed_finder import find_feeds
+                feed_result = find_feeds(venue["website"])
+                for _feed_type in ("ical", "rss"):
+                    _feed_url = feed_result.get("feeds", {}).get(_feed_type)
+                    if _feed_url:
+                        venue["feed_url"] = _feed_url
+                        venue["feed_type"] = _feed_type
+                        break
             return venue
 
     # Search for official website (try multiple times if needed)
@@ -1755,6 +1852,8 @@ def validate_venue_website(
                 )
                 time.sleep(attempt_delay)
                 continue
+            if health_reason == "cloudflare_blocked":
+                venue["cloudflare_protected"] = "yes"
             if _normalize_url(resolved_url) != _normalize_url(found_url):
                 log_event(
                     "website_variant_selected",
@@ -1771,13 +1870,24 @@ def validate_venue_website(
             venue["validation_reason"] = "verified through search and LLM checks"
             # Find events page
             if find_events:
-                events_url = find_events_page(found_url, name)
+                events_url, cf_detected = find_events_page(found_url, name)
+                if cf_detected:
+                    venue["cloudflare_protected"] = "yes"
                 if events_url:
                     venue["events_url"] = events_url
                     venue["website_status"] = "verified"
                 else:
                     venue["website_status"] = "reachable_no_events_page"
             log_event("website_validate_success", venue_name=name, website=found_url, attempts=attempts)
+            if venue.get("website_status") == "verified" and venue.get("website") and not venue.get("feed_url"):
+                from .feed_finder import find_feeds
+                feed_result = find_feeds(venue["website"])
+                for _feed_type in ("ical", "rss"):
+                    _feed_url = feed_result.get("feeds", {}).get(_feed_type)
+                    if _feed_url:
+                        venue["feed_url"] = _feed_url
+                        venue["feed_type"] = _feed_type
+                        break
             return venue
 
         if rejection_reason:

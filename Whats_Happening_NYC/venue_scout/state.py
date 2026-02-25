@@ -24,6 +24,11 @@ class Venue(TypedDict):
     preferred_event_source: str  # "ticketmaster", "scrape", "both", or ""
     api_endpoint: str            # Detected API URL if any
     ticketmaster_venue_id: str   # Ticketmaster venue ID if found
+    # Website protection
+    cloudflare_protected: str    # "yes" if site is behind Cloudflare; "" otherwise
+    # Feed discovery fields
+    feed_url: str   # Discovered iCal or RSS feed URL; "" if none found
+    feed_type: str  # "ical", "rss", or ""
     # Event tracking fields (stored in Venues sheet, replaces JSON metadata)
     last_event_fetch: str        # ISO timestamp of last event fetch
     event_count: int             # Number of events found in last fetch

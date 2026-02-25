@@ -15,9 +15,10 @@ COPY requirements.txt .
 # Install Python dependencies + gunicorn (our production server)
 RUN pip install --no-cache-dir -r requirements.txt gunicorn
 
-# Install Playwright and download Chromium with all its system dependencies.
-# --with-deps handles OS-level packages (libglib, libnss, etc.) automatically.
-RUN playwright install --with-deps chromium
+# Install Playwright browsers to a fixed path accessible by any user.
+# Without PLAYWRIGHT_BROWSERS_PATH, install goes to /root/.cache which appuser can't read.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN playwright install --with-deps chromium && chmod -R 755 /ms-playwright
 
 # Copy application code (secrets and data/ are NOT copied — see .dockerignore)
 COPY . .

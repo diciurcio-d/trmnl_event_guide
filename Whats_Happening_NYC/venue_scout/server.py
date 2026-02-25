@@ -1205,6 +1205,7 @@ def query_events():
 
     data = request.json or {}
     query = (data.get("query") or "").strip()
+    context = (data.get("context") or "").strip()
     events = data.get("events")
     filters = data.get("filters") or {}
     max_results = _to_int_or_none(data.get("max_results"))
@@ -1264,6 +1265,7 @@ def query_events():
             events=filtered_events,
             max_results=max_results,
             force_fallback=force_fallback,
+            context=context,
         )
         pre_distance_matches = list(result.get("matches", []))
         distance_meta: dict = {"mode": distance_mode, "applied": False}
@@ -1297,6 +1299,7 @@ def query_events():
             "filtered_count": len(filtered_events),
             "warning": warning,
             "mode": result.get("mode", "unknown"),
+            "follow_up_question": result.get("follow_up_question", ""),
         }
         if payload["warning"]:
             log_event("api_query_events_warning", warning=payload["warning"], mode=payload["mode"])
