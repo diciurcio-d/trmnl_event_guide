@@ -219,6 +219,14 @@ def cmd_fetch_all(args):
 
     print(f"Found {len(venues)} verified venues")
 
+    # Filter to zero-event venues with a known events URL (fresh from validate-websites run)
+    zero_events_only = getattr(args, "zero_events_only", False)
+    if zero_events_only:
+        venues = [v for v in venues if (v.get("event_count") or 0) == 0 and v.get("events_url")]
+        print(f"Filtered to {len(venues)} zero-event venues with a known events URL")
+        # Force refresh so previously-fetched-but-empty venues aren't skipped by cache
+        force = True
+
     # Apply limit if specified
     limit = getattr(args, 'limit', None)
     if limit and limit < len(venues):
@@ -601,8 +609,10 @@ def _find_events_page_worker(args: tuple) -> tuple[dict, bool]:
     print(f"[{index}/{total}] {name}", flush=True)
 
     from .website_validator import find_events_page
-    events_url = find_events_page(website, venue.get("name", ""))
+    events_url, cf_detected = find_events_page(website, venue.get("name", ""))
 
+    if cf_detected:
+        venue["cloudflare_protected"] = "yes"
     if events_url:
         venue["events_url"] = events_url
         return venue, True
@@ -731,7 +741,7 @@ def cmd_find_events_pages(args):
 
 def _validate_website_worker(args: tuple) -> tuple[dict, str, str]:
     """Worker function for parallel website validation."""
-    venue, city, max_attempts, find_events, index, total = args
+    venue, city, max_attempts, find_events, refresh_events_url_if_no_events, index, total = args
     name = venue.get("name", "")[:40]
     old_url = venue.get("website", "")
 
@@ -742,6 +752,7 @@ def _validate_website_worker(args: tuple) -> tuple[dict, str, str]:
         city=city,
         max_attempts=max_attempts,
         find_events=find_events,
+        refresh_events_url_if_no_events=refresh_events_url_if_no_events,
     )
 
     new_url = result.get("website", "")
@@ -776,6 +787,7 @@ def cmd_validate_websites(args):
         "find_events",
         bool(getattr(_settings, "WEBSITE_VALIDATOR_FIND_EVENTS_DURING_VALIDATION", True)),
     )
+    refresh_events_url_if_no_events = getattr(args, "refresh_events_url_if_no_events", False)
 
     # Get all venues
     all_venues = read_cached_venues(city)
@@ -817,8 +829,15 @@ def cmd_validate_websites(args):
             v["website_status"] = ""  # Reset status to force re-validation
             to_validate.append(v)
         elif status == "verified":
-            # Backfill missing events URLs during normal website validation pass.
-            if find_events and website and not events_url:
+            # Backfill missing events URLs, or refresh events URL for zero-event venues.
+            needs_events_url = find_events and website and not events_url
+            needs_refresh = (
+                refresh_events_url_if_no_events
+                and find_events
+                and website
+                and (v.get("event_count") or 0) == 0
+            )
+            if needs_events_url or needs_refresh:
                 to_validate.append(v)
             else:
                 already_verified += 1
@@ -871,6 +890,8 @@ def cmd_validate_websites(args):
     print(f"Have Ticketmaster ID (skip): {has_ticketmaster}")
     print(f"Need validation: {len(to_validate)}")
     print(f"Inline events-page discovery: {'enabled' if find_events else 'disabled'}")
+    if refresh_events_url_if_no_events:
+        print("Refreshing events URL for verified venues with zero events: enabled")
 
     # Batch update venues with existing valid websites
     if to_mark_verified:
@@ -880,6 +901,11 @@ def cmd_validate_websites(args):
     if not to_validate:
         print("\nNo venues need validation!")
         return
+
+    # Shuffle before limiting so --limit samples randomly across the full list
+    if getattr(args, "shuffle", False):
+        import random
+        random.shuffle(to_validate)
 
     # Limit if specified
     if args.limit:
@@ -906,7 +932,7 @@ def cmd_validate_websites(args):
 
     if workers > 1:
         # Parallel execution
-        work_args = [(v, city, max_attempts, find_events, i, total) for i, v in enumerate(to_validate, 1)]
+        work_args = [(v, city, max_attempts, find_events, refresh_events_url_if_no_events, i, total) for i, v in enumerate(to_validate, 1)]
 
         with ThreadPoolExecutor(max_workers=workers) as executor:
             futures = {executor.submit(_validate_website_worker, args): args for args in work_args}
@@ -951,7 +977,7 @@ def cmd_validate_websites(args):
         import time
         for i, venue in enumerate(to_validate, 1):
             result, old_url, status = _validate_website_worker(
-                (venue, city, max_attempts, find_events, i, total)
+                (venue, city, max_attempts, find_events, refresh_events_url_if_no_events, i, total)
             )
             validated.append(result)
 
@@ -1187,6 +1213,13 @@ def main():
     # All subcommand
     all_parser = subparsers.add_parser("all", help="Fetch events for ALL verified venues")
     all_parser.add_argument("--limit", type=int, help="Limit number of venues to process")
+    all_parser.add_argument(
+        "--zero-events-only",
+        dest="zero_events_only",
+        action="store_true",
+        default=False,
+        help="Only fetch venues with event_count=0 and a known events_url (implies --force)",
+    )
 
     # Venues subcommand
     venues_parser = subparsers.add_parser("venues", help="Fetch events for specific venues")
@@ -1243,6 +1276,19 @@ def main():
         action="store_true",
         default=False,
         help="Skip Jina Reader API, use only direct HTML fetch (faster when Jina is rate-limited)",
+    )
+    validate_parser.add_argument(
+        "--refresh-events-url-if-no-events",
+        dest="refresh_events_url_if_no_events",
+        action="store_true",
+        default=False,
+        help="Re-run events-page discovery for verified venues with event_count=0, even if events_url is already set",
+    )
+    validate_parser.add_argument(
+        "--shuffle",
+        action="store_true",
+        default=False,
+        help="Shuffle venues before applying --limit, so a random sample is processed",
     )
 
     # Validate websites sample harness

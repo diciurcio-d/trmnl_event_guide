@@ -18,6 +18,7 @@ from utils.google_auth import get_credentials, is_authenticated
 _CONFIG_DIR = Path(__file__).parent.parent / "config"
 _SHEETS_CONFIG = _CONFIG_DIR / "sheets_config.json"
 _MAX_EVENT_DAYS_AHEAD = 365
+_ARCHIVE_TAB = "Archive"
 
 
 def _safe_lower(val) -> str:
@@ -33,6 +34,7 @@ VENUE_EVENTS_COLUMNS = [
     "name",
     "datetime",
     "date_str",
+    "end_date",
     "venue_name",
     "address",
     "event_type",
@@ -57,6 +59,7 @@ def normalize_event(event: dict) -> dict:
     normalized["name"] = normalized.get("name", "")
     normalized["datetime"] = normalized.get("datetime")
     normalized["date_str"] = normalized.get("date_str", "")
+    normalized["end_date"] = normalized.get("end_date", "")
     normalized["venue_name"] = normalized.get("venue_name", "")
     normalized["address"] = normalized.get("address", "")
     normalized["event_type"] = _normalize_event_category(normalized.get("event_type", ""))
@@ -125,7 +128,32 @@ def _safe_date_token(event: dict) -> str:
     return raw
 
 
+def _parse_date_str(raw: str):
+    """Parse a YYYY-MM-DD or MM/DD/YYYY string to a date, or None."""
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
+        try:
+            return datetime.strptime(raw, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
 def _event_date_for_window(event: dict):
+    """Return the date to use for the keep/drop window check.
+
+    For ongoing events (exhibitions, festivals) that have an end_date,
+    we keep the event as long as its end_date hasn't passed — even if
+    the start date is already in the past.  For single-day events we
+    use the start date as before.
+    """
+    # Try end_date first for ongoing-event window logic
+    end_raw = str(event.get("end_date", "") or "").strip()
+    if end_raw:
+        end_parsed = _parse_date_str(end_raw)
+        if end_parsed:
+            return end_parsed
+
+    # Fall back to start datetime / date_str
     dt = event.get("datetime")
     if isinstance(dt, datetime):
         return dt.date()
@@ -133,13 +161,7 @@ def _event_date_for_window(event: dict):
     raw = str(event.get("date_str", "") or "").strip()
     if not raw:
         return None
-
-    for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
-        try:
-            return datetime.strptime(raw, fmt).date()
-        except ValueError:
-            continue
-    return None
+    return _parse_date_str(raw)
 
 
 def _dedupe_canonical_link(event: dict) -> str:
@@ -538,6 +560,108 @@ def read_venue_events_from_sheet(venue_name: str | None = None) -> list[dict]:
         return []
 
 
+def _ensure_archive_tab(sheet_id: str, service) -> bool:
+    """Ensure the Archive tab exists in the spreadsheet. Returns True if ready."""
+    try:
+        spreadsheet = service.spreadsheets().get(spreadsheetId=sheet_id).execute()
+        existing_titles = {s["properties"]["title"] for s in spreadsheet.get("sheets", [])}
+        if _ARCHIVE_TAB in existing_titles:
+            return True
+        service.spreadsheets().batchUpdate(
+            spreadsheetId=sheet_id,
+            body={"requests": [{"addSheet": {"properties": {"title": _ARCHIVE_TAB}}}]},
+        ).execute()
+        service.spreadsheets().values().update(
+            spreadsheetId=sheet_id,
+            range=f"{_ARCHIVE_TAB}!A1",
+            valueInputOption="RAW",
+            body={"values": [VENUE_EVENTS_COLUMNS]},
+        ).execute()
+        print(f"Created '{_ARCHIVE_TAB}' tab in venue events spreadsheet")
+        return True
+    except Exception as e:
+        print(f"Warning: could not ensure archive tab: {e}")
+        return False
+
+
+def _read_archive_keys(sheet_id: str, service) -> set[tuple]:
+    """Read existing archive event dedup keys to avoid re-archiving."""
+    try:
+        result = service.spreadsheets().values().get(
+            spreadsheetId=sheet_id,
+            range=f"{_ARCHIVE_TAB}!A:{_sheet_col_label(len(VENUE_EVENTS_COLUMNS))}",
+        ).execute()
+        rows = result.get("values", [])
+        if not rows or len(rows) < 2:
+            return set()
+        headers = rows[0]
+        events = []
+        for row in rows[1:]:
+            padded = row + [""] * max(0, len(headers) - len(row))
+            events.append(dict(zip(headers, padded)))
+        return {_event_dedupe_key(e) for e in events}
+    except Exception:
+        return set()
+
+
+def _append_to_archive(sheet_id: str, service, past_events: list[dict]) -> int:
+    """Append past events to the Archive tab, deduplicating against existing entries."""
+    if not past_events:
+        return 0
+    if not _ensure_archive_tab(sheet_id, service):
+        return 0
+
+    existing_keys = _read_archive_keys(sheet_id, service)
+    rows_to_append = []
+    for event in past_events:
+        if _event_dedupe_key(event) in existing_keys:
+            continue
+        dt = event.get("datetime")
+        if isinstance(dt, datetime):
+            dt_str = dt.isoformat()
+        elif dt:
+            dt_str = str(dt)
+        else:
+            dt_str = ""
+        rows_to_append.append([
+            event.get("name", ""),
+            dt_str,
+            event.get("date_str", ""),
+            event.get("end_date", ""),
+            event.get("venue_name", ""),
+            event.get("address", ""),
+            event.get("event_type", ""),
+            event.get("url", ""),
+            event.get("source", ""),
+            event.get("matched_artist", ""),
+            str(event.get("travel_minutes")) if event.get("travel_minutes") is not None else "",
+            event.get("description", ""),
+            event.get("event_source_url", ""),
+            event.get("extraction_method", ""),
+            str(event.get("relevance_score")) if event.get("relevance_score") is not None else "",
+            str(event.get("validation_confidence")) if event.get("validation_confidence") is not None else "",
+            event.get("date_added", ""),
+            "TRUE" if bool(event.get("in_semantic_index", False)) else "FALSE",
+            event.get("semantic_indexed_at", ""),
+        ])
+
+    if not rows_to_append:
+        return 0
+
+    try:
+        service.spreadsheets().values().append(
+            spreadsheetId=sheet_id,
+            range=f"{_ARCHIVE_TAB}!A1",
+            valueInputOption="RAW",
+            insertDataOption="INSERT_ROWS",
+            body={"values": rows_to_append},
+        ).execute()
+        return len(rows_to_append)
+    except Exception as e:
+        print(f"Warning: could not append to archive: {e}")
+        return 0
+
+
 def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = None):
     """Write venue events to Google Sheet."""
     sheet_id = get_or_create_venue_events_sheet()
@@ -563,6 +687,7 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
     today = datetime.now(ZoneInfo("America/New_York")).date()
     max_allowed_date = today + timedelta(days=_MAX_EVENT_DAYS_AHEAD)
     future_events = []
+    past_events = []
     dropped_past = 0
     dropped_too_far = 0
     undated_kept = 0
@@ -575,6 +700,7 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
 
         if event_date < today:
             dropped_past += 1
+            past_events.append(event)
             continue
         if event_date > max_allowed_date:
             dropped_too_far += 1
@@ -584,7 +710,8 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
     future_events.sort(
         key=lambda x: (
             _safe_lower(x.get("venue_name", "")),
-            x.get("datetime").isoformat() if x.get("datetime") else "9999",
+            x.get("datetime").isoformat() if isinstance(x.get("datetime"), datetime)
+            else (x.get("datetime") or "9999"),
         )
     )
 
@@ -602,6 +729,7 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
             event.get("name", ""),
             dt_str,
             event.get("date_str", ""),
+            event.get("end_date", ""),
             event.get("venue_name", ""),
             event.get("address", ""),
             event.get("event_type", ""),
@@ -637,10 +765,11 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
             range=f"A{clear_start_row}:{_sheet_col_label(len(VENUE_EVENTS_COLUMNS))}",
         ).execute()
 
+        archived_count = _append_to_archive(sheet_id, service, past_events)
         print(
             f"Wrote {len(future_events)} venue events to sheet "
             f"(dedup_removed={dedup_removed}, dropped_past={dropped_past}, "
-            f"dropped_too_far={dropped_too_far}, undated_kept={undated_kept})"
+            f"archived={archived_count}, dropped_too_far={dropped_too_far}, undated_kept={undated_kept})"
         )
 
     except Exception as e:
