@@ -65,11 +65,6 @@ def _has_ticketmaster_id(venue: dict) -> bool:
 
 def cmd_fetch_venues(args):
     """Fetch events for specific venues."""
-    import os
-    if getattr(args, 'skip_jina', False):
-        os.environ["EVENT_FETCHER_SKIP_JINA"] = "1"
-        print("Skip-Jina mode: using raw HTML instead of Jina Reader")
-
     venue_names = args.venues
     city = args.city
     force = args.force
@@ -136,11 +131,6 @@ def cmd_fetch_venues(args):
 
 def cmd_fetch_categories(args):
     """Fetch events for venues in categories."""
-    import os
-    if getattr(args, 'skip_jina', False):
-        os.environ["EVENT_FETCHER_SKIP_JINA"] = "1"
-        print("Skip-Jina mode: using raw HTML instead of Jina Reader")
-
     categories = args.categories
     city = args.city
     force = args.force
@@ -195,11 +185,6 @@ def cmd_fetch_categories(args):
 
 def cmd_fetch_all(args):
     """Fetch events for all verified venues."""
-    import os
-    if getattr(args, 'skip_jina', False):
-        os.environ["EVENT_FETCHER_SKIP_JINA"] = "1"
-        print("Skip-Jina mode: using raw HTML instead of Jina Reader")
-
     city = args.city
     force = args.force
 
@@ -763,13 +748,7 @@ def _validate_website_worker(args: tuple) -> tuple[dict, str, str]:
 
 def cmd_validate_websites(args):
     """Validate and discover venue websites."""
-    import os
     from concurrent.futures import ThreadPoolExecutor, as_completed
-
-    # Set skip-jina env var if flag is passed
-    if getattr(args, "skip_jina", False):
-        os.environ["WEBSITE_VALIDATOR_SKIP_JINA"] = "1"
-        print("Skipping Jina Reader (using direct HTML fetch only)")
 
     city = args.city
     max_attempts = (
@@ -1205,7 +1184,6 @@ def main():
     parser.add_argument("--match", "-m", action="store_true", help="Match events to YouTube Music artists")
     parser.add_argument("--workers", "-w", type=int, default=1, help="Number of parallel workers (default: 1)")
     parser.add_argument("--resume", "-r", action="store_true", help="Resume interrupted fetch from local cache")
-    parser.add_argument("--skip-jina", action="store_true", help="Skip Jina Reader, use raw HTML for LLM parsing (faster when Jina rate-limited)")
 
     # Subcommands
     subparsers = parser.add_subparsers(dest="command")
@@ -1270,12 +1248,6 @@ def main():
         dest="find_events",
         action="store_false",
         help="Skip events/calendar discovery during validation",
-    )
-    validate_parser.add_argument(
-        "--skip-jina",
-        action="store_true",
-        default=False,
-        help="Skip Jina Reader API, use only direct HTML fetch (faster when Jina is rate-limited)",
     )
     validate_parser.add_argument(
         "--refresh-events-url-if-no-events",

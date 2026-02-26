@@ -11,7 +11,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.llm import generate_content
-from utils.jina_reader import fetch_page_text_jina
 from .state import Venue
 from .website_validator import is_aggregator_url
 
@@ -198,44 +197,12 @@ def search_web(query: str) -> list[dict]:
     Search the web and return results.
 
     Returns list of dicts with 'title', 'url', 'snippet' keys.
-    Uses Jina's search API.
+    NOTE: Requires a search provider to be configured.
     """
-    _rate_limit()
-
-    # Load Jina API key
-    config_path = Path(__file__).parent.parent / "config" / "config.json"
-    with open(config_path) as f:
-        config = json.load(f)
-    api_key = config["jina"]["api_key"]
-
-    import requests
-
-    # Use Jina Search API
-    search_url = f"https://s.jina.ai/{query}"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Accept": "application/json",
-    }
-
-    try:
-        timeout = int(_settings.VENUE_DISCOVERY_SEARCH_TIMEOUT_SEC)
-        response = requests.get(search_url, headers=headers, timeout=timeout)
-        response.raise_for_status()
-        data = response.json()
-
-        results = []
-        for item in data.get("data", []):
-            results.append({
-                "title": item.get("title", ""),
-                "url": item.get("url", ""),
-                "snippet": item.get("description", "") or item.get("content", "")[:200],
-            })
-
-        return results[:10]  # Top 10 results
-
-    except Exception as e:
-        print(f"    Search error: {e}")
-        return []
+    raise NotImplementedError(
+        "search_web() requires a web search provider. "
+        "Configure a search API (e.g. Google Custom Search) and implement here."
+    )
 
 
 def extract_venues_from_content(
@@ -345,7 +312,7 @@ def search_venues_by_category(city: str, category: str) -> list[Venue]:
     Search for venues in a city by category.
 
     1. Web search for "{city} {category}"
-    2. Fetch top results with Jina
+    2. Fetch top results with direct HTTP
     3. Extract venues with LLM
     """
     print(f"  Searching: {city} {category}...", flush=True)
@@ -381,7 +348,15 @@ def search_venues_by_category(city: str, category: str) -> list[Venue]:
         print(f"    Fetching: {url[:60]}...", flush=True)
 
         try:
-            content = fetch_page_text_jina(url)
+            import requests
+            from bs4 import BeautifulSoup
+            timeout = int(_settings.VENUE_DISCOVERY_SEARCH_TIMEOUT_SEC)
+            resp = requests.get(url, timeout=timeout, headers={"User-Agent": "Mozilla/5.0"})
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, "html.parser")
+            for tag in soup(["script", "style", "nav", "footer", "header"]):
+                tag.decompose()
+            content = soup.get_text(separator="\n", strip=True)[:_settings.SCRAPER_MAX_CONTENT_CHARS]
 
             # Extract venues from this page
             venues = extract_venues_from_content(content, city, category)

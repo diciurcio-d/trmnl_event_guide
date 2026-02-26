@@ -13,7 +13,6 @@ from playwright.sync_api import sync_playwright
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.llm import generate_content
-from utils.jina_reader import fetch_page_text_jina
 from utils.distance import enrich_events_with_travel_time
 
 
@@ -377,7 +376,6 @@ def fetch_events_from_source(source: dict) -> list[dict]:
             print(f"    API error: {e}")
             return []
     else:
-        # Fetch page - use Jina for non-Cloudflare pages, Playwright otherwise
         cloudflare_protected = source.get("cloudflare_protected", False)
 
         if cloudflare_protected:
@@ -390,18 +388,13 @@ def fetch_events_from_source(source: dict) -> list[dict]:
                 print(f"    Playwright error: {e}")
                 return []
         else:
-            # Use Jina Reader for cleaner, LLM-friendly text
+            wait_seconds = source.get("wait_seconds", 3)
             try:
-                print(f"    Using Jina Reader...", flush=True)
-                page_text = fetch_page_text_jina(url)
+                print(f"    Using Playwright...", flush=True)
+                page_text = fetch_page_text_playwright(url, wait_seconds, False)
             except Exception as e:
-                print(f"    Jina error: {e}, falling back to Playwright...")
-                wait_seconds = source.get("wait_seconds", 3)
-                try:
-                    page_text = fetch_page_text_playwright(url, wait_seconds, False)
-                except Exception as e2:
-                    print(f"    Playwright fallback error: {e2}")
-                    return []
+                print(f"    Playwright error: {e}")
+                return []
 
         # Parse with LLM
         print(f"    Parsing with LLM...", flush=True)

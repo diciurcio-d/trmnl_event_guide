@@ -1301,6 +1301,14 @@ def query_events():
             "mode": result.get("mode", "unknown"),
             "follow_up_question": result.get("follow_up_question", ""),
         }
+        log_event(
+            "api_query_events",
+            query=query,
+            result_count=len(matches),
+            mode=payload["mode"],
+            input_count=len(events),
+            filtered_count=len(filtered_events),
+        )
         if payload["warning"]:
             log_event("api_query_events_warning", warning=payload["warning"], mode=payload["mode"])
         return jsonify(payload)
@@ -1328,7 +1336,6 @@ def debug_health():
             "venue_event_cache_days": getattr(settings, "VENUE_EVENT_CACHE_DAYS", None),
             "venue_cache_threshold_days": getattr(settings, "VENUE_CACHE_THRESHOLD_DAYS", None),
             "venue_fetch_delay": getattr(settings, "VENUE_FETCH_DELAY", None),
-            "jina_request_delay": getattr(settings, "JINA_REQUEST_DELAY", None),
         },
         "travel_cache_entries": len(_travel_cache),
         "observability": snapshot(),

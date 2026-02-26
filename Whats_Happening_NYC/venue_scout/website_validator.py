@@ -308,110 +308,6 @@ def _float_env(name: str, default: float) -> float:
     return value if value > 0 else default
 
 
-def _load_jina_api_key() -> str:
-    """Load Jina API key from config file (best effort)."""
-    config_path = Path(__file__).parent.parent / "config" / "config.json"
-    if not config_path.exists():
-        return ""
-    try:
-        with open(config_path) as f:
-            config = json.load(f)
-        return str(config.get("jina", {}).get("api_key", "")).strip()
-    except Exception:
-        return ""
-
-
-def _fetch_text_via_jina_with_retries(url: str, timeout: int, retries: int, retry_delay: float) -> tuple[str, str]:
-    """Fetch URL content via Jina with bounded retries."""
-    # Check if Jina is disabled via env var or setting
-    skip_jina = os.environ.get("WEBSITE_VALIDATOR_SKIP_JINA", "").lower() in ("1", "true", "yes")
-    if not skip_jina:
-        skip_jina = bool(getattr(_settings, "WEBSITE_VALIDATOR_SKIP_JINA", False))
-    if skip_jina:
-        return "", "jina_skipped"
-
-    from utils.jina_reader import fetch_page_text_jina
-
-    attempts = max(1, retries)
-    last_error = ""
-    for attempt in range(attempts):
-        try:
-            return fetch_page_text_jina(url, timeout=timeout), ""
-        except Exception as e:
-            last_error = str(e)
-            if attempt < attempts - 1 and retry_delay > 0:
-                time.sleep(retry_delay)
-    return "", last_error
-
-
-def _search_event_candidates_jina(
-    homepage_url: str,
-    venue_name: str,
-    timeout: int,
-    max_results: int,
-) -> list[str]:
-    """Use Jina Search to discover same-domain event/calendar URLs."""
-    # Check if Jina is disabled
-    skip_jina = os.environ.get("WEBSITE_VALIDATOR_SKIP_JINA", "").lower() in ("1", "true", "yes")
-    if not skip_jina:
-        skip_jina = bool(getattr(_settings, "WEBSITE_VALIDATOR_SKIP_JINA", False))
-    if skip_jina:
-        return []
-
-    api_key = _load_jina_api_key()
-    if not api_key:
-        return []
-
-    domain = extract_domain(homepage_url)
-    if not domain:
-        return []
-
-    query = quote_plus(
-        f"site:{domain} {venue_name} events calendar programs \"public programs\" shows exhibitions upcoming happenings"
-    )
-    search_url = f"https://s.jina.ai/{query}"
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Accept": "application/json",
-    }
-
-    try:
-        response = requests.get(search_url, headers=headers, timeout=timeout)
-        response.raise_for_status()
-        data = response.json()
-    except Exception:
-        return []
-
-    candidates: list[str] = []
-    seen = set()
-    rows = data.get("data", []) if isinstance(data, dict) else []
-    for row in rows:
-        if not isinstance(row, dict):
-            continue
-        pieces = [
-            row.get("url", ""),
-            row.get("title", ""),
-            row.get("description", ""),
-            row.get("content", ""),
-        ]
-        for piece in pieces:
-            if not piece:
-                continue
-            for match in re.findall(r'https?://[^\s<>"\')]+', str(piece)):
-                norm = _normalize_url(match)
-                if not norm or norm in seen:
-                    continue
-                if not _same_site(norm, homepage_url):
-                    continue
-                path_query = (urlparse(norm).path + "?" + urlparse(norm).query).lower()
-                if any(token in path_query for token in EVENT_PATH_KEYWORDS):
-                    seen.add(norm)
-                    candidates.append(norm)
-                    if len(candidates) >= max_results:
-                        return candidates
-    return candidates
-
-
 def _events_url_hint_score(url: str, homepage_url: str, venue_name: str = "") -> int:
     """Path/query-only confidence used for blocked-content fallback picks."""
     parsed = urlparse(_normalize_url(url))
@@ -658,26 +554,6 @@ def find_events_page(homepage_url: str, venue_name: str) -> tuple[str | None, bo
             "WEBSITE_VALIDATOR_MAX_IFRAME_CANDIDATES",
             int(_settings.WEBSITE_VALIDATOR_MAX_IFRAME_CANDIDATES),
         )
-        jina_timeout = _int_env(
-            "WEBSITE_VALIDATOR_JINA_TIMEOUT_SEC",
-            int(_settings.WEBSITE_VALIDATOR_JINA_TIMEOUT_SEC),
-        )
-        jina_retries = _int_env(
-            "WEBSITE_VALIDATOR_JINA_RETRIES",
-            int(_settings.WEBSITE_VALIDATOR_JINA_RETRIES),
-        )
-        jina_retry_delay = _float_env(
-            "WEBSITE_VALIDATOR_JINA_RETRY_DELAY_SEC",
-            float(_settings.WEBSITE_VALIDATOR_JINA_RETRY_DELAY_SEC),
-        )
-        jina_search_timeout = _int_env(
-            "WEBSITE_VALIDATOR_JINA_SEARCH_TIMEOUT_SEC",
-            int(_settings.WEBSITE_VALIDATOR_JINA_SEARCH_TIMEOUT_SEC),
-        )
-        jina_search_max_results = _int_env(
-            "WEBSITE_VALIDATOR_JINA_SEARCH_MAX_RESULTS",
-            int(_settings.WEBSITE_VALIDATOR_JINA_SEARCH_MAX_RESULTS),
-        )
         started = time.monotonic()
         current_budget_sec = budget_sec
         transient_errors = 0
@@ -685,8 +561,6 @@ def find_events_page(homepage_url: str, venue_name: str) -> tuple[str | None, bo
         blocked_candidates: dict[str, int] = {}
         _cf_flag: list[bool] = []  # Appended to by _fetch_html whenever a CF retry fires
         print(f"    Fetching homepage to find events page...")
-        homepage_content = ""
-        homepage_jina_error = ""
 
         def _capture_probe_error(reason: str, candidate: str, stage: str) -> bool:
             nonlocal transient_errors, blocked_errors
@@ -740,19 +614,7 @@ def find_events_page(homepage_url: str, venue_name: str) -> tuple[str | None, bo
                 return
 
             blocked_signal = False
-            content, jina_error = _fetch_text_via_jina_with_retries(
-                candidate,
-                timeout=jina_timeout,
-                retries=jina_retries,
-                retry_delay=jina_retry_delay,
-            )
-            if jina_error and jina_error != "jina_skipped":
-                blocked_signal = _capture_probe_error(
-                    f"jina_candidate_fetch_failed:{jina_error}",
-                    candidate,
-                    "candidate_jina_fetch",
-                ) or blocked_signal
-
+            content = ""
             if not content or len(content) < 100:
                 try:
                     html_fallback = _fetch_html(candidate, _cf_flag=_cf_flag)
@@ -792,18 +654,7 @@ def find_events_page(homepage_url: str, venue_name: str) -> tuple[str | None, bo
                     continue
 
                 iframe_blocked_signal = False
-                iframe_content, iframe_error = _fetch_text_via_jina_with_retries(
-                    iframe_url,
-                    timeout=jina_timeout,
-                    retries=jina_retries,
-                    retry_delay=jina_retry_delay,
-                )
-                if iframe_error and iframe_error != "jina_skipped":
-                    iframe_blocked_signal = _capture_probe_error(
-                        f"jina_iframe_fetch_failed:{iframe_error}",
-                        iframe_url,
-                        "iframe_jina_fetch",
-                    ) or iframe_blocked_signal
+                iframe_content = ""
                 if not iframe_content or len(iframe_content) < 100:
                     try:
                         iframe_html = _fetch_html(iframe_url, _cf_flag=_cf_flag)
@@ -823,24 +674,6 @@ def find_events_page(homepage_url: str, venue_name: str) -> tuple[str | None, bo
 
                 candidate_snippets.append((iframe_url, iframe_content[:3000]))
 
-        try:
-            homepage_content, homepage_jina_error = _fetch_text_via_jina_with_retries(
-                homepage_url,
-                timeout=jina_timeout,
-                retries=jina_retries,
-                retry_delay=jina_retry_delay,
-            )
-        except Exception as e:
-            homepage_jina_error = str(e)
-        if homepage_jina_error == "jina_skipped":
-            homepage_jina_error = ""
-        if homepage_jina_error:
-            _capture_probe_error(
-                f"jina_homepage_fetch_failed:{homepage_jina_error}",
-                homepage_url,
-                "homepage_jina_fetch",
-            )
-
         homepage_html = ""
         homepage_html_error = ""
         try:
@@ -853,8 +686,7 @@ def find_events_page(homepage_url: str, venue_name: str) -> tuple[str | None, bo
                 "homepage_html_fetch",
             )
 
-        if not homepage_content and homepage_html:
-            homepage_content = _html_to_text(homepage_html)
+        homepage_content = _html_to_text(homepage_html) if homepage_html else ""
 
         homepage_short = not homepage_content or len(homepage_content) < 100
         if homepage_short:
@@ -870,33 +702,6 @@ def find_events_page(homepage_url: str, venue_name: str) -> tuple[str | None, bo
             candidates = [homepage_url]
         candidate_set = set(candidates)
 
-        homepage_blocked_or_transient = (
-            _is_transient_provider_error(homepage_jina_error)
-            or _is_transient_provider_error(homepage_html_error)
-            or any(token in (homepage_jina_error + " " + homepage_html_error).lower() for token in ("403", "forbidden"))
-        )
-        if homepage_short or homepage_blocked_or_transient:
-            search_candidates = _search_event_candidates_jina(
-                homepage_url=homepage_url,
-                venue_name=venue_name,
-                timeout=jina_search_timeout,
-                max_results=jina_search_max_results,
-            )
-            if search_candidates:
-                log_event(
-                    "events_page_search_candidates_added",
-                    venue_name=venue_name,
-                    homepage_url=homepage_url,
-                    count=len(search_candidates),
-                )
-            ordered = []
-            for url in search_candidates + candidates:
-                norm = _normalize_url(url)
-                if norm and norm not in ordered:
-                    ordered.append(norm)
-            candidates = ordered
-            candidate_set = set(candidates)
-
         # (url, content_snippet) pairs collected while probing — fed to LLM for final decision.
         candidate_snippets: list[tuple[str, str]] = []
         timed_out = False
@@ -907,39 +712,6 @@ def find_events_page(homepage_url: str, venue_name: str) -> tuple[str | None, bo
                 break
             print(f"    Verifying events page: {candidate}")
             _probe_candidate(candidate)
-
-        should_try_search_fallback = (
-            not candidate_snippets
-            and not timed_out
-            and (blocked_errors > 0 or transient_errors > 0)
-        )
-        if should_try_search_fallback:
-            extra_candidates = _search_event_candidates_jina(
-                homepage_url=homepage_url,
-                venue_name=venue_name,
-                timeout=jina_search_timeout,
-                max_results=jina_search_max_results,
-            )
-            new_candidates = []
-            for url in extra_candidates:
-                norm = _normalize_url(url)
-                if not norm or norm in candidate_set:
-                    continue
-                candidate_set.add(norm)
-                new_candidates.append(norm)
-            if new_candidates:
-                log_event(
-                    "events_page_search_fallback_probe",
-                    venue_name=venue_name,
-                    homepage_url=homepage_url,
-                    count=len(new_candidates),
-                )
-                for candidate in new_candidates[:max_candidates]:
-                    if not _has_budget():
-                        timed_out = True
-                        break
-                    print(f"    Verifying events page: {candidate}")
-                    _probe_candidate(candidate)
 
         # LLM picks the best events page from all collected snippets.
         if candidate_snippets:

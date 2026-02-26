@@ -31,18 +31,10 @@ TICKETMASTER_USE_ATTRACTION_ID = True  # Use attraction ID for precise matches
 #   - 5 requests/second (5 QPS), 5000 requests/day
 #   - Docs: https://developer.ticketmaster.com/products-and-docs/apis/discovery-api/v2/
 #
-# JINA READER API:
-#   - Free tier: 200 RPM, varies by plan
-#   - Can return 402 when rate limited
-#   - Docs: https://jina.ai/reader/
-#
 # =============================================================================
 
 # Ticketmaster rate limiting
 TICKETMASTER_REQUEST_DELAY = 0.25  # 4 QPS (limit is 5 QPS)
-
-# Jina Reader rate limiting
-JINA_REQUEST_DELAY = 1.5           # ~40 RPM to avoid burst failures
 
 # Google Places API rate limiting
 VENUE_ENRICH_PLACES_DELAY_SEC = 0.1  # 10 QPS (limit is ~100 QPS)
@@ -97,15 +89,12 @@ SEMANTIC_EMBED_RATE_LIMIT_HEADROOM = 0.9
 SEMANTIC_EMBED_MAX_TOKENS_PER_CALL = 12000
 LLM_EVENT_CONTEXT_LIMIT = 100
 
-# Jina Reader settings
-JINA_TIMEOUT_SEC = 12                    # Max wait per Jina fetch before falling back or marking as failed.
-
 # HTTP timeout settings
 GOOGLE_DISTANCE_MATRIX_BATCH_TIMEOUT_SEC = 20  # Batch Distance Matrix request timeout.
 GOOGLE_DISTANCE_MATRIX_SINGLE_TIMEOUT_SEC = 10  # Single origin->destination Distance Matrix timeout.
 TICKETMASTER_REQUEST_TIMEOUT_SEC = 15     # Ticketmaster Discovery API request timeout.
 TRMNL_WEBHOOK_TIMEOUT_SEC = 10            # TRMNL webhook POST timeout.
-VENUE_DISCOVERY_SEARCH_TIMEOUT_SEC = 15   # Jina Search API timeout during venue discovery.
+VENUE_DISCOVERY_SEARCH_TIMEOUT_SEC = 15   # Web search timeout during venue discovery.
 VENUE_ENRICH_PLACES_TIMEOUT_SEC = 10      # Google Places lookup timeout while enriching addresses.
 SOURCE_ANALYZER_FETCH_TIMEOUT_SEC = 10    # Initial page fetch timeout in source analyzer tool.
 
@@ -128,13 +117,7 @@ WEBSITE_VALIDATOR_EVENTS_BUDGET_EXTENSION_SEC = 8  # Extra budget granted when p
 WEBSITE_VALIDATOR_MAX_EVENTS_BUDGET_SEC = 35  # Hard cap for adaptive budget extensions (keeps long-tail bounded).
 WEBSITE_VALIDATOR_MAX_EVENT_CANDIDATES = 8  # Max candidate event URLs to probe per venue.
 WEBSITE_VALIDATOR_MAX_IFRAME_CANDIDATES = 1  # Max iframe URLs to probe for embedded event feeds.
-WEBSITE_VALIDATOR_CANDIDATE_PREFLIGHT_TIMEOUT_SEC = 2  # Fast URL preflight timeout before costly Jina probes.
-WEBSITE_VALIDATOR_JINA_TIMEOUT_SEC = 6   # Per-call Jina timeout for event-page content probes.
-WEBSITE_VALIDATOR_JINA_RETRIES = 2       # Attempts per Jina read before treating it as failed.
-WEBSITE_VALIDATOR_JINA_RETRY_DELAY_SEC = 0.35  # Delay between Jina retries to reduce burst failures.
-WEBSITE_VALIDATOR_JINA_SEARCH_TIMEOUT_SEC = 8  # Timeout for Jina Search fallback used to find non-standard event URLs.
-WEBSITE_VALIDATOR_JINA_SEARCH_MAX_RESULTS = 8  # Max same-domain URLs accepted from Jina Search fallback.
-WEBSITE_VALIDATOR_SKIP_JINA = True             # Default to direct HTML fetch; avoid Jina dependency unless explicitly re-enabled.
+WEBSITE_VALIDATOR_CANDIDATE_PREFLIGHT_TIMEOUT_SEC = 2  # Fast URL preflight timeout before HTML probes.
 WEBSITE_VALIDATOR_IFRAME_MEDIA_HOST_PATTERNS = (  # iframe hosts treated as media embeds, not event listing pages.
     "instagram.com",
     "cdninstagram.com",
@@ -149,11 +132,10 @@ WEBSITE_VALIDATOR_IFRAME_MEDIA_HOST_PATTERNS = (  # iframe hosts treated as medi
     "wistia.com",
 )
 WEBSITE_VALIDATOR_IFRAME_MEDIA_PATH_EXTENSIONS = (".mp4", ".m3u8", ".mp3", ".mov", ".webm")
-WEBSITE_VALIDATOR_HTML_TIMEOUT_SEC = 12  # Direct HTML fetch timeout used as Jina fallback/probing.
+WEBSITE_VALIDATOR_HTML_TIMEOUT_SEC = 12  # Direct HTML fetch timeout for content probing.
 WEBSITE_VALIDATOR_HEALTH_TIMEOUT_SEC = 6 # HEAD/GET timeout when checking if site is dead/unreachable.
 
 # Event fetcher settings
-EVENT_FETCHER_SKIP_JINA = True    # Default to raw HTML parsing; avoid Jina dependency unless explicitly re-enabled.
 EVENT_FETCHER_PLAYWRIGHT_FALLBACK = True  # Use Playwright when raw HTML fetch fails (403), empty content, or JS calendar detected
 EVENT_FETCHER_PLAYWRIGHT_TIMEOUT_MS = 12000  # Playwright navigation timeout (faster: domcontentloaded, not networkidle)
 EVENT_FETCHER_PLAYWRIGHT_WAIT_MS = 1500  # Wait for JS to render after domcontentloaded (ms)

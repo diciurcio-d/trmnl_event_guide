@@ -213,19 +213,6 @@ def _detect_and_fetch_api(url: str, venue_name: str) -> tuple[list[dict], str | 
         return [], None
 
 
-def _should_skip_jina() -> bool:
-    """Check if Jina should be skipped for event fetching."""
-    import os
-    # Check environment variable first (allows runtime override)
-    env_val = os.environ.get("EVENT_FETCHER_SKIP_JINA", "").lower()
-    if env_val in ("1", "true", "yes"):
-        return True
-    if env_val in ("0", "false", "no"):
-        return False
-    # Fall back to settings
-    return getattr(_settings, "EVENT_FETCHER_SKIP_JINA", False)
-
-
 def _is_timeout_error(exc: Exception) -> bool:
     """Return True when error text indicates provider timeout/deadline."""
     lowered = str(exc).lower()
@@ -530,7 +517,6 @@ def _extract_google_calendar_events(html: str, venue_name: str) -> list[dict]:
 def _strip_html_for_llm(html: str) -> str:
     """Strip HTML tags to get plain text for LLM parsing.
 
-    Used when skipping Jina Reader to still allow LLM event extraction.
     Uses BeautifulSoup for robust handling of malformed markup.
     """
     if not html:
@@ -1271,9 +1257,6 @@ def _fetch_from_website(
     Falls back to iframe pages when embedded event widgets are used.
     If events_url is provided, fetches from that instead of the homepage.
 
-    When EVENT_FETCHER_SKIP_JINA is True, uses raw HTML with tag stripping
-    instead of Jina Reader for LLM parsing (faster when Jina is rate-limited).
-
     Args:
         url: The venue's homepage URL
         venue_name: Name of the venue
@@ -1290,17 +1273,6 @@ def _fetch_from_website(
     if not fetch_url:
         return []
 
-    skip_jina = _should_skip_jina()
-
-    # Only import Jina if we're going to use it
-    fetch_page_text_jina = None
-    if not skip_jina:
-        try:
-            from utils.jina_reader import fetch_page_text_jina
-        except ImportError as e:
-            print(f"  Could not import Jina reader, falling back to raw HTML: {e}")
-            skip_jina = True
-
     try:
         # Fetch page content
         if events_url:
@@ -1316,7 +1288,6 @@ def _fetch_from_website(
         # Check if Playwright fallback is enabled
         use_playwright_fallback = getattr(_settings, "EVENT_FETCHER_PLAYWRIGHT_FALLBACK", True)
 
-        # Always try raw HTML first (needed for JSON-LD and as Jina fallback)
         try:
             raw_html = _fetch_raw_html(fetch_url)
         except Exception as e:
@@ -1338,22 +1309,8 @@ def _fetch_from_website(
 
         # Get content for LLM parsing
         if not content:  # Only if we don't already have content from Playwright
-            if skip_jina:
-                # Use stripped HTML for LLM parsing
-                if raw_html:
-                    content = _strip_html_for_llm(raw_html)
-                    if used_playwright:
-                        print(f"    Using Playwright HTML (skip-jina mode)")
-                    else:
-                        print(f"    Using raw HTML (skip-jina mode)")
-            else:
-                # Use Jina Reader
-                content = fetch_page_text_jina(fetch_url)
-                if not content or len(content) < 100:
-                    # Fallback to raw HTML if Jina fails
-                    if raw_html:
-                        print(f"    Jina returned no content, falling back to raw HTML")
-                        content = _strip_html_for_llm(raw_html)
+            if raw_html:
+                content = _strip_html_for_llm(raw_html)
 
         # Playwright fallback for empty content (JavaScript-rendered pages)
         if (not content or len(content) < 100) and use_playwright_fallback and not used_playwright:
@@ -1377,7 +1334,7 @@ def _fetch_from_website(
             )
             return []
 
-        # Try JSON-LD extraction first (doesn't need Jina)
+        # Try JSON-LD extraction first
         if raw_html:
             structured_events = _extract_events_from_jsonld(raw_html, fallback_venue_name, fetch_url)
             if structured_events:
@@ -1412,10 +1369,8 @@ def _fetch_from_website(
             # Mark extraction method based on source used
             if used_playwright:
                 extraction_method = "llm_parse_playwright"
-            elif skip_jina:
-                extraction_method = "llm_parse_raw_html"
             else:
-                extraction_method = "llm_parse"
+                extraction_method = "llm_parse_raw_html"
             for event in events:
                 event["extraction_method"] = extraction_method
             return events
@@ -1448,11 +1403,8 @@ def _fetch_from_website(
             iframe_urls = _extract_iframe_srcs(raw_html, fetch_url)
             for iframe_url in iframe_urls[:5]:
                 try:
-                    if skip_jina:
-                        iframe_html = _fetch_raw_html(iframe_url)
-                        iframe_content = _strip_html_for_llm(iframe_html)
-                    else:
-                        iframe_content = fetch_page_text_jina(iframe_url)
+                    iframe_html = _fetch_raw_html(iframe_url)
+                    iframe_content = _strip_html_for_llm(iframe_html)
 
                     iframe_events = _parse_events_with_llm(
                         iframe_content,
@@ -1461,10 +1413,9 @@ def _fetch_from_website(
                         default_venue_name=fallback_venue_name,
                     )
                     if iframe_events:
-                        extraction_method = "llm_iframe_raw_html" if skip_jina else "llm_iframe"
                         for event in iframe_events:
                             event["event_source_url"] = iframe_url
-                            event["extraction_method"] = extraction_method
+                            event["extraction_method"] = "llm_iframe_raw_html"
                         return iframe_events
                 except Exception:
                     continue
