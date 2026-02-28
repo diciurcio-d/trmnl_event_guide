@@ -329,7 +329,7 @@ def parse_ical(text: str) -> list[dict]:
             "date_str": start_date.strftime("%Y-%m-%d"),
             "end_date": end_date_str,
             "time": start_time,
-            "description": description,
+            "description": _strip_html(description),
             "event_url": event_url,
         })
 

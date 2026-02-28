@@ -623,7 +623,7 @@ def _extract_events_from_jsonld(html: str, venue_name: str, source_url: str) -> 
                     "source": "scrape",
                     "matched_artist": "",
                     "travel_minutes": None,
-                    "description": str(item.get("description", ""))[:200],
+                    "description": _strip_tags(str(item.get("description", "")))[:200],
                     "event_source_url": source_url,
                     "extraction_method": "jsonld",
                     "validation_confidence": 0.9,
@@ -1753,10 +1753,20 @@ def _parse_events_with_llm(
         return []
 
 
+_NYC_METRO_STATES = frozenset({"NY", "NJ", "CT"})
+
+
 def _normalize_tm_events(events: list[dict], venue_name: str) -> list[dict]:
     """Convert Ticketmaster events to our standard format."""
     normalized = []
+    skipped_non_nyc = 0
     for e in events:
+        # Drop events outside the NYC metro area using TM's structured venue_state field
+        venue_state = str(e.get("venue_state", "") or "").strip().upper()
+        if venue_state and venue_state not in _NYC_METRO_STATES:
+            skipped_non_nyc += 1
+            continue
+
         date_str = e.get("date", "")
         time_str = e.get("time", "")
 
@@ -1782,7 +1792,7 @@ def _normalize_tm_events(events: list[dict], venue_name: str) -> list[dict]:
             "source": "ticketmaster",
             "matched_artist": "",
             "travel_minutes": None,
-            "description": e.get("info", ""),  # TM uses 'info' field
+            "description": _strip_tags(e.get("info", "") or ""),  # TM uses 'info' field
             "artists": e.get("artists", []),
             "price_min": e.get("price_min"),
             "price_max": e.get("price_max"),
@@ -1791,6 +1801,8 @@ def _normalize_tm_events(events: list[dict], venue_name: str) -> list[dict]:
             "validation_confidence": 0.95,
         })
 
+    if skipped_non_nyc:
+        print(f"  TM geo filter: dropped {skipped_non_nyc} non-NYC-metro events")
     return normalized
 
 

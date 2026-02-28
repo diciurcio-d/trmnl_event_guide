@@ -516,6 +516,7 @@ def query_events_with_llm(
     max_results: int = 10,
     force_fallback: bool = False,
     context: str = "",
+    history: str = "",
 ) -> dict:
     """Rank events for a natural-language query with deterministic fallback."""
     if not events:
@@ -587,7 +588,8 @@ def query_events_with_llm(
     llm_event_context_limit = int(getattr(_settings, "LLM_EVENT_CONTEXT_LIMIT", 250))
     llm_event_context_limit = max(25, llm_event_context_limit)
 
-    context_section = f"\nCONTEXT (user's answer to follow-up): {context}" if context else ""
+    context_section = f"\nFOLLOW-UP ANSWER: {context}" if context else ""
+    history_section = f"\nPREVIOUS SEARCHES:\n{history}" if history else ""
     no_date_window = not date_filters.get("date_window_applied")
     near_term_hint = (
         "\nSCORING: No time window was specified. When two events are otherwise equally relevant,"
@@ -614,7 +616,7 @@ FOLLOW-UP QUESTION RULES:
 Only include events that truly match the query. Sort by score desc.
 Limit to top {max_results}.
 
-QUERY: {query}{context_section}
+QUERY: {query}{context_section}{history_section}
 NOW: {datetime.now(_TZ).isoformat()}
 EVENTS:
 {json.dumps(_event_view(ranked_events, max_events=min(llm_event_context_limit, len(ranked_events))), ensure_ascii=True)}
@@ -671,6 +673,9 @@ EVENTS:
             payload = _safe_json_obj(response or "")
             if payload:
                 follow_up_question = str(payload.get("follow_up_question", "") or "").strip()
+                # If the user already answered a clarifying question, never ask again
+                if context:
+                    follow_up_question = ""
                 # If LLM wants to ask a follow-up, return immediately with no matches
                 if follow_up_question:
                     merged_filters = payload.get("filters", {})

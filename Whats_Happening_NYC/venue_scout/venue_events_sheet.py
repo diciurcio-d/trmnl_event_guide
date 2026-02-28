@@ -20,6 +20,51 @@ _SHEETS_CONFIG = _CONFIG_DIR / "sheets_config.json"
 _MAX_EVENT_DAYS_AHEAD = 365
 _ARCHIVE_TAB = "Archive"
 
+# Geo filter: markers that confirm an event IS in the NYC metro area
+_NYC_AREA_MARKERS = (
+    "new york", ", ny", "nyc", "brooklyn", "manhattan", "queens",
+    "bronx", "staten island", "hoboken", "jersey city", "newark", ", nj", ", ct",
+)
+
+# Markers that indicate an event is clearly NOT in the NYC metro area.
+# Only applied when no NYC marker is found first.
+_NON_NYC_MARKERS = (
+    "london", "paris", "berlin", "amsterdam", "toronto", "sydney",
+    "los angeles", "san francisco", "chicago", "boston", "miami",
+    "seattle", "atlanta", "denver", "austin", "nashville",
+    "philadelphia", "las vegas", "portland", "new orleans",
+    "washington, dc", "washington dc", "baltimore", "cleveland",
+    "detroit", "minneapolis", "dallas", "houston", "phoenix",
+    ", ca", "california", ", tx", "texas", ", il", "illinois",
+    ", fl", "florida", ", ma", "massachusetts",
+    ", ga", "georgia", ", co", "colorado", ", pa", "pennsylvania",
+    ", oh", "ohio", ", mi", "michigan", ", tn", "tennessee",
+    ", nc", "north carolina", ", or", "oregon", ", va", "virginia",
+    ", md", "maryland", ", mn", "minnesota", ", wa", "washington state",
+    "united kingdom", "england", "france", "germany", "canada",
+    "australia", "netherlands",
+)
+
+
+def _is_non_nyc_event(event: dict) -> bool:
+    """Return True if the event's location is clearly outside the NYC metro area."""
+    # Check address first — most reliable when present
+    address = str(event.get("address", "") or "").strip().lower()
+    if address:
+        if any(m in address for m in _NYC_AREA_MARKERS):
+            return False  # confirmed NYC
+        if any(m in address for m in _NON_NYC_MARKERS):
+            return True   # confirmed non-NYC
+
+    # Check venue_name for embedded city names (e.g. "O2 Arena, London")
+    venue = str(event.get("venue_name", "") or "").strip().lower()
+    if venue:
+        if any(m in venue for m in _NON_NYC_MARKERS):
+            if not any(m in venue for m in _NYC_AREA_MARKERS):
+                return True
+
+    return False  # default: keep (no strong signal)
+
 
 def _safe_lower(val) -> str:
     """Safely convert value to lowercase string."""
@@ -684,6 +729,16 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
     all_events = _populate_event_addresses(all_events)
     all_events, dedup_removed = _dedupe_events(all_events)
 
+    # Geo filter: drop events clearly outside the NYC metro area
+    geo_kept = []
+    geo_dropped = 0
+    for event in all_events:
+        if _is_non_nyc_event(event):
+            geo_dropped += 1
+        else:
+            geo_kept.append(event)
+    all_events = geo_kept
+
     today = datetime.now(ZoneInfo("America/New_York")).date()
     max_allowed_date = today + timedelta(days=_MAX_EVENT_DAYS_AHEAD)
     future_events = []
@@ -768,8 +823,9 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
         archived_count = _append_to_archive(sheet_id, service, past_events)
         print(
             f"Wrote {len(future_events)} venue events to sheet "
-            f"(dedup_removed={dedup_removed}, dropped_past={dropped_past}, "
-            f"archived={archived_count}, dropped_too_far={dropped_too_far}, undated_kept={undated_kept})"
+            f"(dedup_removed={dedup_removed}, geo_dropped={geo_dropped}, "
+            f"dropped_past={dropped_past}, archived={archived_count}, "
+            f"dropped_too_far={dropped_too_far}, undated_kept={undated_kept})"
         )
 
     except Exception as e:

@@ -320,6 +320,22 @@
             background: var(--brand-2);
         }
 
+        .new-chat-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: none;
+            border: 1px solid var(--line);
+            border-radius: var(--radius-md);
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            cursor: pointer;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .new-chat-btn:hover { border-color: var(--brand); color: var(--brand); }
+
         .chat {
             display: grid;
             grid-template-rows: auto 1fr auto;
@@ -450,6 +466,25 @@
             background: #f0f4f1;
             border-radius: 999px;
             padding: 1px 7px;
+        }
+
+        .result-ask-btn {
+            align-self: flex-end;
+            margin-top: 2px;
+            font-size: 0.68rem;
+            color: var(--muted);
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.15s, color 0.15s;
+        }
+        .result-ask-btn:hover { opacity: 1; color: var(--brand); }
+
+        .result-card--selected {
+            outline: 2px solid var(--brand);
+            outline-offset: 3px;
         }
 
         .result-desc {
@@ -648,13 +683,15 @@
 
             <section class="panel chat">
                 <div class="chat-head">
-                    <h2>Event Search</h2>
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                        <h2 style="margin:0">Event Search</h2>
+                        <button id="new-chat-btn" class="new-chat-btn" type="button">New chat</button>
+                    </div>
                     <div class="empty-note">What are you in the mood for? Try something like...</div>
                     <div class="hint-row">
                         <button class="hint" type="button">🎤 Interesting lecture next week</button>
                         <button class="hint" type="button">🎵 Live music in Brooklyn this weekend</button>
                         <button class="hint" type="button">🎭 Comedy shows this weekend</button>
-                        <button class="hint" type="button">🖼️ Art openings near me</button>
                     </div>
                 </div>
 
@@ -685,6 +722,13 @@
         // we hold the original query here and send it with the user's answer as context.
         let _pendingQuery = null;
         let _pendingFollowUpQuestion = null;
+
+        // Event follow-up state: set when user clicks "Tell me more" on a result card.
+        let _selectedEvent = null; // { url, name, cloudflare_protected }
+
+        // Conversation history: track recent user queries and assistant summaries
+        // so each new query has context about what was previously searched.
+        let _chatHistory = []; // { role: "user"|"assistant", text: string }
 
         let categoryOptions = [];
         let originLat = null;
@@ -944,12 +988,65 @@
                 ${(venueHtml || catHtml) ? `<div class="result-venue-row">${venueHtml}${venueHtml && catHtml ? '<span style="color:var(--line)">·</span>' : ""}${catHtml}</div>` : ""}
                 ${descHtml}
             `;
+
+            const askBtn = document.createElement("button");
+            askBtn.className = "result-ask-btn";
+            askBtn.textContent = "Tell me more";
+            askBtn.addEventListener("click", () => {
+                _selectedEvent = {
+                    url: event.url || event.event_source_url || "",
+                    name: event.name || "",
+                    cloudflare_protected: !!event.cloudflare_protected,
+                };
+                const label = _selectedEvent.name.length > 40
+                    ? _selectedEvent.name.slice(0, 40) + "…"
+                    : _selectedEvent.name;
+
+                // Highlight selected card
+                document.querySelectorAll(".result-card--selected")
+                    .forEach(c => c.classList.remove("result-card--selected"));
+                item.classList.add("result-card--selected");
+
+                // Hint placeholder for follow-up questions
+                chatInputEl.placeholder = `Follow up about "${label}"…`;
+
+                // Add user bubble and loading bubble
+                const displayName = _selectedEvent.name.length > 50
+                    ? _selectedEvent.name.slice(0, 50) + "…"
+                    : _selectedEvent.name;
+                addMessage(`Tell me about ${displayName}`, "user");
+                const thinkingId = addMessage("Looking that up…", "assistant");
+
+                // Fire immediately — no user typing needed
+                fetch("/api/event-info", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        event_url: _selectedEvent.url,
+                        event_name: _selectedEvent.name,
+                        question: "What are the key details for this event? Please include: date and time, venue and location, ticket price or whether it's free, age restrictions, and anything else worth knowing before attending.",
+                        cloudflare_protected: _selectedEvent.cloudflare_protected,
+                    }),
+                })
+                .then(r => r.json())
+                .then(data => {
+                    const text = data.answer || "I couldn't find more info about this event.";
+                    replaceMessage(thinkingId, text);
+                    const sources = data.source === "web_grounding" ? (data.sources || []) : [];
+                    appendEventInfoFooter(thinkingId, sources);
+                })
+                .catch(() => replaceMessage(thinkingId, "Something went wrong. Try again."));
+            });
+            item.appendChild(askBtn);
+
             return item;
         }
 
         function addMessage(text, role = "assistant", matches = []) {
+            const id = "msg-" + Date.now() + "-" + Math.random().toString(36).slice(2);
             const wrap = document.createElement("div");
             wrap.className = `message ${role}`;
+            wrap.id = id;
             wrap.innerHTML = text;
 
             if (matches && matches.length) {
@@ -1002,6 +1099,60 @@
 
             chatLogEl.appendChild(wrap);
             chatLogEl.scrollTop = chatLogEl.scrollHeight;
+            return id;
+        }
+
+        function renderMarkdown(text) {
+            // Split into paragraphs (double newline)
+            const paragraphs = String(text).split(/\n{2,}/);
+            return paragraphs.map(para => {
+                const lines = para.split("\n");
+                // Check if this paragraph is a bullet list
+                const isList = lines.every(l => /^\s*[-*•]\s+/.test(l) || l.trim() === "");
+                if (isList) {
+                    const items = lines
+                        .filter(l => l.trim())
+                        .map(l => {
+                            const content = l.replace(/^\s*[-*•]\s+/, "");
+                            return `<li>${renderInline(content)}</li>`;
+                        });
+                    return `<ul style="margin:4px 0 4px 16px;padding:0">${items.join("")}</ul>`;
+                }
+                // Regular paragraph — join lines with <br>
+                return `<p style="margin:0 0 6px">${lines.map(renderInline).join("<br>")}</p>`;
+            }).join("");
+        }
+
+        function renderInline(text) {
+            return text
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+                .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                .replace(/\*(.+?)\*/g, "<em>$1</em>");
+        }
+
+        function replaceMessage(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = renderMarkdown(text);
+        }
+
+        function appendEventInfoFooter(id, sources) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const footer = document.createElement("div");
+            footer.style.cssText = "margin-top:8px;padding-top:6px;border-top:1px solid rgba(0,0,0,0.1);font-size:11px;color:var(--muted);line-height:1.5";
+
+            let html = "<em>Info may be incomplete or inaccurate — verify before attending.</em>";
+
+            if (sources && sources.length) {
+                const links = sources.slice(0, 2).map((url, i) => {
+                    const safe = escapeHtml(url);
+                    return `<a href="${safe}" target="_blank" rel="noopener noreferrer" style="color:var(--brand)">Source ${i + 1}</a>`;
+                });
+                html += " &nbsp;·&nbsp; " + links.join(" &nbsp;·&nbsp; ");
+            }
+
+            footer.innerHTML = html;
+            el.appendChild(footer);
         }
 
         function getSelectedCategories() {
@@ -1116,6 +1267,42 @@
         const SEARCHING_BUBBLE_DELAY_MS = 300;
 
         async function submitQuery(queryText) {
+            // Event follow-up path: if the user has selected an event card, answer
+            // their question about that specific event instead of running a normal query.
+            if (_selectedEvent) {
+                const question = queryText.trim();
+                if (!question) return;
+
+                const sel = _selectedEvent;
+                _selectedEvent = null;
+                chatInputEl.placeholder = "";
+                document.querySelectorAll(".result-card--selected")
+                    .forEach(c => c.classList.remove("result-card--selected"));
+
+                addMessage(question, "user");
+                const thinkingId = addMessage("Looking that up…", "assistant");
+
+                fetch("/api/event-info", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        event_url: sel.url,
+                        event_name: sel.name,
+                        question,
+                        cloudflare_protected: sel.cloudflare_protected,
+                    }),
+                })
+                .then(r => r.json())
+                .then(data => {
+                    const text = data.answer || "I couldn't find more information about this event.";
+                    replaceMessage(thinkingId, text);
+                    const sources = data.source === "web_grounding" ? (data.sources || []) : [];
+                    appendEventInfoFooter(thinkingId, sources);
+                })
+                .catch(() => replaceMessage(thinkingId, "Something went wrong. Try again."));
+                return;  // skip normal query flow
+            }
+
             const originValid = await validateOriginAddress();
             if (!originValid) {
                 return;
@@ -1125,6 +1312,7 @@
 
             // If we're answering a follow-up question, send the original query
             // with the follow-up + user's answer as context, then clear pending state.
+            // Otherwise, include recent conversation history as context.
             let actualQuery = queryText;
             let context = "";
             if (_pendingQuery !== null) {
@@ -1149,12 +1337,18 @@
             chatInputEl.disabled = true;
 
             try {
+                const recent = _chatHistory.slice(-6);
+                const history = recent.length
+                    ? recent.map(e => `${e.role === "user" ? "User" : "Assistant"}: ${e.text}`).join("\n")
+                    : "";
+
                 const response = await fetch("/api/query-events", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         query: actualQuery,
                         context,
+                        history,
                         max_results: 60,
                         filters,
                     }),
@@ -1197,6 +1391,10 @@
                 const warning = data.warning ? `<br><small>${data.warning}</small>` : "";
 
                 addMessage(`${interpretation}<br><small>${prefix}</small>${dateSummary}${distanceSummary}${warning}`, "assistant", data.matches || []);
+
+                // Record this exchange in history for future query context
+                _chatHistory.push({ role: "user", text: actualQuery });
+                if (interpretation) _chatHistory.push({ role: "assistant", text: interpretation });
             } catch (error) {
                 requestSettled = true;
                 window.clearTimeout(loadingTimer);
@@ -1213,6 +1411,22 @@
                 chatInputEl.focus();
             }
         }
+
+        // New chat button — clears the log and resets all conversation state
+        document.getElementById("new-chat-btn").addEventListener("click", () => {
+            _chatHistory = [];
+            _selectedEvent = null;
+            _pendingQuery = null;
+            _pendingFollowUpQuestion = null;
+            chatInputEl.placeholder = "Ask for events...";
+            chatInputEl.value = "";
+            resizeChatInput();
+            document.querySelectorAll(".result-card--selected")
+                .forEach(c => c.classList.remove("result-card--selected"));
+            chatLogEl.innerHTML = "";
+            addMessage("What do you want to do in NYC? I can find concerts, comedy shows, art openings, lectures, and more — just ask.");
+            chatInputEl.focus();
+        });
 
         // Collapsible filters panel (mobile only)
         const filtersToggleEl = document.getElementById("filters-toggle");
@@ -1277,6 +1491,14 @@
         chatInputEl.addEventListener("input", resizeChatInput);
 
         chatInputEl.addEventListener("keydown", async (event) => {
+            if (event.key === "Escape" && _selectedEvent) {
+                _selectedEvent = null;
+                chatInputEl.placeholder = "";
+                chatInputEl.value = "";
+                document.querySelectorAll(".result-card--selected")
+                    .forEach(c => c.classList.remove("result-card--selected"));
+                return;
+            }
             if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
                 const queryText = chatInputEl.value.trim();

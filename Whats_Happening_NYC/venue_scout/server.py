@@ -1206,6 +1206,7 @@ def query_events():
     data = request.json or {}
     query = (data.get("query") or "").strip()
     context = (data.get("context") or "").strip()
+    history = (data.get("history") or "").strip()
     events = data.get("events")
     filters = data.get("filters") or {}
     max_results = _to_int_or_none(data.get("max_results"))
@@ -1266,7 +1267,23 @@ def query_events():
             max_results=max_results,
             force_fallback=force_fallback,
             context=context,
+            history=history,
         )
+
+        # Enrich matches with cloudflare_protected so the frontend can pass it to /api/event-info
+        try:
+            from venue_scout.cache import read_cached_venues
+            cf_lookup = {
+                v.get("name", "").lower(): (v.get("cloudflare_protected", "") == "yes")
+                for v in read_cached_venues()
+            }
+            for m in result.get("matches", []):
+                m["cloudflare_protected"] = cf_lookup.get(
+                    str(m.get("venue_name", "")).lower(), False
+                )
+        except Exception:
+            pass  # best-effort; don't break the query on cache read failure
+
         pre_distance_matches = list(result.get("matches", []))
         distance_meta: dict = {"mode": distance_mode, "applied": False}
         distance_warning = ""
@@ -1324,6 +1341,25 @@ def query_events():
                 "mode": "error",
             }
         ), 500
+
+
+@app.route('/api/event-info', methods=['POST'])
+@limiter.limit("30 per hour")  # LLM + page fetch — moderately expensive
+def event_info():
+    """Answer a question about a specific event by fetching its page or using web grounding."""
+    increment("server.api.event_info.calls")
+    payload = request.get_json(force=True) or {}
+    event_url            = str(payload.get("event_url",            "")).strip()
+    event_name           = str(payload.get("event_name",           "")).strip()
+    question             = str(payload.get("question",             "")).strip()
+    cloudflare_protected = bool(payload.get("cloudflare_protected", False))
+
+    if not question:
+        return jsonify({"error": "question is required"}), 400
+
+    from venue_scout.event_info import answer_event_question
+    result = answer_event_question(event_url, event_name, question, cloudflare_protected)
+    return jsonify(result)
 
 
 @app.route('/api/debug/health')
