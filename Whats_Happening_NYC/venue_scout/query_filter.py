@@ -73,6 +73,12 @@ def _day_end(dt: datetime) -> datetime:
     return dt.replace(hour=23, minute=59, second=59, microsecond=999999)
 
 
+_DOW_NAMES = {
+    "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
+    "friday": 4, "saturday": 5, "sunday": 6,
+}
+
+
 def _window_from_relative(relative_window: str, now: datetime) -> tuple[datetime | None, datetime | None]:
     """Convert a relative date window string into absolute start/end datetimes."""
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -101,6 +107,16 @@ def _window_from_relative(relative_window: str, now: datetime) -> tuple[datetime
         return saturday, _day_end(sunday)
     if key == "next_30_days":
         return now, now + timedelta(days=30)
+
+    # next_monday … next_sunday — next upcoming occurrence of that weekday
+    # (if today IS that weekday, returns today)
+    if key.startswith("next_"):
+        day_name = key[5:]
+        if day_name in _DOW_NAMES:
+            target_weekday = _DOW_NAMES[day_name]
+            days_until = (target_weekday - today_start.weekday()) % 7
+            target_day = today_start + timedelta(days=days_until)
+            return target_day, _day_end(target_day)
 
     return None, None
 
@@ -171,7 +187,10 @@ def _date_tool_declaration() -> types.Tool:
                 name=_DATE_TOOL_NAME,
                 description=(
                     "Extract concrete date constraints from a user query for event filtering. "
-                    "Use explicit dates if present. Use relative_window for phrases like next week."
+                    "When the user mentions a day of the week (e.g. 'Thursday', 'Friday night', 'date night on Wednesday'), "
+                    "use the matching next_DAY value — it always means the next upcoming occurrence of that day. "
+                    "Use explicit start_date/end_date only for specific calendar dates. "
+                    "Use relative_window for week/weekend/month-range phrases."
                 ),
                 parameters_json_schema={
                     "type": "object",
@@ -182,11 +201,22 @@ def _date_tool_declaration() -> types.Tool:
                                 "none",
                                 "today",
                                 "tomorrow",
+                                "next_monday",
+                                "next_tuesday",
+                                "next_wednesday",
+                                "next_thursday",
+                                "next_friday",
+                                "next_saturday",
+                                "next_sunday",
                                 "this_week",
                                 "this_weekend",
                                 "next_week",
                                 "next_30_days",
                             ],
+                            "description": (
+                                "Use next_WEEKDAY (e.g. next_thursday) when the user names a day of the week. "
+                                "'Thursday' with no qualifier means next_thursday."
+                            ),
                         },
                         "start_date": {"type": "string", "description": "YYYY-MM-DD"},
                         "end_date": {"type": "string", "description": "YYYY-MM-DD"},
@@ -221,9 +251,12 @@ def _apply_date_tool(query: str, events: list[dict]) -> tuple[list[dict], dict, 
     seed = int(getattr(_settings, "GEMINI_SEED", 20260213))
     now = datetime.now(_TZ)
 
+    day_name = now.strftime("%A")  # e.g. "Sunday"
     tool_prompt = (
         "Determine whether the user query has date constraints.\n"
-        f"Current datetime: {now.isoformat()}\n"
+        f"Current date: {now.date().isoformat()} ({day_name})\n"
+        "RULE: A bare day-of-week reference (e.g. 'Thursday', 'Friday night', 'date on Wednesday') "
+        "always means the next upcoming occurrence — use the matching next_WEEKDAY value.\n"
         "If no date constraint exists, do not call any function.\n"
         f"User query: {query}"
     )
@@ -592,9 +625,8 @@ def query_events_with_llm(
     history_section = f"\nPREVIOUS SEARCHES:\n{history}" if history else ""
     no_date_window = not date_filters.get("date_window_applied")
     near_term_hint = (
-        "\nSCORING: No time window was specified. When two events are otherwise equally relevant,"
-        " prefer the one happening sooner — events within the next 30 days should rank slightly"
-        " above events many months away."
+        "\nSCORING: No specific date was requested. Strongly prefer events happening within the"
+        " next 2 weeks. Events more than 30 days away should only appear if nothing sooner matches."
     ) if no_date_window else ""
     prompt = f"""You are filtering NYC events for a user query.
 Return strict JSON with keys:
