@@ -135,53 +135,6 @@
         .filters-body {
         }
 
-        /* Category section collapse — desktop + mobile */
-        .category-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 6px;
-        }
-
-        .category-header label {
-            margin-bottom: 0;
-        }
-
-        .category-toggle {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            background: none;
-            border: 1px solid var(--line);
-            border-radius: var(--radius-md);
-            padding: 3px 8px;
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--muted);
-            cursor: pointer;
-        }
-
-        .category-toggle .category-chevron {
-            transition: transform 0.2s ease;
-        }
-
-        .category-body {
-            display: none; /* collapsed by default */
-        }
-
-        .category-body.open {
-            display: block;
-        }
-
-        .category-body.open ~ .category-toggle .category-chevron,
-        .category-toggle[aria-expanded="true"] .category-chevron {
-            transform: rotate(0deg);
-        }
-
-        .category-toggle[aria-expanded="false"] .category-chevron {
-            transform: rotate(-90deg);
-        }
-
         .field {
             margin-bottom: 14px;
         }
@@ -250,42 +203,59 @@
             margin-top: 8px;
         }
 
-        .category-field {
-            margin-bottom: 0;
+        .sessions-section {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line);
         }
 
-        .category-list {
-            border: 1px solid var(--line);
-            border-radius: var(--radius-md);
-            background: #fff;
-            max-height: 260px;
-            overflow-y: auto;
-            padding: 8px;
-        }
-
-        .category-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            padding: 6px 4px;
-            border-bottom: 1px solid #eff4f0;
-        }
-
-        .category-item:last-child {
-            border-bottom: none;
-        }
-
-        .category-name {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .sessions-header {
             font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 8px;
         }
 
-        .count {
+        .session-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .session-item {
+            padding: 7px 8px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: background 0.12s;
+        }
+
+        .session-item:hover { background: var(--bg-2); }
+
+        .session-item--active {
+            background: rgba(23, 111, 79, 0.09);
+        }
+
+        .session-title {
+            font-size: 13px;
+            color: var(--ink);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .session-date {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .sessions-empty {
             font-size: 12px;
             color: var(--muted);
+            font-style: italic;
+            padding: 4px 8px;
         }
 
         .controls {
@@ -658,24 +628,10 @@
                         </div>
                     </div>
 
-                    <div class="field category-field">
-                        <div class="category-header">
-                            <label>Event categories</label>
-                            <button class="category-toggle" id="category-toggle" type="button" aria-expanded="false" aria-controls="category-body">
-                                <span class="category-toggle-label">Show</span>
-                                <svg class="category-chevron" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                                    <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </button>
-                        </div>
-                        <div class="category-body" id="category-body">
-                            <div id="categories" class="category-list">
-                                <div class="empty-note">Loading categories...</div>
-                            </div>
-                            <div class="controls">
-                                <button class="btn" id="select-all-categories" type="button">Select All</button>
-                                <button class="btn" id="clear-categories" type="button">Clear</button>
-                            </div>
+                    <div class="sessions-section">
+                        <div class="sessions-header">Past Conversations</div>
+                        <div class="session-list" id="session-list">
+                            <div class="sessions-empty">No past conversations yet.</div>
                         </div>
                     </div>
                 </div>
@@ -710,7 +666,6 @@
     </main>
 
     <script>
-        const categoriesEl = document.getElementById("categories");
         const chatLogEl = document.getElementById("chat-log");
         const chatFormEl = document.getElementById("chat-form");
         const chatInputEl = document.getElementById("chat-input");
@@ -728,9 +683,28 @@
 
         // Conversation history: track recent user queries and assistant summaries
         // so each new query has context about what was previously searched.
-        let _chatHistory = []; // { role: "user"|"assistant", text: string }
+        const HISTORY_VERSION = 1;
+        const HISTORY_KEY = "whaddup_history";
 
-        let categoryOptions = [];
+        function loadHistory() {
+            try {
+                const stored = JSON.parse(localStorage.getItem(HISTORY_KEY) || "{}");
+                if (stored.v === HISTORY_VERSION && Array.isArray(stored.history)) {
+                    return stored.history;
+                }
+                // v0 or unknown: no migration needed yet, start fresh
+            } catch (_) {}
+            return [];
+        }
+
+        function saveHistory(history) {
+            try {
+                localStorage.setItem(HISTORY_KEY, JSON.stringify({ v: HISTORY_VERSION, history }));
+            } catch (_) {}
+        }
+
+        let _chatHistory = loadHistory(); // { role: "user"|"assistant", text: string }
+
         let originLat = null;
         let originLng = null;
         let lastValidatedOrigin = "";
@@ -1218,50 +1192,16 @@
         function getActiveFilters() {
             const maxTravelRaw = document.getElementById("max-travel").value.trim();
             const maxTravelMinutes = maxTravelRaw === "" ? null : Number(maxTravelRaw);
-            const categories = getSelectedCategories();
             const distanceMode = document.getElementById("distance-mode").value;
             const originAddress = document.getElementById("origin-address").value.trim();
 
             return {
-                categories,
                 distance_mode: distanceMode,
                 max_travel_minutes: Number.isFinite(maxTravelMinutes) ? maxTravelMinutes : null,
                 origin_address: originAddress,
                 origin_lat: Number.isFinite(originLat) ? originLat : null,
                 origin_lng: Number.isFinite(originLng) ? originLng : null,
-                enable_fuzzy_categories: false,
-                fuzzy_categories: [],
-                fuzzy_category_threshold: 72,
             };
-        }
-
-        function renderCategories(categories) {
-            if (!categories.length) {
-                categoriesEl.innerHTML = '<div class="empty-note">No categories found in event sheet.</div>';
-                return;
-            }
-
-            categoriesEl.innerHTML = categories.map((cat) => `
-                <label class="category-item">
-                    <span class="category-name">
-                        <input type="checkbox" value="${cat.name}" checked>
-                        ${formatCategoryLabel(cat.name)} (${cat.count})
-                    </span>
-                </label>
-            `).join("");
-        }
-
-        async function loadFilterOptions() {
-            try {
-                const response = await fetch("/api/event-filter-options");
-                const data = await response.json();
-
-                categoryOptions = data.categories || [];
-                renderCategories(categoryOptions);
-            } catch (error) {
-                categoriesEl.innerHTML = '<div class="empty-note">Unable to load categories.</div>';
-                addMessage(`Unable to load filter options: ${error.message}`, "assistant");
-            }
         }
 
         const SEARCHING_BUBBLE_DELAY_MS = 300;
@@ -1395,6 +1335,7 @@
                 // Record this exchange in history for future query context
                 _chatHistory.push({ role: "user", text: actualQuery });
                 if (interpretation) _chatHistory.push({ role: "assistant", text: interpretation });
+                saveHistory(_chatHistory);
             } catch (error) {
                 requestSettled = true;
                 window.clearTimeout(loadingTimer);
@@ -1412,9 +1353,124 @@
             }
         }
 
-        // New chat button — clears the log and resets all conversation state
+        // ── Past conversations ────────────────────────────────────────────
+        const SESSIONS_VERSION = 1;
+        const SESSIONS_KEY = "whaddup_sessions";
+        const MAX_SESSIONS = 20;
+
+        function loadSessions() {
+            try {
+                const stored = JSON.parse(localStorage.getItem(SESSIONS_KEY) || "{}");
+                if (stored.v === SESSIONS_VERSION && Array.isArray(stored.sessions)) {
+                    return stored.sessions;
+                }
+            } catch (_) {}
+            return [];
+        }
+
+        function persistSessions(sessions) {
+            try {
+                localStorage.setItem(SESSIONS_KEY, JSON.stringify({ v: SESSIONS_VERSION, sessions }));
+            } catch (_) {}
+        }
+
+        let _sessions = loadSessions();
+        let _activeSessionId = null;
+
+        function saveCurrentAsSession() {
+            if (!_chatHistory.length) return;
+            const title = (_chatHistory.find(h => h.role === "user") || {}).text || "Untitled";
+            // If we're viewing an existing session, update it in place
+            if (_activeSessionId) {
+                _sessions = _sessions.map(s =>
+                    s.id === _activeSessionId ? { ...s, history: [..._chatHistory] } : s
+                );
+            } else {
+                const session = {
+                    id: "s-" + Date.now(),
+                    title,
+                    timestamp: Date.now(),
+                    history: [..._chatHistory],
+                };
+                _sessions = [session, ..._sessions].slice(0, MAX_SESSIONS);
+            }
+            persistSessions(_sessions);
+        }
+
+        function relativeDate(ts) {
+            const diff = Date.now() - ts;
+            const mins = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+            if (mins < 1) return "Just now";
+            if (mins < 60) return `${mins}m ago`;
+            if (hours < 24) return `${hours}h ago`;
+            if (days === 1) return "Yesterday";
+            if (days < 7) return `${days}d ago`;
+            return new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        }
+
+        function renderSessionList() {
+            const listEl = document.getElementById("session-list");
+            if (!listEl) return;
+            if (!_sessions.length) {
+                listEl.innerHTML = '<div class="sessions-empty">No past conversations yet.</div>';
+                return;
+            }
+            listEl.innerHTML = _sessions.map(s => {
+                const title = s.title.length > 38 ? s.title.slice(0, 38) + "…" : s.title;
+                const active = s.id === _activeSessionId ? " session-item--active" : "";
+                return `<div class="session-item${active}" data-sid="${escapeHtml(s.id)}">
+                    <div class="session-title">${escapeHtml(title)}</div>
+                    <div class="session-date">${relativeDate(s.timestamp)}</div>
+                </div>`;
+            }).join("");
+            listEl.querySelectorAll(".session-item").forEach(el => {
+                el.addEventListener("click", () => restoreSession(el.dataset.sid));
+            });
+        }
+
+        function restoreSession(sessionId) {
+            const session = _sessions.find(s => s.id === sessionId);
+            if (!session) return;
+
+            // Save current work before switching away
+            saveCurrentAsSession();
+
+            _activeSessionId = sessionId;
+            _chatHistory = [...session.history];
+            saveHistory(_chatHistory);
+
+            // Reset UI state
+            _selectedEvent = null;
+            _pendingQuery = null;
+            _pendingFollowUpQuestion = null;
+            chatInputEl.placeholder = "Ask for events...";
+            chatInputEl.value = "";
+            resizeChatInput();
+            document.querySelectorAll(".result-card--selected")
+                .forEach(c => c.classList.remove("result-card--selected"));
+
+            // Re-render conversation as text bubbles
+            chatLogEl.innerHTML = "";
+            session.history.forEach(msg => {
+                if (msg.role === "user") {
+                    addMessage(escapeHtml(msg.text), "user");
+                } else {
+                    addMessage(renderMarkdown(msg.text), "assistant");
+                }
+            });
+
+            renderSessionList();
+            chatInputEl.focus();
+        }
+
+        // New chat button — save current session then start fresh
         document.getElementById("new-chat-btn").addEventListener("click", () => {
+            saveCurrentAsSession();
+            _activeSessionId = null;
             _chatHistory = [];
+            saveHistory(_chatHistory);
             _selectedEvent = null;
             _pendingQuery = null;
             _pendingFollowUpQuestion = null;
@@ -1425,6 +1481,7 @@
                 .forEach(c => c.classList.remove("result-card--selected"));
             chatLogEl.innerHTML = "";
             addMessage("What do you want to do in NYC? I can find concerts, comedy shows, art openings, lectures, and more — just ask.");
+            renderSessionList();
             chatInputEl.focus();
         });
 
@@ -1437,29 +1494,6 @@
             const isCollapsed = filtersPanelEl.classList.toggle("collapsed");
             filtersToggleEl.setAttribute("aria-expanded", String(!isCollapsed));
             toggleLabelEl.textContent = isCollapsed ? "Show" : "Hide";
-        });
-
-        // Collapsible event categories (desktop + mobile)
-        const categoryToggleEl = document.getElementById("category-toggle");
-        const categoryBodyEl   = document.getElementById("category-body");
-        const categoryLabelEl  = categoryToggleEl.querySelector(".category-toggle-label");
-
-        categoryToggleEl.addEventListener("click", () => {
-            const isOpen = categoryBodyEl.classList.toggle("open");
-            categoryToggleEl.setAttribute("aria-expanded", String(isOpen));
-            categoryLabelEl.textContent = isOpen ? "Hide" : "Show";
-        });
-
-        document.getElementById("select-all-categories").addEventListener("click", () => {
-            document.querySelectorAll(".category-item input").forEach((cb) => {
-                cb.checked = true;
-            });
-        });
-
-        document.getElementById("clear-categories").addEventListener("click", () => {
-            document.querySelectorAll(".category-item input").forEach((cb) => {
-                cb.checked = false;
-            });
         });
 
         originAddressEl.addEventListener("input", () => {
@@ -1526,7 +1560,7 @@
 
         addMessage("What do you want to do in NYC? I can find concerts, comedy shows, art openings, lectures, and more — just ask.");
         validateOriginAddress();
-        loadFilterOptions();
+        renderSessionList();
     </script>
 </body>
 </html>

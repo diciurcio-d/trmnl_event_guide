@@ -27,25 +27,24 @@ Edit files under `Whats_Happening_NYC/`. The main files you'll touch:
 - `venue_scout/event_fetcher.py` — Event scraping logic
 - `config/config.json` — App settings (address, API keys, etc.)
 
-### 2. Build a new Docker image
+### 2. Build and push the image
+
+**Use `gcloud builds submit` — do not use `docker build` + `docker push` locally.**
+
+Building locally on an Apple Silicon Mac produces an arm64 image, which Cloud Run rejects. Pushing large layers (Playwright/Chrome ~300MB) from Docker Desktop is also unreliable and slow. `gcloud builds submit` builds natively on amd64 GCP hardware and pushes directly to Artifact Registry, avoiding both problems.
 
 From inside `Whats_Happening_NYC/`:
 
 ```bash
-docker build -t us-central1-docker.pkg.dev/gen-lang-client-0046008897/whats-happening-nyc/app:latest .
+gcloud builds submit \
+  --tag us-central1-docker.pkg.dev/gen-lang-client-0046008897/whats-happening-nyc/app:latest \
+  --project gen-lang-client-0046008897 \
+  .
 ```
 
-This takes ~2 minutes on the first build. Subsequent builds are faster because Docker caches unchanged layers.
+This uploads your source, builds on GCP, and pushes the image automatically. Takes ~3-5 minutes.
 
-### 3. Push the image to Artifact Registry
-
-```bash
-docker push us-central1-docker.pkg.dev/gen-lang-client-0046008897/whats-happening-nyc/app:latest
-```
-
-Most layers are cached — only changed layers upload. Usually fast (~30 seconds) unless you changed dependencies or the Dockerfile itself.
-
-### 4. Deploy to Cloud Run
+### 3. Deploy to Cloud Run
 
 ```bash
 gcloud run deploy whats-happening-nyc \
@@ -208,8 +207,10 @@ Make sure `config/config.json`, `config/sheets_config.json`, and `config/google_
 
 ```bash
 # From Whats_Happening_NYC/
-docker build -t us-central1-docker.pkg.dev/gen-lang-client-0046008897/whats-happening-nyc/app:latest . \
-  && docker push us-central1-docker.pkg.dev/gen-lang-client-0046008897/whats-happening-nyc/app:latest \
+gcloud builds submit \
+  --tag us-central1-docker.pkg.dev/gen-lang-client-0046008897/whats-happening-nyc/app:latest \
+  --project gen-lang-client-0046008897 \
+  . \
   && gcloud run deploy whats-happening-nyc \
        --image=us-central1-docker.pkg.dev/gen-lang-client-0046008897/whats-happening-nyc/app:latest \
        --region=us-central1

@@ -2,12 +2,14 @@
 
 import json
 import re
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -19,6 +21,35 @@ _CONFIG_DIR = Path(__file__).parent.parent / "config"
 _SHEETS_CONFIG = _CONFIG_DIR / "sheets_config.json"
 _MAX_EVENT_DAYS_AHEAD = 365
 _ARCHIVE_TAB = "Archive"
+
+# Transient HTTP status codes worth retrying
+_RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
+# Delay in seconds before each retry attempt (3 retries total)
+_RETRY_DELAYS = [10, 20, 40]
+
+
+def _execute_with_retry(request, label: str = ""):
+    """Execute a Google API request, retrying up to 3 times on transient errors.
+
+    Retries on HTTP 429/500/502/503/504 with increasing delays (10s, 20s, 40s).
+    Raises immediately on non-retryable errors.
+    """
+    last_exc = None
+    delays = [0] + _RETRY_DELAYS  # first attempt has no delay
+    for attempt, delay in enumerate(delays):
+        if delay:
+            print(f"  [retry {attempt}/{len(_RETRY_DELAYS)}] {label or 'API call'} failed — waiting {delay}s...")
+            time.sleep(delay)
+        try:
+            return request.execute()
+        except HttpError as e:
+            if e.resp.status in _RETRYABLE_STATUS_CODES:
+                last_exc = e
+                print(f"  Transient error (HTTP {e.resp.status}) on {label or 'API call'}: {e}")
+                continue
+            raise  # non-transient error — fail fast
+    raise last_exc
+
 
 # Geo filter: markers that confirm an event IS in the NYC metro area
 _NYC_AREA_MARKERS = (
@@ -480,7 +511,10 @@ def _create_spreadsheet(title: str) -> str | None:
         return None
 
     spreadsheet = {"properties": {"title": title}}
-    result = service.spreadsheets().create(body=spreadsheet).execute()
+    result = _execute_with_retry(
+        service.spreadsheets().create(body=spreadsheet),
+        "create spreadsheet",
+    )
     return result.get("spreadsheetId")
 
 
@@ -490,12 +524,15 @@ def _write_header(sheet_id: str, columns: list[str]):
     if not service:
         return
 
-    service.spreadsheets().values().update(
-        spreadsheetId=sheet_id,
-        range="A1",
-        valueInputOption="RAW",
-        body={"values": [columns]},
-    ).execute()
+    _execute_with_retry(
+        service.spreadsheets().values().update(
+            spreadsheetId=sheet_id,
+            range="A1",
+            valueInputOption="RAW",
+            body={"values": [columns]},
+        ),
+        "write header",
+    )
 
 
 def get_or_create_venue_events_sheet() -> str | None:
@@ -532,10 +569,13 @@ def read_venue_events_from_sheet(venue_name: str | None = None) -> list[dict]:
         return []
 
     try:
-        result = service.spreadsheets().values().get(
-            spreadsheetId=sheet_id,
-            range=_sheet_full_range(),
-        ).execute()
+        result = _execute_with_retry(
+            service.spreadsheets().values().get(
+                spreadsheetId=sheet_id,
+                range=_sheet_full_range(),
+            ),
+            "read venue events",
+        )
 
         rows = result.get("values", [])
         if len(rows) <= 1:
@@ -608,20 +648,29 @@ def read_venue_events_from_sheet(venue_name: str | None = None) -> list[dict]:
 def _ensure_archive_tab(sheet_id: str, service) -> bool:
     """Ensure the Archive tab exists in the spreadsheet. Returns True if ready."""
     try:
-        spreadsheet = service.spreadsheets().get(spreadsheetId=sheet_id).execute()
+        spreadsheet = _execute_with_retry(
+            service.spreadsheets().get(spreadsheetId=sheet_id),
+            "get spreadsheet",
+        )
         existing_titles = {s["properties"]["title"] for s in spreadsheet.get("sheets", [])}
         if _ARCHIVE_TAB in existing_titles:
             return True
-        service.spreadsheets().batchUpdate(
-            spreadsheetId=sheet_id,
-            body={"requests": [{"addSheet": {"properties": {"title": _ARCHIVE_TAB}}}]},
-        ).execute()
-        service.spreadsheets().values().update(
-            spreadsheetId=sheet_id,
-            range=f"{_ARCHIVE_TAB}!A1",
-            valueInputOption="RAW",
-            body={"values": [VENUE_EVENTS_COLUMNS]},
-        ).execute()
+        _execute_with_retry(
+            service.spreadsheets().batchUpdate(
+                spreadsheetId=sheet_id,
+                body={"requests": [{"addSheet": {"properties": {"title": _ARCHIVE_TAB}}}]},
+            ),
+            "add archive tab",
+        )
+        _execute_with_retry(
+            service.spreadsheets().values().update(
+                spreadsheetId=sheet_id,
+                range=f"{_ARCHIVE_TAB}!A1",
+                valueInputOption="RAW",
+                body={"values": [VENUE_EVENTS_COLUMNS]},
+            ),
+            "write archive header",
+        )
         print(f"Created '{_ARCHIVE_TAB}' tab in venue events spreadsheet")
         return True
     except Exception as e:
@@ -632,10 +681,13 @@ def _ensure_archive_tab(sheet_id: str, service) -> bool:
 def _read_archive_keys(sheet_id: str, service) -> set[tuple]:
     """Read existing archive event dedup keys to avoid re-archiving."""
     try:
-        result = service.spreadsheets().values().get(
-            spreadsheetId=sheet_id,
-            range=f"{_ARCHIVE_TAB}!A:{_sheet_col_label(len(VENUE_EVENTS_COLUMNS))}",
-        ).execute()
+        result = _execute_with_retry(
+            service.spreadsheets().values().get(
+                spreadsheetId=sheet_id,
+                range=f"{_ARCHIVE_TAB}!A:{_sheet_col_label(len(VENUE_EVENTS_COLUMNS))}",
+            ),
+            "read archive",
+        )
         rows = result.get("values", [])
         if not rows or len(rows) < 2:
             return set()
@@ -694,13 +746,16 @@ def _append_to_archive(sheet_id: str, service, past_events: list[dict]) -> int:
         return 0
 
     try:
-        service.spreadsheets().values().append(
-            spreadsheetId=sheet_id,
-            range=f"{_ARCHIVE_TAB}!A1",
-            valueInputOption="RAW",
-            insertDataOption="INSERT_ROWS",
-            body={"values": rows_to_append},
-        ).execute()
+        _execute_with_retry(
+            service.spreadsheets().values().append(
+                spreadsheetId=sheet_id,
+                range=f"{_ARCHIVE_TAB}!A1",
+                valueInputOption="RAW",
+                insertDataOption="INSERT_ROWS",
+                body={"values": rows_to_append},
+            ),
+            "append to archive",
+        )
         return len(rows_to_append)
     except Exception as e:
         print(f"Warning: could not append to archive: {e}")
@@ -805,20 +860,26 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
 
     try:
         # Write new data first (overwrites existing rows)
-        service.spreadsheets().values().update(
-            spreadsheetId=sheet_id,
-            range="A1",
-            valueInputOption="RAW",
-            body={"values": rows},
-        ).execute()
+        _execute_with_retry(
+            service.spreadsheets().values().update(
+                spreadsheetId=sheet_id,
+                range="A1",
+                valueInputOption="RAW",
+                body={"values": rows},
+            ),
+            "write venue events",
+        )
 
         # Only clear extra rows AFTER successful write
         # This prevents data loss if write fails
         clear_start_row = len(rows) + 1
-        service.spreadsheets().values().clear(
-            spreadsheetId=sheet_id,
-            range=f"A{clear_start_row}:{_sheet_col_label(len(VENUE_EVENTS_COLUMNS))}",
-        ).execute()
+        _execute_with_retry(
+            service.spreadsheets().values().clear(
+                spreadsheetId=sheet_id,
+                range=f"A{clear_start_row}:{_sheet_col_label(len(VENUE_EVENTS_COLUMNS))}",
+            ),
+            "clear stale rows",
+        )
 
         archived_count = _append_to_archive(sheet_id, service, past_events)
         print(
@@ -912,19 +973,25 @@ def sync_semantic_index_membership(included_event_keys: set[str], indexed_at: st
     end_col = _sheet_col_label(end_col_idx)
     update_range = f"{start_col}2:{end_col}{len(membership_values) + 1}"
 
-    service.spreadsheets().values().update(
-        spreadsheetId=sheet_id,
-        range=update_range,
-        valueInputOption="RAW",
-        body={"values": membership_values},
-    ).execute()
+    _execute_with_retry(
+        service.spreadsheets().values().update(
+            spreadsheetId=sheet_id,
+            range=update_range,
+            valueInputOption="RAW",
+            body={"values": membership_values},
+        ),
+        "sync semantic index flags",
+    )
 
     # Defensive cleanup if stale rows exist below current event count.
     clear_start_row = len(membership_values) + 2
-    service.spreadsheets().values().clear(
-        spreadsheetId=sheet_id,
-        range=f"{start_col}{clear_start_row}:{end_col}",
-    ).execute()
+    _execute_with_retry(
+        service.spreadsheets().values().clear(
+            spreadsheetId=sheet_id,
+            range=f"{start_col}{clear_start_row}:{end_col}",
+        ),
+        "clear stale semantic flags",
+    )
 
     persisted_events = read_venue_events_from_sheet()
     persisted_included = sum(1 for event in persisted_events if bool(event.get("in_semantic_index", False)))
