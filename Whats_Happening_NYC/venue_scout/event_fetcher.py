@@ -74,6 +74,7 @@ class FetchResult:
     attempted_sources: list[str] = field(default_factory=list)
     source_errors: dict[str, str] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+    new_events_added: int = 0  # truly new events written to the sheet (dedup-excluded)
 
 
 def _normalize_event_schema(event: dict, venue_name: str, source: str) -> dict:
@@ -2343,7 +2344,8 @@ def fetch_events_for_venues(
             print(f"\nSaving {len(all_events)} events to Google Sheet...")
             for venue_name, result in results.items():
                 if result.events:
-                    append_venue_events(result.events, venue_name)
+                    added = append_venue_events(result.events, venue_name)
+                    result.new_events_added = added or 0
 
     # Summary
     fetched = sum(1 for r in results.values() if r.events)

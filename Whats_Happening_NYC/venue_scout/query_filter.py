@@ -86,7 +86,12 @@ def _window_from_relative(relative_window: str, now: datetime) -> tuple[datetime
     key = str(relative_window or "").strip().lower()
 
     if key == "today":
-        return today_start, today_end
+        # Start from the current moment so past events are excluded.
+        return now, today_end
+    if key == "tonight":
+        # Evening window: 5 pm at the earliest, or current time if later.
+        five_pm = today_start.replace(hour=17, minute=0, second=0, microsecond=0)
+        return max(now, five_pm), today_end
     if key == "tomorrow":
         start = today_start + timedelta(days=1)
         return start, _day_end(start)
@@ -160,7 +165,12 @@ def _filter_events_by_date_window(
     end: datetime | None,
     include_undated: bool,
 ) -> list[dict]:
-    """Apply inclusive date filtering window."""
+    """Apply inclusive date filtering window.
+
+    Events with a specific time are compared against the full datetime window.
+    Events with only a date (no time component) are compared at the date level
+    so they aren't incorrectly excluded when the window start is mid-day.
+    """
     if not start or not end:
         return events
 
@@ -174,8 +184,16 @@ def _filter_events_by_date_window(
             if include_undated:
                 out.append(event)
             continue
-        if start <= dt <= end:
-            out.append(event)
+        has_time = bool(event.get("datetime"))
+        if has_time:
+            # Timed events: must fall within the exact window.
+            if start <= dt <= end:
+                out.append(event)
+        else:
+            # Date-only events: include if the date falls in range.
+            # We don't know their start time, so don't exclude based on time-of-day.
+            if start.date() <= dt.date() <= end.date():
+                out.append(event)
     return out
 
 
@@ -200,6 +218,7 @@ def _date_tool_declaration() -> types.Tool:
                             "enum": [
                                 "none",
                                 "today",
+                                "tonight",
                                 "tomorrow",
                                 "next_monday",
                                 "next_tuesday",
@@ -214,6 +233,9 @@ def _date_tool_declaration() -> types.Tool:
                                 "next_30_days",
                             ],
                             "description": (
+                                "Use 'tonight' for evening queries (e.g. 'tonight', 'this evening', 'out tonight'). "
+                                "Use 'today' for same-day queries without an evening qualifier. "
+                                "Both windows start from the current time — past events are excluded automatically. "
                                 "Use next_WEEKDAY (e.g. next_thursday) when the user names a day of the week. "
                                 "'Thursday' with no qualifier means next_thursday."
                             ),
@@ -254,9 +276,12 @@ def _apply_date_tool(query: str, events: list[dict]) -> tuple[list[dict], dict, 
     day_name = now.strftime("%A")  # e.g. "Sunday"
     tool_prompt = (
         "Determine whether the user query has date constraints.\n"
-        f"Current date: {now.date().isoformat()} ({day_name})\n"
-        "RULE: A bare day-of-week reference (e.g. 'Thursday', 'Friday night', 'date on Wednesday') "
-        "always means the next upcoming occurrence — use the matching next_WEEKDAY value.\n"
+        f"Current date/time: {now.isoformat()} ({day_name})\n"
+        "RULES:\n"
+        "- 'tonight', 'this evening', 'out tonight' → use relative_window='tonight' (events from now through end of evening)\n"
+        "- 'today', 'right now', 'happening now' → use relative_window='today' (events from now through end of day)\n"
+        "- Both 'today' and 'tonight' start from the CURRENT TIME — past events are excluded.\n"
+        "- A bare day-of-week reference (e.g. 'Thursday', 'Friday night') → use next_WEEKDAY.\n"
         "If no date constraint exists, do not call any function.\n"
         f"User query: {query}"
     )

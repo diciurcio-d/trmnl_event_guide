@@ -927,11 +927,12 @@ def append_venue_events(events: list[dict], venue_name: str):
 
     if not new_events:
         print(f"  No new events for {venue_name} (all duplicates)")
-        return
+        return 0
 
     all_events = existing + new_events
     write_venue_events_to_sheet(all_events)
     print(f"  Added {len(new_events)} new events for {venue_name}")
+    return len(new_events)
 
 
 def sync_semantic_index_membership(included_event_keys: set[str], indexed_at: str | None = None) -> dict:
@@ -1017,6 +1018,99 @@ def get_matched_events() -> list[dict]:
     """Get all events that have a matched artist."""
     events = read_venue_events_from_sheet()
     return [event for event in events if event.get("matched_artist")]
+
+
+_RUN_LOG_TAB = "Run Log"
+_RUN_LOG_COLUMNS = [
+    "date",
+    "started_at",
+    "duration_min",
+    "venues_processed",
+    "venues_with_events",
+    "errors",
+    "events_before",
+    "events_added",
+    "events_removed",
+    "events_after",
+    "status",
+]
+
+
+def write_run_log(stats: dict) -> None:
+    """Append a single row to the 'Run Log' tab of the Venue Events sheet.
+
+    stats keys (all optional — missing values written as empty string):
+        started_at, duration_min, venues_processed, venues_with_events,
+        errors, events_before, events_added, events_removed, events_after, status
+    """
+    sheet_id = get_or_create_venue_events_sheet()
+    if not sheet_id:
+        print("  write_run_log: no sheet ID, skipping.")
+        return
+
+    service = _get_sheets_service()
+    if not service:
+        print("  write_run_log: no Sheets service, skipping.")
+        return
+
+    # Ensure the Run Log tab exists; create it if not.
+    try:
+        meta = _execute_with_retry(
+            service.spreadsheets().get(spreadsheetId=sheet_id),
+            "get spreadsheet metadata",
+        )
+        existing_tabs = {s["properties"]["title"] for s in meta.get("sheets", [])}
+        if _RUN_LOG_TAB not in existing_tabs:
+            _execute_with_retry(
+                service.spreadsheets().batchUpdate(
+                    spreadsheetId=sheet_id,
+                    body={"requests": [{"addSheet": {"properties": {"title": _RUN_LOG_TAB}}}]},
+                ),
+                "create Run Log tab",
+            )
+            # Write header row
+            _execute_with_retry(
+                service.spreadsheets().values().update(
+                    spreadsheetId=sheet_id,
+                    range=f"'{_RUN_LOG_TAB}'!A1",
+                    valueInputOption="RAW",
+                    body={"values": [_RUN_LOG_COLUMNS]},
+                ),
+                "write Run Log header",
+            )
+    except Exception as exc:
+        print(f"  write_run_log: failed to ensure tab exists: {exc}")
+        return
+
+    now_et = datetime.now(ZoneInfo("America/New_York"))
+    row = [
+        now_et.strftime("%Y-%m-%d"),
+        str(stats.get("started_at", "")),
+        str(round(float(stats.get("duration_min", 0)), 1)),
+        str(stats.get("venues_processed", "")),
+        str(stats.get("venues_with_events", "")),
+        str(stats.get("errors", "")),
+        str(stats.get("events_before", "")),
+        str(stats.get("events_added", "")),
+        str(stats.get("events_removed", "")),
+        str(stats.get("events_after", "")),
+        str(stats.get("status", "success")),
+    ]
+
+    try:
+        _execute_with_retry(
+            service.spreadsheets().values().append(
+                spreadsheetId=sheet_id,
+                range=f"'{_RUN_LOG_TAB}'!A1",
+                valueInputOption="RAW",
+                insertDataOption="INSERT_ROWS",
+                body={"values": [row]},
+            ),
+            "append Run Log row",
+        )
+        print(f"  Run log written: {row[0]} — +{stats.get('events_added', '?')} added, -{stats.get('events_removed', '?')} removed")
+    except Exception as exc:
+        print(f"  write_run_log: failed to append row: {exc}")
 
 
 def test_venue_events_sheet():

@@ -66,7 +66,14 @@ def main():
         print(f"  Oldest last fetch in batch: {oldest}")
     print()
 
-    # --- 3. Fetch events ---
+    # --- 3. Snapshot current event count before fetch ---
+    from venue_scout.venue_events_sheet import read_venue_events_from_sheet
+    print("Snapshotting current event count...")
+    events_before = len(read_venue_events_from_sheet())
+    print(f"  Events in sheet before run: {events_before}")
+    print()
+
+    # --- 4. Fetch events ---
     print("Fetching events...")
     from venue_scout.event_fetcher import fetch_events_for_venues
     results = fetch_events_for_venues(
@@ -80,16 +87,17 @@ def main():
     fetched = sum(1 for r in results.values() if r.events)
     errors = sum(1 for r in results.values() if r.error)
     total_events = sum(len(r.events) for r in results.values())
-    print(f"\nFetch summary: {fetched} venues with events, {total_events} new events, {errors} errors")
+    events_added = sum(r.new_events_added for r in results.values())
+    print(f"\nFetch summary: {fetched} venues with events, {events_added} new events, {errors} errors")
     print()
 
-    # --- 4. Rebuild semantic index (incremental — only new/changed events get re-embedded) ---
+    # --- 5. Rebuild semantic index (incremental — only new/changed events get re-embedded) ---
     print("Rebuilding semantic index...")
-    from venue_scout.venue_events_sheet import read_venue_events_from_sheet
     from venue_scout.semantic_search import build_semantic_index
 
     all_events = read_venue_events_from_sheet()
-    print(f"  Loaded {len(all_events)} total events from sheet")
+    events_after = len(all_events)
+    print(f"  Loaded {events_after} total events from sheet")
 
     index_result = build_semantic_index(all_events)
     reused = index_result.get("incremental_reused_count", 0)
@@ -98,7 +106,24 @@ def main():
     print()
 
     elapsed = time.time() - start
-    print(f"=== Job complete in {elapsed / 60:.1f} minutes ===")
+    elapsed_min = elapsed / 60
+    events_removed = max(0, events_before + events_added - events_after)
+    print(f"=== Job complete in {elapsed_min:.1f} minutes ===")
+
+    # --- 6. Write run log ---
+    from venue_scout.venue_events_sheet import write_run_log
+    write_run_log({
+        "started_at": now.isoformat(),
+        "duration_min": elapsed_min,
+        "venues_processed": len(batch),
+        "venues_with_events": fetched,
+        "errors": errors,
+        "events_before": events_before,
+        "events_added": events_added,
+        "events_removed": events_removed,
+        "events_after": events_after,
+        "status": "success" if errors == 0 else f"partial ({errors} errors)",
+    })
 
 
 if __name__ == "__main__":
