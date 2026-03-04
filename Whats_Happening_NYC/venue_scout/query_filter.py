@@ -344,10 +344,14 @@ def _safe_json_obj(text: str) -> dict | None:
 
 
 def _is_timeout_error(exc: Exception) -> bool:
-    """Return True when exception text indicates provider timeout/deadline."""
+    """Return True when exception text indicates a transient provider failure worth trying a fallback model."""
     lowered = str(exc).lower()
     timeout_tokens = (
+        "503",
         "504",
+        "overloaded",
+        "unavailable",
+        "service unavailable",
         "deadline_exceeded",
         "deadline exceeded",
         "deadline expired",
