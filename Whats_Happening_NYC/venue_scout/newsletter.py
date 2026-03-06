@@ -134,10 +134,11 @@ def _event_summary_for_llm(event: dict, idx: int) -> dict:
 
 def curate_newsletter(grouped: dict[str, list[dict]]) -> list[dict]:
     """
-    Ask Gemini to pick highlights for each day.
+    Ask Gemini to pick highlights for the entire week in a single LLM call.
 
-    Venues and event names already chosen on earlier days are passed as
-    exclusions to each subsequent day's prompt so nothing repeats.
+    All days' candidates are sent together so the model can ensure variety
+    across the full week (no repeated venues or events) without needing a
+    separate exclusion list.
 
     Returns a list of day-buckets:
       [{"date": "2026-03-07", "label": "Saturday, March 7",
@@ -149,9 +150,9 @@ def curate_newsletter(grouped: dict[str, list[dict]]) -> list[dict]:
     model = str(getattr(_settings, "NEWSLETTER_MODEL", "gemini-2.5-flash"))
     timeout = int(getattr(_settings, "NEWSLETTER_TIMEOUT_SEC", 60))
 
-    day_buckets = []
-    used_venues: set[str] = set()   # normalised venue names already picked
-    used_events: set[str] = set()   # normalised event names already picked
+    # Build per-day metadata and a flat global candidate list
+    day_meta = []          # [{date, label, n_picks, start_idx, end_idx}]
+    all_candidates = []    # flat list of event dicts in global index order
 
     for date_str, events in grouped.items():
         dt_day = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=_TZ)
@@ -159,90 +160,149 @@ def curate_newsletter(grouped: dict[str, list[dict]]) -> list[dict]:
         n_picks = _PICKS_BY_DOW.get(dow, 2)
         label = dt_day.strftime("%A, %B %-d")
 
-        # Sort by score and take top candidates
         candidates = sorted(events, key=_score_event, reverse=True)[:_CANDIDATES_PER_DAY]
-        summaries = [_event_summary_for_llm(e, i) for i, e in enumerate(candidates)]
+        start_idx = len(all_candidates)
+        all_candidates.extend(candidates)
+        end_idx = len(all_candidates)
 
-        exclusion_note = ""
-        if used_venues or used_events:
-            parts = []
-            if used_venues:
-                parts.append("venues: " + ", ".join(sorted(used_venues)))
-            if used_events:
-                parts.append("events: " + ", ".join(sorted(used_events)))
-            exclusion_note = (
-                "\nALREADY FEATURED in earlier days (do NOT pick these again):\n"
-                + "\n".join(parts)
-                + "\n"
-            )
-
-        prompt = f"""You are curating a NYC events newsletter. For {label}, pick exactly {n_picks} events that together offer variety and genuine interest.
-
-Prefer: specific/unique events over generic ones, evening events for weekdays, a mix of types (music, art, food, comedy, sports, outdoor, family, etc.).
-{exclusion_note}
-Return strict JSON — a list of {n_picks} objects, each with keys:
-- "index": (int, from the input)
-- "name": (string, event name — you may shorten if very long)
-- "venue": (string)
-- "time": (string, e.g. "8:00 PM" or "time TBD")
-- "description": (string, 1-2 punchy sentences you write, max 180 chars — make it sound exciting)
-- "url": (string, from input)
-
-Events:
-{json.dumps(summaries, ensure_ascii=False)}
-"""
-        print(f"\n--- Prompt for {label} ---")
-        print(prompt)
-        print(f"--- End prompt ---\n")
-
-        try:
-            raw = generate_content(
-                prompt,
-                max_retries=2,
-                timeout_sec=timeout,
-                model_name=model,
-            )
-            match = re.search(r"\[[\s\S]*\]", raw)
-            if not match:
-                raise ValueError("no JSON array in response")
-            picks = json.loads(match.group())
-            # Resolve index back to original event URL if LLM omitted it
-            for pick in picks:
-                idx = pick.get("index")
-                if isinstance(idx, int) and 0 <= idx < len(candidates):
-                    src_url = candidates[idx].get("url") or candidates[idx].get("event_source_url", "")
-                    if not pick.get("url") and src_url:
-                        pick["url"] = src_url
-        except Exception as exc:
-            print(f"  LLM curation failed for {label}: {exc} — using top {n_picks} by score")
-            picks = [
-                {
-                    "name": e.get("name", ""),
-                    "venue": e.get("venue_name", ""),
-                    "time": _event_summary_for_llm(e, 0)["time"],
-                    "description": str(e.get("description", "") or "")[:180],
-                    "url": e.get("url") or e.get("event_source_url", ""),
-                }
-                for e in candidates[:n_picks]
-            ]
-
-        picks = picks[:n_picks]
-
-        # Record what was picked so future days can avoid repeating them
-        for pick in picks:
-            v = str(pick.get("venue", "")).strip().lower()
-            n = str(pick.get("name", "")).strip().lower()
-            if v:
-                used_venues.add(v)
-            if n:
-                used_events.add(n)
-
-        day_buckets.append({
+        day_meta.append({
             "date": date_str,
             "label": label,
+            "n_picks": n_picks,
+            "start_idx": start_idx,
+            "end_idx": end_idx,
+            "candidates": candidates,
+        })
+
+    # Build per-day sections for the prompt using global indices
+    days_payload = []
+    for d in day_meta:
+        summaries = [
+            _event_summary_for_llm(e, d["start_idx"] + i)
+            for i, e in enumerate(d["candidates"])
+        ]
+        days_payload.append({
+            "date": d["date"],
+            "label": d["label"],
+            "picks_needed": d["n_picks"],
+            "candidates": summaries,
+        })
+
+    prompt = f"""You are curating a NYC events newsletter for the coming week. Pick highlights across all days in a single pass so you can ensure variety — no venue or event should appear more than once across the whole newsletter.
+
+For each day, select exactly the number of events specified in "picks_needed". Prefer:
+- Specific/unique events over generic ones
+- Evening events for weekdays
+- A mix of types (music, art, food, comedy, sports, outdoor, film, family, etc.) spread across the week
+
+Return strict JSON — a list of day objects, one per day, in the same order as the input. Each day object has:
+- "date": (string, YYYY-MM-DD, from input)
+- "picks": list of exactly picks_needed objects, each with:
+  - "index": (int, the global index from the candidate list)
+  - "name": (string, event name — you may shorten if very long)
+  - "venue": (string)
+  - "time": (string, e.g. "8:00 PM" or "time TBD")
+  - "description": (string, 1-2 punchy sentences you write, max 180 chars — make it sound exciting)
+  - "url": (string, from input — copy exactly)
+
+Days and candidates:
+{json.dumps(days_payload, ensure_ascii=False)}
+"""
+
+    prompt_chars = len(prompt)
+    prompt_tokens_approx = prompt_chars // 4
+    print(f"\n--- Single-call newsletter prompt ({prompt_chars:,} chars ≈ {prompt_tokens_approx:,} tokens) ---")
+    print(prompt[:2000])
+    if prompt_chars > 2000:
+        print(f"  ... [{prompt_chars - 2000:,} more chars] ...")
+    print(f"--- End prompt ---\n")
+
+    # Build the fallback buckets (top-N-by-score, no LLM)
+    def _fallback_buckets() -> list[dict]:
+        return [
+            {
+                "date": d["date"],
+                "label": d["label"],
+                "picks": [
+                    {
+                        "name": e.get("name", ""),
+                        "venue": e.get("venue_name", ""),
+                        "time": _event_summary_for_llm(e, 0)["time"],
+                        "description": str(e.get("description", "") or "")[:180],
+                        "url": e.get("url") or e.get("event_source_url", ""),
+                    }
+                    for e in d["candidates"][:d["n_picks"]]
+                ],
+            }
+            for d in day_meta
+        ]
+
+    try:
+        raw = generate_content(
+            prompt,
+            max_retries=2,
+            timeout_sec=timeout,
+            model_name=model,
+        )
+        match = re.search(r"\[[\s\S]*\]", raw)
+        if not match:
+            raise ValueError("no JSON array in response")
+        week_data = json.loads(match.group())
+    except Exception as exc:
+        print(f"  LLM curation failed: {exc} — using top-N by score for all days")
+        return _fallback_buckets()
+
+    # Map LLM output back to day_meta order, resolving URLs from global index
+    date_to_meta = {d["date"]: d for d in day_meta}
+    day_buckets = []
+
+    for day_result in week_data:
+        date_str = day_result.get("date", "")
+        meta = date_to_meta.get(date_str)
+        if meta is None:
+            continue
+
+        picks = day_result.get("picks", [])
+        # Resolve URL from global all_candidates if LLM omitted it
+        for pick in picks:
+            idx = pick.get("index")
+            if isinstance(idx, int) and 0 <= idx < len(all_candidates):
+                src_url = (
+                    all_candidates[idx].get("url")
+                    or all_candidates[idx].get("event_source_url", "")
+                )
+                if not pick.get("url") and src_url:
+                    pick["url"] = src_url
+
+        picks = picks[:meta["n_picks"]]
+        day_buckets.append({
+            "date": date_str,
+            "label": meta["label"],
             "picks": picks,
         })
 
+    # If LLM returned fewer days than expected, fill gaps with fallback
+    returned_dates = {b["date"] for b in day_buckets}
+    for d in day_meta:
+        if d["date"] not in returned_dates:
+            print(f"  LLM missing day {d['date']} — using top-{d['n_picks']} by score")
+            day_buckets.append({
+                "date": d["date"],
+                "label": d["label"],
+                "picks": [
+                    {
+                        "name": e.get("name", ""),
+                        "venue": e.get("venue_name", ""),
+                        "time": _event_summary_for_llm(e, 0)["time"],
+                        "description": str(e.get("description", "") or "")[:180],
+                        "url": e.get("url") or e.get("event_source_url", ""),
+                    }
+                    for e in d["candidates"][:d["n_picks"]]
+                ],
+            })
+
+    # Sort final output by date (preserves week order)
+    day_buckets.sort(key=lambda b: b["date"])
     return day_buckets
 
 
@@ -391,7 +451,7 @@ def main(dry_run: bool = False) -> None:
 
     model = str(getattr(_settings, "NEWSLETTER_MODEL", "gemini-2.5-flash"))
     timeout = int(getattr(_settings, "NEWSLETTER_TIMEOUT_SEC", 60))
-    print(f"Curating picks with {model} (timeout {timeout}s per day)...")
+    print(f"Curating picks with {model} (single call, timeout {timeout}s)...")
     day_buckets = curate_newsletter(grouped)
     total_picks = sum(len(d["picks"]) for d in day_buckets)
     print(f"  Selected {total_picks} events across {len(day_buckets)} days")

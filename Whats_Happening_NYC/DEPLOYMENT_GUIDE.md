@@ -268,10 +268,10 @@ Edit `settings.py`:
 
 ```python
 NEWSLETTER_MODEL = "gemini-2.5-pro"   # richer picks, slower
-NEWSLETTER_TIMEOUT_SEC = 90           # give Pro more time per day
+NEWSLETTER_TIMEOUT_SEC = 180          # give Pro more time for the single full-week call
 ```
 
-The newsletter logs which model it used at the start of each run.
+The newsletter uses a single LLM call for the whole week (all days' candidates in one prompt, ~30K tokens). The model logs the prompt size and which model it used at the start of each run.
 
 ### Event distribution per day
 
