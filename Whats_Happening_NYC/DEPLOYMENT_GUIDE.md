@@ -179,6 +179,112 @@ gcloud run services describe whats-happening-nyc \
 
 ---
 
+## Nightly Event Refresh Job
+
+A Cloud Run Job (`daily-event-refresh`) runs every day at 8:00 AM UTC. It:
+1. Selects the 100 venues with the oldest `last_event_fetch` timestamp
+2. Fetches their events and writes new ones to the Venue Events Google Sheet
+3. Rebuilds the FAISS semantic index incrementally
+4. Appends a row to the **"Run Log"** tab in the Venue Events sheet
+
+### Check recent runs
+
+```bash
+gcloud run jobs executions list \
+  --job=daily-event-refresh \
+  --region=us-central1 \
+  --project=gen-lang-client-0046008897 \
+  --limit=7
+```
+
+### Check a run's summary stats
+
+```bash
+gcloud logging read \
+  'resource.type="cloud_run_job" AND textPayload:"Fetch summary"' \
+  --limit=5 \
+  --format="table(timestamp, textPayload)" \
+  --project=gen-lang-client-0046008897
+```
+
+### Trigger a manual run
+
+```bash
+gcloud run jobs execute daily-event-refresh \
+  --region=us-central1 \
+  --project=gen-lang-client-0046008897
+```
+
+### Run Log sheet
+
+Each successful run appends a row to the **"Run Log"** tab in the Venue Events spreadsheet with:
+`date · started_at · duration_min · venues_processed · venues_with_events · errors · events_before · events_added · events_removed · events_after · status`
+
+`events_removed` = events archived as past or dropped (computed as `before + added − after`).
+
+---
+
+## Newsletter
+
+`venue_scout/newsletter.py` generates a weekly HTML email digest of ~25–30 upcoming events across the next 7 days, with more picks on weekends. It uses Gemini to curate highlights and sends via Gmail SMTP.
+
+### Run locally
+
+```bash
+# From Whats_Happening_NYC/
+
+# Preview — writes HTML to /tmp/newsletter_preview.html, does not send
+python3 -m venue_scout.newsletter --dry-run
+
+# Send to the configured recipient
+python3 -m venue_scout.newsletter
+```
+
+### Gmail credentials
+
+Stored in `config.json` under the `gmail` key (pushed to Secret Manager as `app-config`):
+
+```json
+"gmail": {
+  "sender": "diciurcio.david@gmail.com",
+  "app_password": "...",
+  "recipient": "diciurcio.david@gmail.com"
+}
+```
+
+To update: edit `config/config.json` then run:
+
+```bash
+gcloud secrets versions add app-config \
+  --data-file=config/config.json \
+  --project=gen-lang-client-0046008897
+```
+
+No redeploy needed — the newsletter runs locally or as a job, not via the web server.
+
+### Changing the curation model
+
+Edit `settings.py`:
+
+```python
+NEWSLETTER_MODEL = "gemini-2.5-pro"   # richer picks, slower
+NEWSLETTER_TIMEOUT_SEC = 90           # give Pro more time per day
+```
+
+The newsletter logs which model it used at the start of each run.
+
+### Event distribution per day
+
+| Day | Picks |
+|-----|-------|
+| Mon–Wed | 2 |
+| Thu | 3 |
+| Fri | 4 |
+| Sat | 7 |
+| Sun | 6 |
+
+---
+
 ## Local Development
 
 Run the app locally (uses OAuth token instead of service account):
