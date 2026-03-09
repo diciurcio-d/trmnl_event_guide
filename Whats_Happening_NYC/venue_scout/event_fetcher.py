@@ -90,6 +90,8 @@ def _normalize_event_schema(event: dict, venue_name: str, source: str) -> dict:
     normalized["matched_artist"] = normalized.get("matched_artist", "")
     normalized["travel_minutes"] = normalized.get("travel_minutes")
     normalized["description"] = normalized.get("description", "")
+    normalized["is_free"] = normalized.get("is_free")  # True/False/None — preserve None for unknown
+    normalized["price"] = str(normalized.get("price", "") or "").strip()
     normalized["event_source_url"] = normalized.get("event_source_url") or normalized.get("url", "")
     normalized["extraction_method"] = normalized.get("extraction_method", source)
     normalized["relevance_score"] = normalized.get("relevance_score")
@@ -1627,6 +1629,8 @@ def _normalize_llm_event_rows(
                 "matched_artist": "",
                 "travel_minutes": None,
                 "description": _strip_tags(str(row.get("description", "") or "")),
+                "is_free": row.get("is_free"),  # True/False/None
+                "price": str(row.get("price", "") or "").strip(),
                 "event_source_url": source_url,
                 "extraction_method": extraction_method,
                 "validation_confidence": 0.6,
