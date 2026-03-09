@@ -119,6 +119,8 @@ VENUE_EVENTS_COLUMNS = [
     "matched_artist",
     "travel_minutes",
     "description",
+    "is_free",
+    "price",
     "event_source_url",
     "extraction_method",
     "relevance_score",
@@ -144,6 +146,9 @@ def normalize_event(event: dict) -> dict:
     normalized["matched_artist"] = normalized.get("matched_artist", "")
     normalized["travel_minutes"] = normalized.get("travel_minutes")
     normalized["description"] = normalized.get("description", "")
+    is_free = normalized.get("is_free")
+    normalized["is_free"] = bool(is_free) if is_free is not None else None
+    normalized["price"] = normalized.get("price", "")
     normalized["event_source_url"] = normalized.get("event_source_url", "")
     normalized["extraction_method"] = normalized.get("extraction_method", "")
     normalized["relevance_score"] = normalized.get("relevance_score")
@@ -733,6 +738,8 @@ def _append_to_archive(sheet_id: str, service, past_events: list[dict]) -> int:
             event.get("matched_artist", ""),
             str(event.get("travel_minutes")) if event.get("travel_minutes") is not None else "",
             event.get("description", ""),
+            "TRUE" if event.get("is_free") is True else ("FALSE" if event.get("is_free") is False else ""),
+            event.get("price", ""),
             event.get("event_source_url", ""),
             event.get("extraction_method", ""),
             str(event.get("relevance_score")) if event.get("relevance_score") is not None else "",
@@ -848,6 +855,8 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
             event.get("matched_artist", ""),
             str(event.get("travel_minutes")) if event.get("travel_minutes") is not None else "",
             event.get("description", ""),
+            "TRUE" if event.get("is_free") is True else ("FALSE" if event.get("is_free") is False else ""),
+            event.get("price", ""),
             event.get("event_source_url", ""),
             event.get("extraction_method", ""),
             str(event.get("relevance_score")) if event.get("relevance_score") is not None else "",

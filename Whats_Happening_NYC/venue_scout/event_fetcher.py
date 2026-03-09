@@ -1457,6 +1457,8 @@ Extract each event and return as a JSON array. For each event include:
 - event_type: Type of event (concert, comedy, theater, exhibition, festival, reading, etc.)
 - url: Event URL if available, otherwise empty string
 - description: Brief description if available
+- is_free: true if the event is explicitly free, false if ticketed/paid, null if unknown
+- price: Ticket price if shown — flat ("$15") or range ("$10–$30"); empty string if unknown or free
 
 Only include events whose start date OR end date is on or after today ({today_iso}).
 If this chunk has no events, return: []

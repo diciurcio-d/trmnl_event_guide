@@ -438,6 +438,18 @@
             padding: 1px 7px;
         }
 
+        .result-price {
+            font-size: 11px;
+            color: var(--muted);
+            background: #f0f4f1;
+            border-radius: 999px;
+            padding: 1px 7px;
+        }
+        .result-price[data-free="true"] {
+            color: #2a7a3b;
+            background: #e6f4ea;
+        }
+
         .result-ask-btn {
             align-self: flex-end;
             margin-top: 2px;
@@ -893,6 +905,25 @@
             return "";
         }
 
+        function slimEventForStorage(e) {
+            return {
+                name: e.name || "",
+                url: e.url || "",
+                event_source_url: e.event_source_url || "",
+                date_str: e.date_str || "",
+                datetime: e.datetime || "",
+                venue_name: e.venue_name || "",
+                event_type: e.event_type || "",
+                description: String(e.description || "").slice(0, 300),
+                travel_minutes: e.travel_minutes ?? null,
+                is_free: e.is_free ?? null,
+                price: e.price || "",
+                cloudflare_protected: !!e.cloudflare_protected,
+                _group_dates: e._group_dates || null,
+                _group_count: e._group_count || null,
+            };
+        }
+
         function shortDescription(rawText, maxChars = 180) {
             const text = String(rawText || "").replace(/\s+/g, " ").trim();
             if (!text) return "";
@@ -944,14 +975,21 @@
                 ? `<span class="result-travel">${escapeHtml(String(travelRaw))} min</span>`
                 : "";
 
-            // Venue + category
+            // Venue + category + price
             const venueName = escapeHtml(event.venue_name || "");
             const categoryLabel = formatCategoryLabel(event.event_type || "");
             const venueHtml = venueName ? `<span class="result-venue">${venueName}</span>` : "";
             const catHtml = categoryLabel ? `<span class="result-cat">${escapeHtml(categoryLabel)}</span>` : "";
+            const isFree = event.is_free;
+            const priceRaw = String(event.price || "").trim();
+            const priceLabel = isFree === true ? "Free" : (priceRaw || "");
+            const priceHtml = priceLabel ? `<span class="result-price" data-free="${isFree === true}">${escapeHtml(priceLabel)}</span>` : "";
 
             const preview = includeDescription ? shortDescription(event.description || "") : "";
             const descHtml = preview ? `<div class="result-desc">${escapeHtml(preview)}</div>` : "";
+
+            const venueRowParts = [venueHtml, catHtml, priceHtml].filter(Boolean);
+            const venueRowSep = '<span style="color:var(--line)">·</span>';
 
             item.innerHTML = `
                 <div class="result-top">
@@ -959,7 +997,7 @@
                     ${travelHtml}
                 </div>
                 <div class="result-name">${linkedName}</div>
-                ${(venueHtml || catHtml) ? `<div class="result-venue-row">${venueHtml}${venueHtml && catHtml ? '<span style="color:var(--line)">·</span>' : ""}${catHtml}</div>` : ""}
+                ${venueRowParts.length ? `<div class="result-venue-row">${venueRowParts.join(venueRowSep)}</div>` : ""}
                 ${descHtml}
             `;
 
@@ -1334,7 +1372,13 @@
 
                 // Record this exchange in history for future query context
                 _chatHistory.push({ role: "user", text: actualQuery });
-                if (interpretation) _chatHistory.push({ role: "assistant", text: interpretation });
+                if (interpretation) {
+                    _chatHistory.push({
+                        role: "assistant",
+                        text: interpretation,
+                        matches: (data.matches || []).slice(0, 30).map(slimEventForStorage),
+                    });
+                }
                 saveHistory(_chatHistory);
             } catch (error) {
                 requestSettled = true;
@@ -1451,13 +1495,13 @@
             document.querySelectorAll(".result-card--selected")
                 .forEach(c => c.classList.remove("result-card--selected"));
 
-            // Re-render conversation as text bubbles
+            // Re-render conversation — user bubbles as text, assistant bubbles with event cards
             chatLogEl.innerHTML = "";
             session.history.forEach(msg => {
                 if (msg.role === "user") {
                     addMessage(escapeHtml(msg.text), "user");
                 } else {
-                    addMessage(renderMarkdown(msg.text), "assistant");
+                    addMessage(renderMarkdown(msg.text), "assistant", msg.matches || []);
                 }
             });
 

@@ -121,6 +121,14 @@ def _score_event(event: dict) -> int:
 
 def _event_summary_for_llm(event: dict, idx: int) -> dict:
     dt = _parse_event_dt(event)
+    is_free = event.get("is_free")
+    price = str(event.get("price", "") or "").strip()
+    if is_free is True:
+        price_str = "Free"
+    elif price:
+        price_str = price
+    else:
+        price_str = ""
     return {
         "index": idx,
         "name": event.get("name", ""),
@@ -129,6 +137,7 @@ def _event_summary_for_llm(event: dict, idx: int) -> dict:
         "type": event.get("event_type", ""),
         "description": str(event.get("description", "") or "")[:300],
         "url": event.get("url") or event.get("event_source_url", ""),
+        "price": price_str,
     }
 
 
@@ -263,16 +272,19 @@ Days and candidates:
             continue
 
         picks = day_result.get("picks", [])
-        # Resolve URL from global all_candidates if LLM omitted it
+        # Resolve URL and price from global all_candidates if LLM omitted them
         for pick in picks:
             idx = pick.get("index")
             if isinstance(idx, int) and 0 <= idx < len(all_candidates):
-                src_url = (
-                    all_candidates[idx].get("url")
-                    or all_candidates[idx].get("event_source_url", "")
-                )
+                src = all_candidates[idx]
+                src_url = src.get("url") or src.get("event_source_url", "")
                 if not pick.get("url") and src_url:
                     pick["url"] = src_url
+                # Carry price/is_free from source event if not set by LLM
+                if "price" not in pick:
+                    is_free = src.get("is_free")
+                    price = str(src.get("price", "") or "").strip()
+                    pick["price"] = "Free" if is_free is True else price
 
         picks = picks[:meta["n_picks"]]
         day_buckets.append({
@@ -324,8 +336,8 @@ _HTML_TEMPLATE = """\
   .header h1 {{ margin: 0; color: #fff; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }}
   .header p {{ margin: 6px 0 0; color: #aaa; font-size: 13px; }}
   .body {{ padding: 24px 32px 8px; }}
-  .day-section {{ margin-bottom: 28px; }}
-  .day-label {{ font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; color: #888; border-bottom: 1px solid #eee; padding-bottom: 6px; margin-bottom: 14px; }}
+  .day-section {{ margin-bottom: 32px; }}
+  .day-label {{ font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #fff; background: #222; padding: 8px 12px; margin-bottom: 16px; border-radius: 3px; }}
   .event {{ margin-bottom: 18px; }}
   .event-name {{ font-size: 15px; font-weight: 600; margin: 0 0 2px; }}
   .event-name a {{ color: #111; text-decoration: none; }}
@@ -359,7 +371,16 @@ _HTML_TEMPLATE = """\
 
 def _render_day_section(day: dict) -> str:
     label = day.get("label", "")
+    date_str = day.get("date", "")
     picks = day.get("picks", [])
+
+    # Short date label for per-event meta (e.g. "Sat Mar 7")
+    try:
+        dt_day = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=_TZ)
+        short_date = dt_day.strftime("%a, %b %-d")
+    except (ValueError, TypeError):
+        short_date = ""
+
     events_html = ""
     for pick in picks:
         name = pick.get("name", "Untitled Event")
@@ -373,7 +394,9 @@ def _render_day_section(day: dict) -> str:
         else:
             name_html = name
 
-        meta_parts = [p for p in [venue, time_str] if p]
+        price_str = str(pick.get("price", "") or "").strip()
+        when = f"{short_date} · {time_str}" if time_str and time_str != "time TBD" else (short_date or time_str)
+        meta_parts = [p for p in [venue, when, price_str] if p]
         meta = " · ".join(meta_parts)
 
         events_html += f"""\
