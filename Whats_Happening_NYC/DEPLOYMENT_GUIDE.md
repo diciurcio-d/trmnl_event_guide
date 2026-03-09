@@ -228,6 +228,27 @@ Each successful run appends a row to the **"Run Log"** tab in the Venue Events s
 
 `venue_scout/newsletter.py` generates a weekly HTML email digest of ~25–30 upcoming events across the next 7 days, with more picks on weekends. It uses Gemini to curate highlights and sends via Gmail SMTP.
 
+### Scheduled job
+
+The newsletter runs automatically every **Thursday at 11:00 AM ET** via Cloud Scheduler → Cloud Run Job.
+
+- **Cloud Run Job**: `newsletter-weekly`
+- **Cloud Scheduler trigger**: `newsletter-weekly-thursday`
+
+```bash
+# Check recent runs
+gcloud run jobs executions list \
+  --job=newsletter-weekly \
+  --region=us-central1 \
+  --project=gen-lang-client-0046008897 \
+  --limit=5
+
+# Trigger a manual run
+gcloud run jobs execute newsletter-weekly \
+  --region=us-central1 \
+  --project=gen-lang-client-0046008897
+```
+
 ### Run locally
 
 ```bash
