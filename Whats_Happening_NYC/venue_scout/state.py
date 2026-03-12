@@ -33,6 +33,8 @@ class Venue(TypedDict):
     last_event_fetch: str        # ISO timestamp of last event fetch
     event_count: int             # Number of events found in last fetch
     event_source: str            # Source used: "ticketmaster", "api", "scrape", etc.
+    # Travel time mapping
+    route_planner_id: str        # Destination ID in the pre-computed travel matrix (e.g. "tm_KovZ917AOJF")
 
 
 class VenueScoutState(TypedDict):

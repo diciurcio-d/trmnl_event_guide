@@ -138,6 +138,7 @@ def _deserialize_venue_from_db(data: dict) -> Venue:
         preferred_event_source=data.get("preferred_event_source", ""),
         api_endpoint=data.get("api_endpoint", ""),
         ticketmaster_venue_id=data.get("ticketmaster_venue_id", ""),
+        route_planner_id=data.get("route_planner_id", ""),
         cloudflare_protected=data.get("cloudflare_protected", ""),
         feed_url=data.get("feed_url", ""),
         feed_type=data.get("feed_type", ""),
