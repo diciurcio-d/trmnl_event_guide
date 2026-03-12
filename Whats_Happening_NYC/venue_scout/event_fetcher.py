@@ -1836,76 +1836,30 @@ def _batch_update_venue_metadata(results: dict, city: str):
     Batch update venue metadata after parallel fetching.
 
     Updates last_event_fetch, event_count, and event_source for all
-    venues in a single sheet write operation.
+    successfully-fetched venues via the Firestore public API.
     """
     from datetime import datetime
     from zoneinfo import ZoneInfo
-    from .cache import (
-        read_cached_venues, get_or_create_venues_sheet,
-        _get_sheets_service, VENUE_COLUMNS, _venue_to_row
-    )
+    from .cache import update_venues_batch
 
-    # Build updates dict
-    updates = {}
     now = datetime.now(ZoneInfo("America/New_York")).isoformat()
 
+    to_update = []
     for venue_name, result in results.items():
         if not result.skipped and not result.error:
-            updates[venue_name.lower().strip()] = {
+            to_update.append({
+                "name": venue_name,
+                "city": city,
                 "last_event_fetch": now,
                 "event_count": len(result.events),
                 "event_source": result.source_used,
-            }
+            })
 
-    if not updates:
+    if not to_update:
         return
 
-    # Read all venues
-    venues = read_cached_venues()
-
-    # Apply updates
-    updated_count = 0
-    for v in venues:
-        key = v.get("name", "").lower().strip()
-        if key in updates:
-            v["last_event_fetch"] = updates[key]["last_event_fetch"]
-            v["event_count"] = updates[key]["event_count"]
-            v["event_source"] = updates[key]["event_source"]
-            updated_count += 1
-
-    if updated_count == 0:
-        return
-
-    # Write back
-    sheet_id = get_or_create_venues_sheet()
-    if not sheet_id:
-        return
-
-    service = _get_sheets_service()
-    if not service:
-        return
-
-    rows = [VENUE_COLUMNS]
-    for venue in venues:
-        rows.append(_venue_to_row(venue))
-
-    try:
-        service.spreadsheets().values().clear(
-            spreadsheetId=sheet_id,
-            range="A:Q"
-        ).execute()
-
-        service.spreadsheets().values().update(
-            spreadsheetId=sheet_id,
-            range="A1",
-            valueInputOption="RAW",
-            body={"values": rows}
-        ).execute()
-
-        print(f"Updated metadata for {updated_count} venues")
-
-    except Exception as e:
-        print(f"Error batch updating venue metadata: {e}")
+    updated_count = update_venues_batch(to_update, city)
+    print(f"Updated metadata for {updated_count} venues")
 
 
 def fetch_venue_events(

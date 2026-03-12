@@ -595,6 +595,10 @@ def query_events_with_llm(
     warning = ""
     ranked_events = events
 
+    # When the user provided a clarifying answer, combine it with the base query
+    # so that pre-ranking (lexical/semantic) and fallback scoring use the full intent.
+    effective_query = f"{query} {context}".strip() if context else query
+
     if not force_fallback:
         ranked_events, date_filters, date_warning = _apply_date_tool(query, events)
         if date_warning:
@@ -609,14 +613,14 @@ def query_events_with_llm(
             }
         semantic_top_k = int(getattr(_settings, "SEMANTIC_TOP_K", 250))
         semantic_top_k = max(10, semantic_top_k)
-        specificity_score, specificity_signals = _query_specificity_score(query)
+        specificity_score, specificity_signals = _query_specificity_score(effective_query)
         specificity_threshold = int(getattr(_settings, "QUERY_SEMANTIC_SPECIFICITY_THRESHOLD", 2))
         skip_broad_semantic = bool(getattr(_settings, "QUERY_SEMANTIC_SKIP_BROAD", True))
         use_semantic = (not skip_broad_semantic) or (specificity_score >= specificity_threshold)
 
         if use_semantic:
             semantic_candidates, semantic_meta, semantic_warning = retrieve_semantic_candidates(
-                query=query,
+                query=effective_query,
                 events=ranked_events,
                 top_k=min(semantic_top_k, len(ranked_events)),
             )
@@ -631,7 +635,7 @@ def query_events_with_llm(
             broad_top_k = int(getattr(_settings, "QUERY_BROAD_LEXICAL_TOP_K", 120))
             broad_top_k = max(25, broad_top_k)
             lexical_candidates = lexical_rank_events(
-                query,
+                effective_query,
                 ranked_events,
                 min(broad_top_k, len(ranked_events)),
             )
@@ -650,13 +654,35 @@ def query_events_with_llm(
     llm_event_context_limit = int(getattr(_settings, "LLM_EVENT_CONTEXT_LIMIT", 250))
     llm_event_context_limit = max(25, llm_event_context_limit)
 
-    context_section = f"\nFOLLOW-UP ANSWER: {context}" if context else ""
     history_section = f"\nPREVIOUS SEARCHES:\n{history}" if history else ""
     no_date_window = not date_filters.get("date_window_applied")
     near_term_hint = (
         "\nSCORING: No specific date was requested. Strongly prefer events happening within the"
         " next 2 weeks. Events more than 30 days away should only appear if nothing sooner matches."
     ) if no_date_window else ""
+
+    if context:
+        context_section = f"\nUSER PREFERENCE (answer to clarifying question): {context}"
+        follow_up_rules = (
+            "CRITICAL: The user has already answered your clarifying question. "
+            "You MUST set follow_up_question to \"\" and MUST return matched_events now. "
+            "Do NOT ask another question. Find the best available matches for their stated preferences, "
+            "even if they are not a perfect fit. Never return an empty matched_events list when preferences are given."
+        )
+    else:
+        context_section = ""
+        follow_up_rules = (
+            "FOLLOW-UP QUESTION RULES:\n"
+            "- Set follow_up_question to a short clarifying question ONLY when ALL of these are true:\n"
+            "  1. The query is intentionally vague or open-ended (e.g. \"date spot\", \"fun night out\", \"something to do\", \"good show\")\n"
+            "  2. A single question would meaningfully narrow the results (e.g. asking about vibe, activity type, or budget)\n"
+            "  3. No context has already been provided\n"
+            "- When follow_up_question is non-empty, set matched_events to [] — the user will answer before seeing results\n"
+            "- If the user said \"I don't know\", \"anything\", \"surprise me\", or provided any preference context, set follow_up_question to \"\"\n"
+            "- For specific queries (specific genre, artist, venue, or date), set follow_up_question to \"\"\n"
+            "- Default: follow_up_question is \"\""
+        )
+
     prompt = f"""You are filtering NYC events for a user query.
 Return strict JSON with keys:
 - interpretation: string (brief description of what you found, or what you are asking)
@@ -664,17 +690,9 @@ Return strict JSON with keys:
 - matched_events: list of objects with keys index (int), score (0-100), reason (string)
 - follow_up_question: string
 
-FOLLOW-UP QUESTION RULES:
-- Set follow_up_question to a short clarifying question ONLY when ALL of these are true:
-  1. The query is intentionally vague or open-ended (e.g. "date spot", "fun night out", "something to do", "good show")
-  2. A single question would meaningfully narrow the results (e.g. asking about vibe, activity type, or budget)
-  3. No context has already been provided
-- When follow_up_question is non-empty, set matched_events to [] — the user will answer before seeing results
-- If the user said "I don't know", "anything", "surprise me", or provided any preference context, set follow_up_question to ""
-- For specific queries (specific genre, artist, venue, or date), set follow_up_question to ""
-- Default: follow_up_question is ""
+{follow_up_rules}
 {near_term_hint}
-Only include events that truly match the query. Sort by score desc.
+Include events that best match the query and preferences. Sort by score desc.
 Limit to top {max_results}.
 
 QUERY: {query}{context_section}{history_section}
@@ -759,7 +777,7 @@ EVENTS:
                 if semantic_filters:
                     merged_filters["semantic"] = semantic_filters
                 if not matches and ranked_events:
-                    matches = lexical_rank_events(query, ranked_events, max_results)
+                    matches = lexical_rank_events(effective_query, ranked_events, max_results)
                     for event in matches:
                         event["_reason"] = event.get("_reason") or "lexical_fallback_after_llm_empty"
                     warning = f"{warning} LLM returned no matches; used lexical fallback.".strip()
@@ -780,7 +798,7 @@ EVENTS:
             extra = "LLM response could not be parsed. Used fallback rules."
             warning = f"{warning} {extra}".strip()
             return _lexical_fallback_response(
-                query=query,
+                query=effective_query,
                 ranked_events=ranked_events,
                 max_results=max_results,
                 warning=warning,
@@ -791,7 +809,7 @@ EVENTS:
             extra = f"LLM filter unavailable ({exc}). Used lexical fallback."
             warning = f"{warning} {extra}".strip()
             return _lexical_fallback_response(
-                query=query,
+                query=effective_query,
                 ranked_events=ranked_events,
                 max_results=max_results,
                 warning=warning,

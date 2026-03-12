@@ -13,10 +13,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from venue_scout.cache import (
     VENUE_COLUMNS,
-    _get_sheets_service,
-    _venue_to_row,
-    get_or_create_venues_sheet,
     read_cached_venues,
+    update_venues_batch,
 )
 from venue_scout.paths import PLACES_CACHE_FILE, ensure_data_dir
 
@@ -65,23 +63,6 @@ BAD_ADDRESSES = {'nyc', 'new york', 'brooklyn', 'manhattan', 'queens', 'bronx', 
 def is_bad_address(address: str) -> bool:
     """Check if an address is too vague to be useful."""
     return address.lower().replace(',', '').strip() in BAD_ADDRESSES
-
-
-def _sheet_col_label(col_index: int) -> str:
-    """Convert 1-based column index into A1 column label."""
-    if col_index < 1:
-        return "A"
-    out = ""
-    value = col_index
-    while value:
-        value, rem = divmod(value - 1, 26)
-        out = chr(65 + rem) + out
-    return out
-
-
-def _sheet_full_range() -> str:
-    """Return full A1 range covering all venue columns."""
-    return f"A:{_sheet_col_label(len(VENUE_COLUMNS))}"
 
 
 def _parse_coordinate(value) -> float | None:
@@ -312,36 +293,15 @@ def enrich_venues(city: str = "NYC", dry_run: bool = True, limit: int = None):
 
 
 def _save_venues_to_sheet(venues: list):
-    """Save all venues to Google Sheets."""
-    sheet_id = get_or_create_venues_sheet()
-    if not sheet_id:
-        return
+    """Save enriched venues back to Firestore via update_venues_batch."""
+    # Group by city so each city's venues get updated in one call
+    by_city: dict[str, list] = {}
+    for v in venues:
+        by_city.setdefault(v.get("city", "NYC"), []).append(v)
 
-    service = _get_sheets_service()
-    if not service:
-        return
-
-    venues.sort(key=lambda x: (
-        x.get("city", "").lower(),
-        x.get("category", "").lower(),
-        x.get("name", "").lower(),
-    ))
-
-    rows = [VENUE_COLUMNS]
-    for venue in venues:
-        rows.append(_venue_to_row(venue))
-
-    service.spreadsheets().values().clear(
-        spreadsheetId=sheet_id,
-        range=_sheet_full_range()
-    ).execute()
-
-    service.spreadsheets().values().update(
-        spreadsheetId=sheet_id,
-        range="A1",
-        valueInputOption="RAW",
-        body={"values": rows}
-    ).execute()
+    for city, city_venues in by_city.items():
+        updated = update_venues_batch(city_venues, city)
+        print(f"  Saved {updated} enriched venues for {city}")
 
 
 def backfill_venue_coordinates(

@@ -12,3 +12,4 @@ mkdir -p /tmp/config
 [ ! -L /app/config ] && ln -s /tmp/config /app/config
 
 exec python -m venue_scout.job
+

@@ -78,78 +78,53 @@ def get_fresh_venues(venues: list[dict], city: str) -> list[dict]:
 
 def clear_venue_cache(venue_name: str | None = None, city: str | None = None):
     """
-    Clear venue event tracking data.
-
-    This clears the last_event_fetch, event_count, and event_source fields
-    in the Venues sheet.
+    Clear venue event tracking data (last_event_fetch, event_count, event_source).
 
     Args:
-        venue_name: If provided, only clear this venue
-        city: If provided with venue_name, only clear that venue in that city
-              If provided alone, clear all venues in that city
+        venue_name: If provided, only clear this venue.
+        city: If provided with venue_name, only clear that venue in that city.
+              If provided alone, clear all venues in that city.
     """
-    from datetime import datetime
-    from zoneinfo import ZoneInfo
-    from .cache import _get_sheets_service, get_or_create_venues_sheet, VENUE_COLUMNS, _venue_to_row
+    from .cache import read_cached_venues, update_venues_batch
 
     venues = read_cached_venues()
     city_lower = city.lower().strip() if city else None
     venue_lower = venue_name.lower().strip() if venue_name else None
 
-    updated = False
+    to_update: list[dict] = []
     for v in venues:
         should_clear = False
 
         if venue_lower and city_lower:
-            # Clear specific venue in city
             if (v.get("name", "").lower().strip() == venue_lower and
-                v.get("city", "").lower().strip() == city_lower):
+                    v.get("city", "").lower().strip() == city_lower):
+                should_clear = True
+        elif venue_lower:
+            if v.get("name", "").lower().strip() == venue_lower:
                 should_clear = True
         elif city_lower:
-            # Clear all venues in city
             if v.get("city", "").lower().strip() == city_lower:
                 should_clear = True
         else:
-            # Clear all
             should_clear = True
 
         if should_clear and v.get("last_event_fetch"):
-            v["last_event_fetch"] = ""
-            v["event_count"] = 0
-            v["event_source"] = ""
-            updated = True
+            cleared = dict(v)
+            cleared["last_event_fetch"] = ""
+            cleared["event_count"] = 0
+            cleared["event_source"] = ""
+            to_update.append(cleared)
 
-    if not updated:
+    if not to_update:
         return
 
-    # Write back
-    sheet_id = get_or_create_venues_sheet()
-    if not sheet_id:
-        return
+    # Group by city for update_venues_batch
+    by_city: dict[str, list[dict]] = {}
+    for v in to_update:
+        by_city.setdefault(v.get("city", ""), []).append(v)
 
-    service = _get_sheets_service()
-    if not service:
-        return
-
-    rows = [VENUE_COLUMNS]
-    for venue in venues:
-        rows.append(_venue_to_row(venue))
-
-    try:
-        service.spreadsheets().values().clear(
-            spreadsheetId=sheet_id,
-            range="A:Q"
-        ).execute()
-
-        service.spreadsheets().values().update(
-            spreadsheetId=sheet_id,
-            range="A1",
-            valueInputOption="RAW",
-            body={"values": rows}
-        ).execute()
-
-    except Exception as e:
-        print(f"Error clearing venue cache: {e}")
+    for vcity, vcity_venues in by_city.items():
+        update_venues_batch(vcity_venues, vcity)
 
 
 def get_cache_summary() -> dict:

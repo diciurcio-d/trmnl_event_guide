@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
     <style>
         :root {
             --bg-1: #f7f5ee;
@@ -585,6 +586,102 @@
                 transform: rotate(-90deg);
             }
         }
+
+        /* ── Subway bullet circles ──────────────────────────────────────────── */
+        .subway-bullet {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            flex-shrink: 0;
+            line-height: 1;
+            letter-spacing: 0;
+        }
+
+        /* ── Subway section collapse animation ──────────────────────────────── */
+        #subway-filter-section {
+            overflow: hidden;
+            max-height: 130px;
+            opacity: 1;
+            transition: max-height 0.28s ease, opacity 0.2s ease;
+            margin-top: 0;
+        }
+        #subway-filter-section.hidden {
+            max-height: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #subway-filter-section .field-row {
+            margin-bottom: 14px;
+        }
+
+        /* ── Tom Select theme ───────────────────────────────────────────────── */
+        .ts-wrapper {
+            font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+        }
+        .ts-control {
+            min-height: 42px !important;
+            border: 1px solid var(--line) !important;
+            border-radius: var(--radius-md) !important;
+            background: #fff !important;
+            padding: 6px 2.5rem 6px 11px !important;
+            box-shadow: none !important;
+            font-size: 14px !important;
+            color: var(--ink) !important;
+            align-items: center !important;
+            gap: 6px !important;
+            cursor: pointer !important;
+        }
+        .ts-wrapper.focus .ts-control {
+            border-color: var(--brand) !important;
+            box-shadow: 0 0 0 2px rgba(23,111,79,0.18) !important;
+            outline: none !important;
+        }
+        .ts-dropdown {
+            border: 1px solid var(--line) !important;
+            border-radius: var(--radius-md) !important;
+            box-shadow: 0 4px 16px rgba(12,37,25,0.12) !important;
+            font-size: 14px !important;
+            font-family: "IBM Plex Sans", "Segoe UI", sans-serif !important;
+            color: var(--ink) !important;
+        }
+        .ts-dropdown .option {
+            padding: 8px 12px !important;
+            color: var(--ink) !important;
+        }
+        .ts-dropdown .option.active {
+            background: #edf5ef !important;
+            color: var(--ink) !important;
+        }
+        .ts-dropdown [data-selectable]:hover {
+            background: #f0f5f1 !important;
+            color: var(--ink) !important;
+        }
+        .ts-dropdown .option.selected {
+            font-weight: 600 !important;
+        }
+        .ts-dropdown-content {
+            max-height: 220px !important;
+        }
+        /* Option/item layouts for subway lines */
+        .ts-opt-line, .ts-itm-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            line-height: 1.3;
+        }
+        .ts-opt-placeholder, .ts-itm-placeholder {
+            color: var(--muted);
+        }
+        /* Dropdowns portaled to <body> must float above all panels */
+        body > .ts-dropdown {
+            z-index: 9999;
+        }
     </style>
 </head>
 <body>
@@ -606,29 +703,18 @@
                 </div>
 
                 <div class="filters-body" id="filters-body">
-                    <div class="field">
-                        <label for="origin-address">Origin address</label>
-                        <input
-                            id="origin-address"
-                            type="text"
-                            value="167 W 74th St, New York, NY 10023"
-                            placeholder="Enter starting address"
-                        >
-                        <div id="origin-address-error" class="helper error"></div>
-                    </div>
-
                     <div class="field-row">
                         <div class="field">
                             <label for="distance-mode">Travel mode</label>
                             <select id="distance-mode">
-                                <option value="none">No travel filter</option>
+                                <option value="none">No filter</option>
                                 <option value="walking">Walking</option>
                                 <option value="transit" selected>Transit</option>
                             </select>
                         </div>
 
                         <div class="field">
-                            <label for="max-travel">Max travel (minutes)</label>
+                            <label for="max-travel">Max travel (min)</label>
                             <select id="max-travel">
                                 <option value="15">15</option>
                                 <option value="30">30</option>
@@ -637,6 +723,19 @@
                                 <option value="75">75</option>
                                 <option value="90">90</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <div id="subway-filter-section">
+                        <div class="field-row">
+                            <div class="field">
+                                <label for="subway-line">Subway line</label>
+                                <select id="subway-line"></select>
+                            </div>
+                            <div class="field">
+                                <label for="subway-station">Station</label>
+                                <select id="subway-station"></select>
+                            </div>
                         </div>
                     </div>
 
@@ -677,13 +776,14 @@
         </section>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
     <script>
         const chatLogEl = document.getElementById("chat-log");
         const chatFormEl = document.getElementById("chat-form");
         const chatInputEl = document.getElementById("chat-input");
         const sendBtnEl = document.getElementById("send-btn");
-        const originAddressEl = document.getElementById("origin-address");
-        const originAddressErrorEl = document.getElementById("origin-address-error");
+        const distanceModeEl = document.getElementById("distance-mode");
+        const subwayFilterSectionEl = document.getElementById("subway-filter-section");
 
         // Follow-up state: when the assistant asks a clarifying question,
         // we hold the original query here and send it with the user's answer as context.
@@ -717,9 +817,33 @@
 
         let _chatHistory = loadHistory(); // { role: "user"|"assistant", text: string }
 
-        let originLat = null;
-        let originLng = null;
-        let lastValidatedOrigin = "";
+        let originStationId = "";
+        let stationsByLine = {};
+        let tsLine = null;
+        let tsStation = null;
+
+        const LINE_COLORS = {
+            '1': { bg: '#EE352E', text: '#fff' }, '2': { bg: '#EE352E', text: '#fff' },
+            '3': { bg: '#EE352E', text: '#fff' }, '4': { bg: '#00933C', text: '#fff' },
+            '5': { bg: '#00933C', text: '#fff' }, '6': { bg: '#00933C', text: '#fff' },
+            '7': { bg: '#B933AD', text: '#fff' }, 'A': { bg: '#0039A6', text: '#fff' },
+            'B': { bg: '#FF6319', text: '#fff' }, 'C': { bg: '#0039A6', text: '#fff' },
+            'D': { bg: '#FF6319', text: '#fff' }, 'E': { bg: '#0039A6', text: '#fff' },
+            'F': { bg: '#FF6319', text: '#fff' }, 'G': { bg: '#6CBE45', text: '#fff' },
+            'H': { bg: '#808183', text: '#fff' }, 'J': { bg: '#996633', text: '#fff' },
+            'L': { bg: '#A7A9AC', text: '#fff' }, 'M': { bg: '#FF6319', text: '#fff' },
+            'N': { bg: '#FCCC0A', text: '#000' }, 'Q': { bg: '#FCCC0A', text: '#000' },
+            'R': { bg: '#FCCC0A', text: '#000' }, 'S': { bg: '#808183', text: '#fff' },
+        };
+
+        function bulletHtml(line) {
+            const c = LINE_COLORS[line] || { bg: '#808183', text: '#fff' };
+            return `<span class="subway-bullet" style="background:${c.bg};color:${c.text}">${escapeHtml(line)}</span>`;
+        }
+
+        function setSubwaySectionVisible(visible) {
+            subwayFilterSectionEl.classList.toggle("hidden", !visible);
+        }
 
         function normalizeForDedup(value) {
             return String(value || "")
@@ -879,9 +1003,18 @@
         function formatDateDisplay(rawDateStr) {
             if (!rawDateStr) return "";
             const raw = String(rawDateStr).trim();
+            // YYYY-MM-DD (ISO)
             const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
             if (iso) {
                 const d = new Date(parseInt(iso[1]), parseInt(iso[2]) - 1, parseInt(iso[3]));
+                if (!isNaN(d.getTime())) {
+                    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+                }
+            }
+            // M/D/YYYY or MM/DD/YYYY
+            const mdy = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+            if (mdy) {
+                const d = new Date(parseInt(mdy[3]), parseInt(mdy[1]) - 1, parseInt(mdy[2]));
                 if (!isNaN(d.getTime())) {
                     return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
                 }
@@ -1172,73 +1305,126 @@
                 .map((cb) => cb.value);
         }
 
-        function setOriginError(message) {
-            const text = String(message || "").trim();
-            if (!text) {
-                originAddressErrorEl.textContent = "";
-                originAddressErrorEl.classList.remove("visible");
-                return;
-            }
-            originAddressErrorEl.textContent = text;
-            originAddressErrorEl.classList.add("visible");
+        // --- Preference persistence (localStorage) ---
+        const PREFS_KEY = "whaddupnyc_prefs";
+
+        function loadPrefs() {
+            try { return JSON.parse(localStorage.getItem(PREFS_KEY) || "{}"); }
+            catch (_) { return {}; }
         }
 
-        async function validateOriginAddress(options = {}) {
-            const force = Boolean(options.force);
-            const address = originAddressEl.value.trim();
-
-            if (!address) {
-                originLat = null;
-                originLng = null;
-                lastValidatedOrigin = "";
-                setOriginError("Address is not valid.");
-                return false;
-            }
-
-            if (!force && address === lastValidatedOrigin && Number.isFinite(originLat) && Number.isFinite(originLng)) {
-                return true;
-            }
-
+        function savePrefs(patch) {
             try {
-                const response = await fetch("/api/geocode-origin", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ address }),
-                });
-                const data = await response.json();
-                if (!response.ok || !data.valid) {
-                    originLat = null;
-                    originLng = null;
-                    lastValidatedOrigin = "";
-                    setOriginError(data.error || "Address is not valid.");
-                    return false;
-                }
-                originLat = Number(data.lat);
-                originLng = Number(data.lng);
-                lastValidatedOrigin = address;
-                setOriginError("");
-                return true;
-            } catch (_) {
-                originLat = null;
-                originLng = null;
-                lastValidatedOrigin = "";
-                setOriginError("Address validation failed. Please try again.");
-                return false;
-            }
+                const prefs = loadPrefs();
+                localStorage.setItem(PREFS_KEY, JSON.stringify({ ...prefs, ...patch }));
+            } catch (_) {}
         }
+
+        async function loadSubwayStations() {
+            try {
+                const resp = await fetch("/api/subway-stations");
+                if (!resp.ok) return;
+                const data = await resp.json();
+                stationsByLine = data.lines || {};
+
+                // Build line options including empty placeholder
+                const lineOpts = [{ value: "", text: "Any line…" }];
+                for (const line of Object.keys(stationsByLine)) {
+                    lineOpts.push({ value: line, text: line });
+                }
+
+                tsLine = new TomSelect("#subway-line", {
+                    dropdownParent: 'body',
+                    options: lineOpts,
+                    items: [""],
+                    create: false,
+                    allowEmptyOption: true,
+                    render: {
+                        option: (d) => {
+                            if (!d.value) return `<div class="ts-opt-placeholder">Any line…</div>`;
+                            return `<div class="ts-opt-line">${bulletHtml(d.value)}<span>${escapeHtml(d.value)} train</span></div>`;
+                        },
+                        item: (d) => {
+                            if (!d.value) return `<div class="ts-itm-placeholder">Any line…</div>`;
+                            return `<div class="ts-itm-line">${bulletHtml(d.value)}<span>${escapeHtml(d.value)} train</span></div>`;
+                        },
+                    },
+                    onChange: (value) => {
+                        originStationId = "";
+                        savePrefs({ subwayLine: value || "", subwayStation: "" });
+                        if (!tsStation) return;
+                        tsStation.clear(true);
+                        tsStation.clearOptions();
+                        if (!value) {
+                            tsStation.addOption({ value: "", text: "Select station…" });
+                            tsStation.setValue("", true);
+                            tsStation.disable();
+                            return;
+                        }
+                        const stationOpts = [{ value: "", text: "Select station…" }];
+                        for (const s of (stationsByLine[value] || [])) {
+                            stationOpts.push({ value: s.id, text: s.name });
+                        }
+                        tsStation.addOptions(stationOpts);
+                        tsStation.setValue("", true);
+                        tsStation.enable();
+                    },
+                });
+
+                tsStation = new TomSelect("#subway-station", {
+                    dropdownParent: 'body',
+                    options: [{ value: "", text: "Select station…" }],
+                    items: [""],
+                    create: false,
+                    allowEmptyOption: true,
+                    onChange: (value) => {
+                        originStationId = value || "";
+                        savePrefs({ subwayStation: value || "" });
+                    },
+                });
+                tsStation.disable();
+
+                // Restore saved subway line + station
+                const prefs = loadPrefs();
+                if (prefs.subwayLine && stationsByLine[prefs.subwayLine]) {
+                    tsLine.setValue(prefs.subwayLine, true);
+                    // Populate station options for the saved line
+                    const stationOpts = [{ value: "", text: "Select station…" }];
+                    for (const s of (stationsByLine[prefs.subwayLine] || [])) {
+                        stationOpts.push({ value: s.id, text: s.name });
+                    }
+                    tsStation.clearOptions();
+                    tsStation.addOptions(stationOpts);
+                    tsStation.enable();
+                    if (prefs.subwayStation) {
+                        tsStation.setValue(prefs.subwayStation, true);
+                        originStationId = prefs.subwayStation;
+                    }
+                }
+            } catch (_) {}
+        }
+
+        distanceModeEl.addEventListener("change", () => {
+            const mode = distanceModeEl.value;
+            const showSubway = (mode === "transit" || mode === "walking");
+            setSubwaySectionVisible(showSubway);
+            savePrefs({ distanceMode: mode });
+            if (!showSubway) {
+                originStationId = "";
+                if (tsLine) tsLine.setValue("", true);
+                if (tsStation) { tsStation.clear(true); tsStation.disable(); }
+            }
+        });
 
         function getActiveFilters() {
             const maxTravelRaw = document.getElementById("max-travel").value.trim();
             const maxTravelMinutes = maxTravelRaw === "" ? null : Number(maxTravelRaw);
             const distanceMode = document.getElementById("distance-mode").value;
-            const originAddress = document.getElementById("origin-address").value.trim();
 
             return {
                 distance_mode: distanceMode,
                 max_travel_minutes: Number.isFinite(maxTravelMinutes) ? maxTravelMinutes : null,
-                origin_address: originAddress,
-                origin_lat: Number.isFinite(originLat) ? originLat : null,
-                origin_lng: Number.isFinite(originLng) ? originLng : null,
+                origin_station_id: originStationId || "",
             };
         }
 
@@ -1279,11 +1465,6 @@
                 })
                 .catch(() => replaceMessage(thinkingId, "Something went wrong. Try again."));
                 return;  // skip normal query flow
-            }
-
-            const originValid = await validateOriginAddress();
-            if (!originValid) {
-                return;
             }
 
             const filters = getActiveFilters();
@@ -1540,19 +1721,6 @@
             toggleLabelEl.textContent = isCollapsed ? "Show" : "Hide";
         });
 
-        originAddressEl.addEventListener("input", () => {
-            const current = originAddressEl.value.trim();
-            if (current !== lastValidatedOrigin) {
-                originLat = null;
-                originLng = null;
-            }
-            setOriginError("");
-        });
-
-        originAddressEl.addEventListener("blur", async () => {
-            await validateOriginAddress();
-        });
-
         function resizeChatInput() {
             const maxHeight = parseFloat(getComputedStyle(chatInputEl).maxHeight);
             chatInputEl.style.height = "auto";
@@ -1602,8 +1770,26 @@
             });
         });
 
+        // Restore saved travel mode + max travel, then set subway section visibility
+        (function restoreFilterPrefs() {
+            const prefs = loadPrefs();
+            if (prefs.distanceMode) {
+                distanceModeEl.value = prefs.distanceMode;
+            }
+            if (prefs.maxTravel !== undefined) {
+                document.getElementById("max-travel").value = prefs.maxTravel;
+            }
+            const mode = distanceModeEl.value;
+            setSubwaySectionVisible(mode === "transit" || mode === "walking");
+        })();
+
+        // Persist max-travel changes
+        document.getElementById("max-travel").addEventListener("change", (e) => {
+            savePrefs({ maxTravel: e.target.value });
+        });
+
         addMessage("What do you want to do in NYC? I can find concerts, comedy shows, art openings, lectures, and more — just ask.");
-        validateOriginAddress();
+        loadSubwayStations();
         renderSessionList();
     </script>
 </body>

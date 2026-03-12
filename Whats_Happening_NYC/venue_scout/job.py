@@ -99,10 +99,28 @@ def main():
     events_after = len(all_events)
     print(f"  Loaded {events_after} total events from sheet")
 
+    # Pull the latest index from GCS before building so the incremental diff
+    # has something to work against (Cloud Run job containers start fresh).
+    try:
+        from venue_scout.gcs_sync import pull_index, push_index
+        print("  Pulling previous index from GCS for incremental diff...")
+        pull_index()
+    except Exception as exc:
+        print(f"  GCS pull skipped ({exc.__class__.__name__}: {exc}). Full rebuild will run.")
+        push_index = None  # type: ignore[assignment]
+
     index_result = build_semantic_index(all_events)
     reused = index_result.get("incremental_reused_count", 0)
     embedded = index_result.get("incremental_embedded_count", 0)
     print(f"  Index built: {embedded} events newly embedded, {reused} reused from cache")
+
+    # Push the rebuilt index to GCS so the web server can pick it up.
+    if push_index is not None:
+        try:
+            print("  Pushing updated index to GCS...")
+            push_index()
+        except Exception as exc:
+            print(f"  Warning: GCS push failed ({exc.__class__.__name__}: {exc}). Index built locally only.")
     print()
 
     elapsed = time.time() - start

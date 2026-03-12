@@ -20,10 +20,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from venue_scout.cache import (
     VENUE_COLUMNS,
-    _venue_to_row,
-    _sheet_full_range,
-    _get_sheets_service,
-    get_or_create_venues_sheet,
+    read_cached_venues,
+    update_venues_batch,
+    write_venues_to_cache,
 )
 from venue_scout.enrich_addresses import lookup_place, is_bad_address
 
@@ -214,45 +213,16 @@ def clean_venues(
     Returns:
         Dict with cleaning stats
     """
-    print(f"Loading venues from cache sheet...")
-
-    # Get the shared venues sheet
-    sheet_id = get_or_create_venues_sheet()
-    if not sheet_id:
-        print("Error: Could not get venues sheet")
-        return {"error": "sheets_connection_failed"}
-
-    service = _get_sheets_service()
-    if not service:
-        print("Error: Could not connect to Google Sheets")
-        return {"error": "sheets_connection_failed"}
+    print(f"Loading venues from Firestore...")
 
     try:
-        result = service.spreadsheets().values().get(
-            spreadsheetId=sheet_id,
-            range=_sheet_full_range()
-        ).execute()
-
-        rows = result.get("values", [])
-        if len(rows) <= 1:
-            print("No venues found in cache sheet")
+        venues = list(read_cached_venues(city))
+        if not venues:
+            print("No venues found in cache")
             return {"error": "no_venues"}
-
-        header = rows[0]
-        venues = []
-        for row in rows[1:]:
-            while len(row) < len(header):
-                row.append("")
-            venue = dict(zip(header, row))
-            # Filter by city if specified
-            if city and venue.get("city", "").lower() != city.lower():
-                continue
-            venues.append(venue)
-
         print(f"Found {len(venues)} venues for {city}")
-
     except Exception as e:
-        print(f"Error reading from sheet: {e}")
+        print(f"Error reading venues: {e}")
         return {"error": str(e)}
 
     stats = {
@@ -356,42 +326,17 @@ def clean_venues(
         print(f"  Added: {stats['descriptions_added']}")
         print(f"  Skipped (already had): {stats['descriptions_skipped']}")
 
-    # Write back to sheet (always saves ALL venues, not just the processed subset)
+    # Write back to Firestore (always saves ALL venues, not just the processed subset)
     if not dry_run:
         print(f"\n{'='*60}")
-        print("Saving cleaned venues to sheet...")
+        print("Saving cleaned venues to Firestore...")
         print("="*60)
 
-        # Sort all venues
-        all_venues.sort(key=lambda x: (
-            x.get("city", "").lower(),
-            x.get("category", "").lower(),
-            x.get("name", "").lower(),
-        ))
-
-        # Convert to rows
-        rows = [VENUE_COLUMNS]
-        for venue in all_venues:
-            rows.append(_venue_to_row(venue))
-
         try:
-            # Clear and write
-            service.spreadsheets().values().clear(
-                spreadsheetId=sheet_id,
-                range=_sheet_full_range()
-            ).execute()
-
-            service.spreadsheets().values().update(
-                spreadsheetId=sheet_id,
-                range="A1",
-                valueInputOption="RAW",
-                body={"values": rows}
-            ).execute()
-
-            print(f"Saved {len(all_venues)} venues to cache sheet")
-
+            write_venues_to_cache(all_venues, city)
+            print(f"Saved {len(all_venues)} venues to Firestore")
         except Exception as e:
-            print(f"Error saving to sheet: {e}")
+            print(f"Error saving to Firestore: {e}")
             stats["error"] = str(e)
     else:
         print(f"\nDry run - not saving changes")

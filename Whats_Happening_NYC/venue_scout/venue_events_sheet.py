@@ -1,5 +1,14 @@
-"""Google Sheets storage for venue events."""
+"""Firestore storage for venue events.
 
+Storage backend: Cloud Firestore
+  - Collection ``venue_events``  — active/upcoming events
+  - Collection ``archived_events`` — past events (append-only archive)
+
+The Run Log is still written to Google Sheets so it remains human-readable
+and easy to inspect in a spreadsheet.
+"""
+
+import hashlib
 import json
 import re
 import time
@@ -17,25 +26,28 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.google_auth import get_credentials, is_authenticated
 
 
+# ─────────────────────────── Config / constants ───────────────────────────────
+
 _CONFIG_DIR = Path(__file__).parent.parent / "config"
 _SHEETS_CONFIG = _CONFIG_DIR / "sheets_config.json"
 _MAX_EVENT_DAYS_AHEAD = 365
-_ARCHIVE_TAB = "Archive"
 
-# Transient HTTP status codes worth retrying
+# Firestore collections
+_EVENTS_COLLECTION = "venue_events"
+_ARCHIVE_COLLECTION = "archived_events"
+_FIRESTORE_BATCH_SIZE = 500
+
+# Transient HTTP status codes worth retrying (used only for Run Log writes)
 _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
-# Delay in seconds before each retry attempt (3 retries total)
 _RETRY_DELAYS = [10, 20, 40]
 
 
-def _execute_with_retry(request, label: str = ""):
-    """Execute a Google API request, retrying up to 3 times on transient errors.
+# ─────────────────────────── Sheets retry (Run Log only) ─────────────────────
 
-    Retries on HTTP 429/500/502/503/504 with increasing delays (10s, 20s, 40s).
-    Raises immediately on non-retryable errors.
-    """
+def _execute_with_retry(request, label: str = ""):
+    """Execute a Google Sheets API request with up to 3 retries on transient errors."""
     last_exc = None
-    delays = [0] + _RETRY_DELAYS  # first attempt has no delay
+    delays = [0] + _RETRY_DELAYS
     for attempt, delay in enumerate(delays):
         if delay:
             print(f"  [retry {attempt}/{len(_RETRY_DELAYS)}] {label or 'API call'} failed — waiting {delay}s...")
@@ -47,18 +59,17 @@ def _execute_with_retry(request, label: str = ""):
                 last_exc = e
                 print(f"  Transient error (HTTP {e.resp.status}) on {label or 'API call'}: {e}")
                 continue
-            raise  # non-transient error — fail fast
+            raise
     raise last_exc
 
 
-# Geo filter: markers that confirm an event IS in the NYC metro area
+# ─────────────────────────── Geo filter helpers ───────────────────────────────
+
 _NYC_AREA_MARKERS = (
     "new york", ", ny", "nyc", "brooklyn", "manhattan", "queens",
     "bronx", "staten island", "hoboken", "jersey city", "newark", ", nj", ", ct",
 )
 
-# Markers that indicate an event is clearly NOT in the NYC metro area.
-# Only applied when no NYC marker is found first.
 _NON_NYC_MARKERS = (
     "london", "paris", "berlin", "amsterdam", "toronto", "sydney",
     "los angeles", "san francisco", "chicago", "boston", "miami",
@@ -79,32 +90,31 @@ _NON_NYC_MARKERS = (
 
 def _is_non_nyc_event(event: dict) -> bool:
     """Return True if the event's location is clearly outside the NYC metro area."""
-    # Check address first — most reliable when present
     address = str(event.get("address", "") or "").strip().lower()
     if address:
         if any(m in address for m in _NYC_AREA_MARKERS):
-            return False  # confirmed NYC
+            return False
         if any(m in address for m in _NON_NYC_MARKERS):
-            return True   # confirmed non-NYC
+            return True
 
-    # Check venue_name for embedded city names (e.g. "O2 Arena, London")
     venue = str(event.get("venue_name", "") or "").strip().lower()
     if venue:
         if any(m in venue for m in _NON_NYC_MARKERS):
             if not any(m in venue for m in _NYC_AREA_MARKERS):
                 return True
 
-    return False  # default: keep (no strong signal)
+    return False
 
 
 def _safe_lower(val) -> str:
-    """Safely convert value to lowercase string."""
     if val is None:
         return ""
     if isinstance(val, str):
         return val.lower()
     return str(val).lower()
 
+
+# ─────────────────────────── Schema / normalisation ──────────────────────────
 
 VENUE_EVENTS_COLUMNS = [
     "name",
@@ -132,7 +142,7 @@ VENUE_EVENTS_COLUMNS = [
 
 
 def normalize_event(event: dict) -> dict:
-    """Normalize a venue event into the canonical schema."""
+    """Normalise a venue event into the canonical schema."""
     normalized = dict(event)
     normalized["name"] = normalized.get("name", "")
     normalized["datetime"] = normalized.get("datetime")
@@ -147,7 +157,20 @@ def normalize_event(event: dict) -> dict:
     normalized["travel_minutes"] = normalized.get("travel_minutes")
     normalized["description"] = normalized.get("description", "")
     is_free = normalized.get("is_free")
-    normalized["is_free"] = bool(is_free) if is_free is not None else None
+    if isinstance(is_free, bool):
+        normalized["is_free"] = is_free
+    elif isinstance(is_free, str):
+        s = is_free.strip().lower()
+        if s in ("true", "1", "yes"):
+            normalized["is_free"] = True
+        elif s in ("false", "0", "no"):
+            normalized["is_free"] = False
+        else:
+            normalized["is_free"] = None
+    elif is_free is not None:
+        normalized["is_free"] = bool(is_free)
+    else:
+        normalized["is_free"] = None
     normalized["price"] = normalized.get("price", "")
     normalized["event_source_url"] = normalized.get("event_source_url", "")
     normalized["extraction_method"] = normalized.get("extraction_method", "")
@@ -159,30 +182,12 @@ def normalize_event(event: dict) -> dict:
     return normalized
 
 
-def _sheet_col_label(col_index: int) -> str:
-    """1-based column index to A1 label."""
-    if col_index < 1:
-        return "A"
-
-    out = ""
-    value = col_index
-    while value:
-        value, rem = divmod(value - 1, 26)
-        out = chr(65 + rem) + out
-    return out
-
-
-def _sheet_full_range() -> str:
-    return f"A:{_sheet_col_label(len(VENUE_EVENTS_COLUMNS))}"
-
-
 def _normalize_text(value) -> str:
     text = str(value or "").strip().lower()
     return re.sub(r"\s+", " ", text)
 
 
 def _normalize_event_category(value) -> str:
-    """Canonicalize event category labels to avoid case/syntax duplicates."""
     text = str(value or "").strip()
     if not text:
         return ""
@@ -210,7 +215,6 @@ def _safe_date_token(event: dict) -> str:
 
 
 def _parse_date_str(raw: str):
-    """Parse a YYYY-MM-DD or MM/DD/YYYY string to a date, or None."""
     for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
         try:
             return datetime.strptime(raw, fmt).date()
@@ -220,21 +224,13 @@ def _parse_date_str(raw: str):
 
 
 def _event_date_for_window(event: dict):
-    """Return the date to use for the keep/drop window check.
-
-    For ongoing events (exhibitions, festivals) that have an end_date,
-    we keep the event as long as its end_date hasn't passed — even if
-    the start date is already in the past.  For single-day events we
-    use the start date as before.
-    """
-    # Try end_date first for ongoing-event window logic
+    """Return the date to use for keep/drop window checks."""
     end_raw = str(event.get("end_date", "") or "").strip()
     if end_raw:
         end_parsed = _parse_date_str(end_raw)
         if end_parsed:
             return end_parsed
 
-    # Fall back to start datetime / date_str
     dt = event.get("datetime")
     if isinstance(dt, datetime):
         return dt.date()
@@ -253,12 +249,7 @@ def _dedupe_canonical_link(event: dict) -> str:
 
 
 def _event_dedupe_key(event: dict) -> tuple[str, str, str, str]:
-    """
-    Cross-venue dedupe key.
-
-    If URL/source URL exists, dedupe across venues by (name, date, source, link).
-    If no link exists, keep venue in key to avoid over-collapsing distinct no-link events.
-    """
+    """Cross-venue dedup key — (name, date, source, link-or-venue)."""
     name = _normalize_text(event.get("name", ""))
     date_token = _safe_date_token(event)
     source = _normalize_text(event.get("source", ""))
@@ -285,7 +276,7 @@ def _event_quality_score(event: dict) -> float:
 
 
 def _dedupe_events(events: list[dict]) -> tuple[list[dict], int]:
-    """Collapse duplicate events across venues with deterministic quality tie-break."""
+    """Collapse duplicate events with deterministic quality tie-break."""
     best_by_key: dict[tuple[str, str, str, str], dict] = {}
     removed = 0
 
@@ -303,7 +294,6 @@ def _dedupe_events(events: list[dict]) -> tuple[list[dict], int]:
 
 
 def _normalize_venue_name(name: str) -> str:
-    """Normalize venue name for cache lookups."""
     text = str(name or "").lower().strip()
     text = re.sub(r'^the\s+', '', text)
     text = re.sub(r'^[(]', '', text)
@@ -314,11 +304,6 @@ def _normalize_venue_name(name: str) -> str:
 
 
 def _load_venue_address_lookup() -> dict[str, str]:
-    """
-    Build a normalized venue-name -> address lookup from Venue Scout Cache.
-
-    Returns empty mapping if cache read fails so event writes still proceed.
-    """
     try:
         from venue_scout.cache import read_cached_venues
     except Exception:
@@ -339,7 +324,6 @@ def _load_venue_address_lookup() -> dict[str, str]:
 
 
 def _normalize_url_host_path(raw_url: str) -> tuple[str, str]:
-    """Normalize URL into (host, path) for matching."""
     raw = str(raw_url or "").strip()
     if not raw:
         return "", ""
@@ -358,7 +342,6 @@ def _normalize_url_host_path(raw_url: str) -> tuple[str, str]:
 
 
 def _is_shared_feed_url(raw_url: str) -> bool:
-    """Detect known shared feeds that should not map to a single venue address."""
     host, path = _normalize_url_host_path(raw_url)
     if host.endswith("nycgovparks.org") and path in ("/events", "/events/volunteer"):
         return True
@@ -366,14 +349,6 @@ def _is_shared_feed_url(raw_url: str) -> bool:
 
 
 def _load_event_source_address_lookup() -> tuple[dict[str, str], dict[str, list[tuple[str, str]]], dict[str, str]]:
-    """
-    Build source-url lookup tables from venue cache.
-
-    Returns:
-        - exact_map: "host/path" -> single venue address when unambiguous
-        - host_prefix_map: host -> list of (path_prefix, address), longest path first
-        - host_unique_map: host -> address when host maps to exactly one venue address
-    """
     try:
         from venue_scout.cache import read_cached_venues
     except Exception:
@@ -437,7 +412,6 @@ def _address_from_event_source_url(
     host_prefix_map: dict[str, list[tuple[str, str]]],
     host_unique_map: dict[str, str],
 ) -> str:
-    """Resolve address via event_source_url using exact, prefix, then host-unique matching."""
     if not source_url or _is_shared_feed_url(source_url):
         return ""
     host, path = _normalize_url_host_path(source_url)
@@ -458,7 +432,6 @@ def _address_from_event_source_url(
 
 
 def _populate_event_addresses(events: list[dict]) -> list[dict]:
-    """Ensure each event has address from venue cache when available."""
     name_lookup = _load_venue_address_lookup()
     source_exact, source_prefix, source_host_unique = _load_event_source_address_lookup()
 
@@ -486,537 +459,382 @@ def _populate_event_addresses(events: list[dict]) -> list[dict]:
     return out
 
 
-def _get_sheets_service():
-    """Get authenticated Google Sheets service."""
-    creds = get_credentials()
-    if not creds:
-        return None
-    return build("sheets", "v4", credentials=creds)
+# ─────────────────────────── Firestore helpers ───────────────────────────────
+
+def _get_db():
+    """Return the Firestore client."""
+    from venue_scout.firestore_client import get_db
+    return get_db()
 
 
-def _load_sheets_config() -> dict:
-    """Load sheet IDs from config."""
-    if _SHEETS_CONFIG.exists():
-        with open(_SHEETS_CONFIG) as f:
-            return json.load(f)
-    return {}
+def _event_doc_id(event: dict) -> str:
+    """Compute a stable Firestore document ID from the event dedup key."""
+    key = _event_dedupe_key(event)
+    key_str = "|".join(str(k) for k in key)
+    return hashlib.md5(key_str.encode()).hexdigest()
 
 
-def _save_sheets_config(config: dict):
-    """Save sheet IDs to config."""
-    _CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    with open(_SHEETS_CONFIG, "w") as f:
-        json.dump(config, f, indent=2)
+def _serialize_event_for_db(event: dict) -> dict:
+    """Convert an event dict to Firestore-native format."""
+    row = dict(event)
+
+    dt = row.get("datetime")
+    if isinstance(dt, datetime):
+        row["datetime"] = dt.isoformat()
+    elif dt is None or dt == "" or dt == "None":
+        row["datetime"] = None
+    else:
+        row["datetime"] = str(dt)
+
+    # Normalise numeric/boolean fields so Firestore stores native types
+    for field in ("travel_minutes", "relevance_score"):
+        val = row.get(field)
+        if val == "" or val == "None" or val is None:
+            row[field] = None
+        elif isinstance(val, str):
+            try:
+                row[field] = int(float(val))
+            except (ValueError, TypeError):
+                row[field] = None
+
+    val = row.get("validation_confidence")
+    if val == "" or val == "None" or val is None:
+        row["validation_confidence"] = None
+    elif isinstance(val, str):
+        try:
+            row["validation_confidence"] = float(val)
+        except (ValueError, TypeError):
+            row["validation_confidence"] = None
+
+    return row
 
 
-def _create_spreadsheet(title: str) -> str | None:
-    """Create a new Google Spreadsheet and return its ID."""
-    service = _get_sheets_service()
-    if not service:
-        return None
+def _deserialize_event_from_db(data: dict) -> dict:
+    """Convert Firestore document data to a properly-typed event dict."""
+    event = normalize_event(data)
 
-    spreadsheet = {"properties": {"title": title}}
-    result = _execute_with_retry(
-        service.spreadsheets().create(body=spreadsheet),
-        "create spreadsheet",
-    )
-    return result.get("spreadsheetId")
+    # Parse datetime
+    dt_val = event.get("datetime")
+    if isinstance(dt_val, str) and dt_val and dt_val not in ("None", ""):
+        try:
+            dt = datetime.fromisoformat(dt_val)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=ZoneInfo("America/New_York"))
+            event["datetime"] = dt
+        except ValueError:
+            event["datetime"] = None
+    elif hasattr(dt_val, "timestamp"):
+        # Firestore Timestamp object
+        event["datetime"] = dt_val.replace(tzinfo=ZoneInfo("America/New_York"))
+    else:
+        event["datetime"] = None
 
+    # Parse numeric fields — Firestore may return them as native ints/floats
+    for field, converter in [
+        ("travel_minutes", lambda v: int(v)),
+        ("relevance_score", lambda v: int(float(v))),
+        ("validation_confidence", float),
+    ]:
+        val = event.get(field)
+        if val is None or val == "" or val == "None":
+            event[field] = None
+        elif isinstance(val, (int, float)):
+            pass  # already correct type
+        else:
+            try:
+                event[field] = converter(str(val))
+            except (ValueError, TypeError):
+                event[field] = None
 
-def _write_header(sheet_id: str, columns: list[str]):
-    """Write header row to a sheet."""
-    service = _get_sheets_service()
-    if not service:
-        return
+    # Ensure boolean
+    si = event.get("in_semantic_index")
+    if isinstance(si, bool):
+        pass
+    elif isinstance(si, str):
+        event["in_semantic_index"] = si.lower() in ("true", "1", "yes")
+    else:
+        event["in_semantic_index"] = bool(si)
 
-    _execute_with_retry(
-        service.spreadsheets().values().update(
-            spreadsheetId=sheet_id,
-            range="A1",
-            valueInputOption="RAW",
-            body={"values": [columns]},
-        ),
-        "write header",
-    )
-
-
-def get_or_create_venue_events_sheet() -> str | None:
-    """Get or create the venue events spreadsheet."""
-    config = _load_sheets_config()
-
-    if "venue_events_sheet_id" in config:
-        return config["venue_events_sheet_id"]
-
-    creds = get_credentials()
-    if not creds:
-        print("Not authenticated with Google. Run: python -m utils.google_auth")
-        return None
-
-    print("Creating new Venue Events spreadsheet...")
-    sheet_id = _create_spreadsheet("Venue Events Cache")
-    if sheet_id:
-        config["venue_events_sheet_id"] = sheet_id
-        _save_sheets_config(config)
-        _write_header(sheet_id, VENUE_EVENTS_COLUMNS)
-        print(f"Created Venue Events sheet: https://docs.google.com/spreadsheets/d/{sheet_id}")
-
-    return sheet_id
+    return event
 
 
-def read_venue_events_from_sheet(venue_name: str | None = None) -> list[dict]:
-    """Read venue events from Google Sheet."""
-    sheet_id = get_or_create_venue_events_sheet()
-    if not sheet_id:
-        return []
-
-    service = _get_sheets_service()
-    if not service:
-        return []
-
-    try:
-        result = _execute_with_retry(
-            service.spreadsheets().values().get(
-                spreadsheetId=sheet_id,
-                range=_sheet_full_range(),
-            ),
-            "read venue events",
-        )
-
-        rows = result.get("values", [])
-        if len(rows) <= 1:
-            return []
-
-        header = rows[0]
-        events = []
-
-        for row in rows[1:]:
-            while len(row) < len(header):
-                row.append("")
-
-            event = normalize_event(dict(zip(header, row)))
-
-            if venue_name and _safe_lower(event.get("venue_name", "")) != venue_name.lower():
-                continue
-
-            dt_str = event.get("datetime", "")
-            if dt_str and dt_str not in ("None", ""):
-                try:
-                    dt = datetime.fromisoformat(dt_str)
-                    if dt.tzinfo is None:
-                        dt = dt.replace(tzinfo=ZoneInfo("America/New_York"))
-                    event["datetime"] = dt
-                except ValueError:
-                    event["datetime"] = None
-            else:
-                event["datetime"] = None
-
-            travel_str = event.get("travel_minutes", "")
-            if travel_str and travel_str not in ("", "None"):
-                try:
-                    event["travel_minutes"] = int(travel_str)
-                except ValueError:
-                    event["travel_minutes"] = None
-            else:
-                event["travel_minutes"] = None
-
-            score_str = event.get("relevance_score", "")
-            if score_str and score_str not in ("", "None"):
-                try:
-                    event["relevance_score"] = int(float(score_str))
-                except ValueError:
-                    event["relevance_score"] = None
-            else:
-                event["relevance_score"] = None
-
-            conf_str = event.get("validation_confidence", "")
-            if conf_str and conf_str not in ("", "None"):
-                try:
-                    event["validation_confidence"] = float(conf_str)
-                except ValueError:
-                    event["validation_confidence"] = None
-            else:
-                event["validation_confidence"] = None
-
-            semantic_flag = str(event.get("in_semantic_index", "") or "").strip().lower()
-            event["in_semantic_index"] = semantic_flag in ("true", "1", "yes")
-            event["semantic_indexed_at"] = str(event.get("semantic_indexed_at", "") or "").strip()
-
-            events.append(event)
-
-        return events
-
-    except Exception as e:
-        print(f"Error reading venue events from sheet: {e}")
-        return []
+def _batch_set_events(db, col, events: list[dict]):
+    """Batch-upsert events into a Firestore collection."""
+    for start in range(0, len(events), _FIRESTORE_BATCH_SIZE):
+        batch = db.batch()
+        for event in events[start:start + _FIRESTORE_BATCH_SIZE]:
+            doc_id = _event_doc_id(event)
+            batch.set(col.document(doc_id), _serialize_event_for_db(event))
+        batch.commit()
 
 
-def _ensure_archive_tab(sheet_id: str, service) -> bool:
-    """Ensure the Archive tab exists in the spreadsheet. Returns True if ready."""
-    try:
-        spreadsheet = _execute_with_retry(
-            service.spreadsheets().get(spreadsheetId=sheet_id),
-            "get spreadsheet",
-        )
-        existing_titles = {s["properties"]["title"] for s in spreadsheet.get("sheets", [])}
-        if _ARCHIVE_TAB in existing_titles:
-            return True
-        _execute_with_retry(
-            service.spreadsheets().batchUpdate(
-                spreadsheetId=sheet_id,
-                body={"requests": [{"addSheet": {"properties": {"title": _ARCHIVE_TAB}}}]},
-            ),
-            "add archive tab",
-        )
-        _execute_with_retry(
-            service.spreadsheets().values().update(
-                spreadsheetId=sheet_id,
-                range=f"{_ARCHIVE_TAB}!A1",
-                valueInputOption="RAW",
-                body={"values": [VENUE_EVENTS_COLUMNS]},
-            ),
-            "write archive header",
-        )
-        print(f"Created '{_ARCHIVE_TAB}' tab in venue events spreadsheet")
-        return True
-    except Exception as e:
-        print(f"Warning: could not ensure archive tab: {e}")
-        return False
+def _batch_delete_refs(db, refs: list):
+    """Batch-delete Firestore document references."""
+    for start in range(0, len(refs), _FIRESTORE_BATCH_SIZE):
+        batch = db.batch()
+        for ref in refs[start:start + _FIRESTORE_BATCH_SIZE]:
+            batch.delete(ref)
+        batch.commit()
 
 
-def _read_archive_keys(sheet_id: str, service) -> set[tuple]:
-    """Read existing archive event dedup keys to avoid re-archiving."""
-    try:
-        result = _execute_with_retry(
-            service.spreadsheets().values().get(
-                spreadsheetId=sheet_id,
-                range=f"{_ARCHIVE_TAB}!A:{_sheet_col_label(len(VENUE_EVENTS_COLUMNS))}",
-            ),
-            "read archive",
-        )
-        rows = result.get("values", [])
-        if not rows or len(rows) < 2:
-            return set()
-        headers = rows[0]
-        events = []
-        for row in rows[1:]:
-            padded = row + [""] * max(0, len(headers) - len(row))
-            events.append(dict(zip(headers, padded)))
-        return {_event_dedupe_key(e) for e in events}
-    except Exception:
-        return set()
-
-
-def _append_to_archive(sheet_id: str, service, past_events: list[dict]) -> int:
-    """Append past events to the Archive tab, deduplicating against existing entries."""
+def _append_to_archive_db(db, past_events: list[dict]) -> int:
+    """Append past events to the Firestore archive collection (dedup-safe)."""
     if not past_events:
         return 0
-    if not _ensure_archive_tab(sheet_id, service):
+
+    archive_col = db.collection(_ARCHIVE_COLLECTION)
+
+    # Only archive events not already present
+    existing_ids = {doc.id for doc in archive_col.select([]).stream()}
+    to_archive = [e for e in past_events if _event_doc_id(e) not in existing_ids]
+    if not to_archive:
         return 0
 
-    existing_keys = _read_archive_keys(sheet_id, service)
-    rows_to_append = []
-    for event in past_events:
-        if _event_dedupe_key(event) in existing_keys:
-            continue
-        dt = event.get("datetime")
-        if isinstance(dt, datetime):
-            dt_str = dt.isoformat()
-        elif dt:
-            dt_str = str(dt)
-        else:
-            dt_str = ""
-        rows_to_append.append([
-            event.get("name", ""),
-            dt_str,
-            event.get("date_str", ""),
-            event.get("end_date", ""),
-            event.get("venue_name", ""),
-            event.get("address", ""),
-            event.get("event_type", ""),
-            event.get("url", ""),
-            event.get("source", ""),
-            event.get("matched_artist", ""),
-            str(event.get("travel_minutes")) if event.get("travel_minutes") is not None else "",
-            event.get("description", ""),
-            "TRUE" if event.get("is_free") is True else ("FALSE" if event.get("is_free") is False else ""),
-            event.get("price", ""),
-            event.get("event_source_url", ""),
-            event.get("extraction_method", ""),
-            str(event.get("relevance_score")) if event.get("relevance_score") is not None else "",
-            str(event.get("validation_confidence")) if event.get("validation_confidence") is not None else "",
-            event.get("date_added", ""),
-            "TRUE" if bool(event.get("in_semantic_index", False)) else "FALSE",
-            event.get("semantic_indexed_at", ""),
-        ])
-
-    if not rows_to_append:
-        return 0
-
-    try:
-        _execute_with_retry(
-            service.spreadsheets().values().append(
-                spreadsheetId=sheet_id,
-                range=f"{_ARCHIVE_TAB}!A1",
-                valueInputOption="RAW",
-                insertDataOption="INSERT_ROWS",
-                body={"values": rows_to_append},
-            ),
-            "append to archive",
-        )
-        return len(rows_to_append)
-    except Exception as e:
-        print(f"Warning: could not append to archive: {e}")
-        return 0
+    _batch_set_events(db, archive_col, to_archive)
+    return len(to_archive)
 
 
-def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = None):
-    """Write venue events to Google Sheet."""
-    sheet_id = get_or_create_venue_events_sheet()
-    if not sheet_id:
-        return
-
-    service = _get_sheets_service()
-    if not service:
-        return
-
-    if venue_name:
-        existing = read_venue_events_from_sheet()
-        existing = [e for e in existing if _safe_lower(e.get("venue_name", "")) != venue_name.lower()]
-        venue_events = [e for e in events if _safe_lower(e.get("venue_name", "")) == venue_name.lower()]
-        all_events = existing + venue_events
-    else:
-        all_events = events
-
-    all_events = [normalize_event(event) for event in all_events]
+def _process_events_for_write(
+    all_events: list[dict],
+) -> tuple[list[dict], list[dict], dict]:
+    """
+    Apply the full normalise → address-enrich → dedup → geo-filter → date-window
+    pipeline.  Returns (future_events, past_events, stats_dict).
+    """
+    all_events = [normalize_event(e) for e in all_events]
     all_events = _populate_event_addresses(all_events)
     all_events, dedup_removed = _dedupe_events(all_events)
 
-    # Geo filter: drop events clearly outside the NYC metro area
-    geo_kept = []
-    geo_dropped = 0
-    for event in all_events:
-        if _is_non_nyc_event(event):
-            geo_dropped += 1
-        else:
-            geo_kept.append(event)
+    geo_kept = [e for e in all_events if not _is_non_nyc_event(e)]
+    geo_dropped = len(all_events) - len(geo_kept)
     all_events = geo_kept
 
     today = datetime.now(ZoneInfo("America/New_York")).date()
     max_allowed_date = today + timedelta(days=_MAX_EVENT_DAYS_AHEAD)
-    future_events = []
-    past_events = []
-    dropped_past = 0
-    dropped_too_far = 0
-    undated_kept = 0
+    future_events: list[dict] = []
+    past_events: list[dict] = []
+    dropped_past = dropped_too_far = undated_kept = 0
+
     for event in all_events:
         event_date = _event_date_for_window(event)
         if event_date is None:
             undated_kept += 1
             future_events.append(event)
-            continue
-
-        if event_date < today:
+        elif event_date < today:
             dropped_past += 1
             past_events.append(event)
-            continue
-        if event_date > max_allowed_date:
+        elif event_date > max_allowed_date:
             dropped_too_far += 1
-            continue
-        future_events.append(event)
-
-    future_events.sort(
-        key=lambda x: (
-            _safe_lower(x.get("venue_name", "")),
-            x.get("datetime").isoformat() if isinstance(x.get("datetime"), datetime)
-            else (x.get("datetime") or "9999"),
-        )
-    )
-
-    rows = [VENUE_EVENTS_COLUMNS]
-    for event in future_events:
-        dt = event.get("datetime")
-        if isinstance(dt, datetime):
-            dt_str = dt.isoformat()
-        elif dt:
-            dt_str = str(dt)
         else:
-            dt_str = ""
+            future_events.append(event)
 
-        row = [
-            event.get("name", ""),
-            dt_str,
-            event.get("date_str", ""),
-            event.get("end_date", ""),
-            event.get("venue_name", ""),
-            event.get("address", ""),
-            event.get("event_type", ""),
-            event.get("url", ""),
-            event.get("source", ""),
-            event.get("matched_artist", ""),
-            str(event.get("travel_minutes")) if event.get("travel_minutes") is not None else "",
-            event.get("description", ""),
-            "TRUE" if event.get("is_free") is True else ("FALSE" if event.get("is_free") is False else ""),
-            event.get("price", ""),
-            event.get("event_source_url", ""),
-            event.get("extraction_method", ""),
-            str(event.get("relevance_score")) if event.get("relevance_score") is not None else "",
-            str(event.get("validation_confidence")) if event.get("validation_confidence") is not None else "",
-            event.get("date_added", ""),
-            "TRUE" if bool(event.get("in_semantic_index", False)) else "FALSE",
-            event.get("semantic_indexed_at", ""),
-        ]
-        rows.append(row)
+    stats = {
+        "dedup_removed": dedup_removed,
+        "geo_dropped": geo_dropped,
+        "dropped_past": dropped_past,
+        "dropped_too_far": dropped_too_far,
+        "undated_kept": undated_kept,
+    }
+    return future_events, past_events, stats
 
+
+# ─────────────────────────── Public storage API ──────────────────────────────
+
+def read_venue_events_from_sheet(venue_name: str | None = None) -> list[dict]:
+    """Read venue events from Firestore.
+
+    Args:
+        venue_name: If provided, return only events for this venue.
+                    If None, return all events.
+    """
     try:
-        # Write new data first (overwrites existing rows)
-        _execute_with_retry(
-            service.spreadsheets().values().update(
-                spreadsheetId=sheet_id,
-                range="A1",
-                valueInputOption="RAW",
-                body={"values": rows},
-            ),
-            "write venue events",
-        )
+        db = _get_db()
+        col = db.collection(_EVENTS_COLLECTION)
 
-        # Only clear extra rows AFTER successful write
-        # This prevents data loss if write fails
-        clear_start_row = len(rows) + 1
-        _execute_with_retry(
-            service.spreadsheets().values().clear(
-                spreadsheetId=sheet_id,
-                range=f"A{clear_start_row}:{_sheet_col_label(len(VENUE_EVENTS_COLUMNS))}",
-            ),
-            "clear stale rows",
-        )
+        query = col.where("venue_name", "==", venue_name) if venue_name else col
 
-        archived_count = _append_to_archive(sheet_id, service, past_events)
+        events = []
+        for doc in query.stream():
+            data = doc.to_dict()
+            if data:
+                events.append(_deserialize_event_from_db(data))
+        return events
+
+    except Exception as e:
+        print(f"Error reading venue events from Firestore: {e}")
+        return []
+
+
+def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = None):
+    """Write venue events to Firestore.
+
+    Venue-scoped write (venue_name provided):
+        Processes only that venue's events.  Deletes the venue's stale docs
+        and upserts the new set.  All other venues are untouched.
+
+    Full overwrite (venue_name=None):
+        Processes the entire provided event list.  Deletes docs not present
+        in the new set and upserts the new set.
+    """
+    try:
+        db = _get_db()
+        col = db.collection(_EVENTS_COLLECTION)
+
+        if venue_name:
+            venue_lower = venue_name.lower()
+            input_events = [e for e in events if _safe_lower(e.get("venue_name", "")) == venue_lower]
+        else:
+            input_events = list(events)
+
+        future_events, past_events, stats = _process_events_for_write(input_events)
+
+        # Archive past events
+        archived_count = _append_to_archive_db(db, past_events)
+
+        # Determine which existing docs to delete
+        new_doc_ids = {_event_doc_id(e) for e in future_events}
+        if venue_name:
+            existing_docs = [
+                (doc.id, doc.reference)
+                for doc in col.where("venue_name", "==", venue_name).select([]).stream()
+            ]
+        else:
+            existing_docs = [
+                (doc.id, doc.reference)
+                for doc in col.select([]).stream()
+            ]
+        to_delete = [ref for doc_id, ref in existing_docs if doc_id not in new_doc_ids]
+
+        _batch_delete_refs(db, to_delete)
+        _batch_set_events(db, col, future_events)
+
+        scope = venue_name or "all venues"
         print(
-            f"Wrote {len(future_events)} venue events to sheet "
-            f"(dedup_removed={dedup_removed}, geo_dropped={geo_dropped}, "
-            f"dropped_past={dropped_past}, archived={archived_count}, "
-            f"dropped_too_far={dropped_too_far}, undated_kept={undated_kept})"
+            f"Wrote {len(future_events)} venue events to Firestore [{scope}] "
+            f"(dedup_removed={stats['dedup_removed']}, geo_dropped={stats['geo_dropped']}, "
+            f"dropped_past={stats['dropped_past']}, archived={archived_count}, "
+            f"dropped_too_far={stats['dropped_too_far']}, undated_kept={stats['undated_kept']})"
         )
 
     except Exception as e:
-        print(f"Error writing venue events to sheet: {e}")
-        raise  # Re-raise so callers know the write failed
+        print(f"Error writing venue events to Firestore: {e}")
+        raise
 
 
 def append_venue_events(events: list[dict], venue_name: str):
-    """Append events for a venue, deduplicating against existing."""
+    """Append new events for a venue, deduplicating against what is already stored.
+
+    For events that already exist (same dedupe key), updates is_free and price
+    if the new fetch has non-null values for them — this keeps those fields
+    fresh across repeated fetches without re-embedding or re-deduplicating.
+    """
     if not events:
-        return
-
-    existing = read_venue_events_from_sheet()
-    existing_keys = set()
-    for event in existing:
-        key = (
-            _safe_lower(event.get("venue_name", "")),
-            _safe_lower(event.get("name", "")),
-            event.get("date_str", ""),
-        )
-        existing_keys.add(key)
-
-    new_events = []
-    now = datetime.now(ZoneInfo("America/New_York")).isoformat()
-    for event in events:
-        event = normalize_event(event)
-        key = (
-            _safe_lower(event.get("venue_name", "")),
-            _safe_lower(event.get("name", "")),
-            event.get("date_str", ""),
-        )
-        if key not in existing_keys:
-            # Set date_added for new events
-            if not event.get("date_added"):
-                event["date_added"] = now
-            new_events.append(event)
-            existing_keys.add(key)
-
-    if not new_events:
-        print(f"  No new events for {venue_name} (all duplicates)")
         return 0
 
-    all_events = existing + new_events
-    write_venue_events_to_sheet(all_events)
-    print(f"  Added {len(new_events)} new events for {venue_name}")
-    return len(new_events)
+    try:
+        db = _get_db()
+        col = db.collection(_EVENTS_COLLECTION)
+
+        # Read existing events for this venue only
+        existing = read_venue_events_from_sheet(venue_name)
+        existing_by_key: dict[tuple, str] = {_event_dedupe_key(e): _event_doc_id(e) for e in existing}
+
+        new_events: list[dict] = []
+        price_updates: list[tuple[str, dict]] = []  # (doc_id, merge_fields)
+        now = datetime.now(ZoneInfo("America/New_York")).isoformat()
+
+        for event in events:
+            event = normalize_event(event)
+            key = _event_dedupe_key(event)
+            if key in existing_by_key:
+                # Existing event — refresh is_free/price if we have new data
+                is_free_new = event.get("is_free")
+                price_new = str(event.get("price") or "").strip()
+                if is_free_new is not None or price_new:
+                    price_updates.append((existing_by_key[key], {
+                        "is_free": is_free_new,
+                        "price": price_new,
+                    }))
+            else:
+                if not event.get("date_added"):
+                    event["date_added"] = now
+                new_events.append(event)
+                existing_by_key[key] = _event_doc_id(event)  # prevent within-batch dupes
+
+        # Merge-update is_free/price on already-stored events
+        if price_updates:
+            for start in range(0, len(price_updates), _FIRESTORE_BATCH_SIZE):
+                batch = db.batch()
+                for doc_id, fields in price_updates[start:start + _FIRESTORE_BATCH_SIZE]:
+                    batch.set(col.document(doc_id), fields, merge=True)
+                batch.commit()
+
+        if not new_events:
+            print(f"  No new events for {venue_name} (all duplicates)")
+            return 0
+
+        _batch_set_events(db, col, new_events)
+        print(f"  Added {len(new_events)} new events for {venue_name}")
+        return len(new_events)
+
+    except Exception as e:
+        print(f"Error appending venue events to Firestore: {e}")
+        return 0
 
 
 def sync_semantic_index_membership(included_event_keys: set[str], indexed_at: str | None = None) -> dict:
-    """Persist semantic-index membership flags back to Venue Events sheet.
+    """Persist semantic-index membership flags to Firestore.
 
-    This updates only `in_semantic_index` and `semantic_indexed_at` columns to avoid
-    mutating core event fields (name/date/type/url) during membership sync.
+    Only updates ``in_semantic_index`` and ``semantic_indexed_at``; all other
+    event fields are left unchanged.
     """
-    from venue_scout.semantic_search import event_key  # Local import avoids circular import at module load.
+    from venue_scout.semantic_search import event_key  # local import avoids circular
 
-    sheet_id = get_or_create_venue_events_sheet()
-    if not sheet_id:
+    try:
+        db = _get_db()
+        col = db.collection(_EVENTS_COLLECTION)
+
+        events = read_venue_events_from_sheet()
+        if not events:
+            return {"sheet_event_count": 0, "included_count": 0, "excluded_count": 0}
+
+        indexed_at_value = str(indexed_at or datetime.now(ZoneInfo("America/New_York")).isoformat())
+        included_count = 0
+
+        for start in range(0, len(events), _FIRESTORE_BATCH_SIZE):
+            batch = db.batch()
+            for event in events[start:start + _FIRESTORE_BATCH_SIZE]:
+                key = event_key(event)
+                is_included = key in included_event_keys
+                doc_id = _event_doc_id(event)
+                batch.set(
+                    col.document(doc_id),
+                    {
+                        "in_semantic_index": is_included,
+                        "semantic_indexed_at": indexed_at_value if is_included else "",
+                    },
+                    merge=True,
+                )
+                if is_included:
+                    included_count += 1
+            batch.commit()
+
+        return {
+            "sheet_event_count": len(events),
+            "included_count": included_count,
+            "excluded_count": len(events) - included_count,
+            "semantic_indexed_at": indexed_at_value,
+        }
+
+    except Exception as e:
+        print(f"Error syncing semantic index flags in Firestore: {e}")
         return {"sheet_event_count": 0, "included_count": 0, "excluded_count": 0}
-
-    service = _get_sheets_service()
-    if not service:
-        return {"sheet_event_count": 0, "included_count": 0, "excluded_count": 0}
-
-    events = read_venue_events_from_sheet()
-    if not events:
-        return {"sheet_event_count": 0, "included_count": 0, "excluded_count": 0}
-
-    included_count = 0
-    indexed_at_value = str(indexed_at or datetime.now(ZoneInfo("America/New_York")).isoformat())
-    membership_values: list[list[str]] = []
-    for event in events:
-        key = event_key(event)
-        is_included = key in included_event_keys
-        membership_values.append([
-            "TRUE" if is_included else "FALSE",
-            indexed_at_value if is_included else "",
-        ])
-        if is_included:
-            included_count += 1
-
-    start_col_idx = VENUE_EVENTS_COLUMNS.index("in_semantic_index") + 1
-    end_col_idx = VENUE_EVENTS_COLUMNS.index("semantic_indexed_at") + 1
-    start_col = _sheet_col_label(start_col_idx)
-    end_col = _sheet_col_label(end_col_idx)
-    update_range = f"{start_col}2:{end_col}{len(membership_values) + 1}"
-
-    _execute_with_retry(
-        service.spreadsheets().values().update(
-            spreadsheetId=sheet_id,
-            range=update_range,
-            valueInputOption="RAW",
-            body={"values": membership_values},
-        ),
-        "sync semantic index flags",
-    )
-
-    # Defensive cleanup if stale rows exist below current event count.
-    clear_start_row = len(membership_values) + 2
-    _execute_with_retry(
-        service.spreadsheets().values().clear(
-            spreadsheetId=sheet_id,
-            range=f"{start_col}{clear_start_row}:{end_col}",
-        ),
-        "clear stale semantic flags",
-    )
-
-    persisted_events = read_venue_events_from_sheet()
-    persisted_included = sum(1 for event in persisted_events if bool(event.get("in_semantic_index", False)))
-    return {
-        "sheet_event_count": len(persisted_events),
-        "included_count": persisted_included,
-        "excluded_count": len(persisted_events) - persisted_included,
-        "semantic_indexed_at": indexed_at_value,
-    }
 
 
 def get_events_by_venue() -> dict[str, list[dict]]:
-    """Get all events grouped by venue."""
+    """Return all events grouped by venue name."""
     events = read_venue_events_from_sheet()
-    by_venue = {}
+    by_venue: dict[str, list[dict]] = {}
     for event in events:
         venue = event.get("venue_name", "Unknown")
         by_venue.setdefault(venue, []).append(event)
@@ -1024,10 +842,11 @@ def get_events_by_venue() -> dict[str, list[dict]]:
 
 
 def get_matched_events() -> list[dict]:
-    """Get all events that have a matched artist."""
-    events = read_venue_events_from_sheet()
-    return [event for event in events if event.get("matched_artist")]
+    """Return all events that have a matched artist."""
+    return [e for e in read_venue_events_from_sheet() if e.get("matched_artist")]
 
+
+# ─────────────────────────── Run Log (still in Sheets) ───────────────────────
 
 _RUN_LOG_TAB = "Run Log"
 _RUN_LOG_COLUMNS = [
@@ -1045,16 +864,51 @@ _RUN_LOG_COLUMNS = [
 ]
 
 
-def write_run_log(stats: dict) -> None:
-    """Append a single row to the 'Run Log' tab of the Venue Events sheet.
+def _get_sheets_service():
+    """Get authenticated Google Sheets service (for Run Log only)."""
+    creds = get_credentials()
+    if not creds:
+        return None
+    return build("sheets", "v4", credentials=creds)
 
-    stats keys (all optional — missing values written as empty string):
+
+def _load_sheets_config() -> dict:
+    if _SHEETS_CONFIG.exists():
+        with open(_SHEETS_CONFIG) as f:
+            return json.load(f)
+    return {}
+
+
+def get_or_create_venue_events_sheet() -> str | None:
+    """Return the venue-events spreadsheet ID (used only for Run Log tab)."""
+    config = _load_sheets_config()
+    return config.get("venue_events_sheet_id")
+
+
+def _sheet_col_label(col_index: int) -> str:
+    """1-based column index → A1 label (used only for Run Log)."""
+    if col_index < 1:
+        return "A"
+    out = ""
+    value = col_index
+    while value:
+        value, rem = divmod(value - 1, 26)
+        out = chr(65 + rem) + out
+    return out
+
+
+def write_run_log(stats: dict) -> None:
+    """Append a run-summary row to the 'Run Log' tab in the Venue Events sheet.
+
+    Kept in Sheets so the log remains human-readable in a spreadsheet.
+
+    stats keys (all optional):
         started_at, duration_min, venues_processed, venues_with_events,
         errors, events_before, events_added, events_removed, events_after, status
     """
     sheet_id = get_or_create_venue_events_sheet()
     if not sheet_id:
-        print("  write_run_log: no sheet ID, skipping.")
+        print("  write_run_log: no sheet ID configured, skipping.")
         return
 
     service = _get_sheets_service()
@@ -1077,7 +931,6 @@ def write_run_log(stats: dict) -> None:
                 ),
                 "create Run Log tab",
             )
-            # Write header row
             _execute_with_retry(
                 service.spreadsheets().values().update(
                     spreadsheetId=sheet_id,
@@ -1117,21 +970,20 @@ def write_run_log(stats: dict) -> None:
             ),
             "append Run Log row",
         )
-        print(f"  Run log written: {row[0]} — +{stats.get('events_added', '?')} added, -{stats.get('events_removed', '?')} removed")
+        print(
+            f"  Run log written: {row[0]} — "
+            f"+{stats.get('events_added', '?')} added, "
+            f"-{stats.get('events_removed', '?')} removed"
+        )
     except Exception as exc:
         print(f"  write_run_log: failed to append row: {exc}")
 
 
+# ─────────────────────────── Dev / test helpers ──────────────────────────────
+
 def test_venue_events_sheet():
-    """Test the venue events sheet integration."""
-    print("Testing Venue Events Sheet integration...")
-
-    if not is_authenticated():
-        print("Not authenticated. Run: python -m utils.google_auth")
-        return
-
-    sheet_id = get_or_create_venue_events_sheet()
-    print(f"Venue Events sheet: {sheet_id}")
+    """Smoke-test the Firestore integration."""
+    print("Testing Venue Events Firestore integration...")
 
     events = read_venue_events_from_sheet()
     print(f"\nCurrent data: {len(events)} events")

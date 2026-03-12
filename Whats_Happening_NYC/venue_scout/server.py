@@ -18,6 +18,7 @@ from flask_limiter.util import get_remote_address
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.distance import get_travel_time, get_travel_times_batch
+from venue_scout.firestore_client import get_db
 from venue_scout.observability import increment, log_event, record_failure, snapshot
 from venue_scout.paths import TRAVEL_CACHE_FILE, ensure_data_dir
 
@@ -63,6 +64,16 @@ _origin_coord_cache: dict[str, tuple[float, float] | None] = {}
 _venue_coord_lookup_cache: dict[str, dict[str, tuple[float, float]]] | None = None
 _DEFAULT_ORIGIN_ADDRESS = "167 W 74th St, New York, NY 10023"
 _DEFAULT_ORIGIN_COORDS = (40.780602, -73.983528)
+
+# Subway station cache: populated once per process from Firestore.
+# Shape: {"1": [{"id": "101", "name": "Van Cortlandt Park-242 St"}, ...], ...}
+_subway_stations_cache: dict[str, list[dict]] | None = None
+_SUBWAY_LINE_ORDER = ["1", "2", "3", "4", "5", "6", "7", "A", "B", "C", "D", "E", "F", "G", "J", "L", "M", "N", "Q", "R", "S"]
+
+# Venue route_planner_id lookup: {route_planner_id: True} populated lazily.
+# We keep the per-event lookup as a flat map: {route_planner_id -> True} built
+# from the venues collection when first needed.
+_venue_route_planner_index: dict[str, str] | None = None  # {route_planner_id: venue_name}
 
 
 def _load_settings():
@@ -149,6 +160,102 @@ def _load_venue_coord_lookup(force_reload: bool = False) -> dict[str, dict[str, 
         "by_address": by_address,
     }
     return _venue_coord_lookup_cache
+
+
+def _load_subway_stations() -> dict[str, list[dict]]:
+    """Load and cache subway station list from Firestore (station_name + line only)."""
+    global _subway_stations_cache
+    if _subway_stations_cache is not None:
+        return _subway_stations_cache
+
+    db = get_db()
+    by_line: dict[str, list[dict]] = {}
+
+    try:
+        docs = db.collection("subway_travel_times").select(["station_name", "lines"]).stream()
+        for doc in docs:
+            data = doc.to_dict() or {}
+            name = str(data.get("station_name", "") or "").strip()
+            if not name:
+                continue
+            # `lines` is a list of line labels; fall back to legacy `line` string
+            raw_lines = data.get("lines")
+            if isinstance(raw_lines, list):
+                line_labels = [str(l).strip() for l in raw_lines if str(l).strip()]
+            else:
+                legacy = str(data.get("line", "") or "").strip()
+                line_labels = [legacy] if legacy else []
+            for line in line_labels:
+                by_line.setdefault(line, []).append({"id": doc.id, "name": name})
+    except Exception:
+        pass
+
+    # Sort stations alphabetically within each line; preserve defined line order
+    result: dict[str, list[dict]] = {}
+    for line in _SUBWAY_LINE_ORDER:
+        if line in by_line:
+            result[line] = sorted(by_line[line], key=lambda s: s["name"])
+    # Include any lines not in the predefined order (shouldn't happen, but be safe)
+    for line, stations in by_line.items():
+        if line not in result:
+            result[line] = sorted(stations, key=lambda s: s["name"])
+
+    _subway_stations_cache = result
+    return _subway_stations_cache
+
+
+def _load_venue_route_planner_index() -> dict[str, str]:
+    """
+    Build {route_planner_id: normalized_venue_name} from cached venues.
+    Used to look up a venue's route_planner_id from an event's venue_name or ticketmaster_id.
+    """
+    global _venue_route_planner_index
+    if _venue_route_planner_index is not None:
+        return _venue_route_planner_index
+
+    index: dict[str, str] = {}  # route_planner_id -> normalized_name (not critical, just for reference)
+    # Also build reverse: normalized_name -> route_planner_id and tm_id -> route_planner_id
+    try:
+        from venue_scout.cache import read_cached_venues
+        venues = read_cached_venues()
+    except Exception:
+        venues = []
+
+    name_to_rpid: dict[str, str] = {}
+    tm_to_rpid: dict[str, str] = {}
+
+    for venue in venues:
+        rpid = str(venue.get("route_planner_id", "") or "").strip()
+        if not rpid:
+            continue
+        name_key = _normalize_lookup_text(venue.get("name", ""))
+        if name_key:
+            name_to_rpid[name_key] = rpid
+        tm_id = str(venue.get("ticketmaster_venue_id", "") or "").strip()
+        if tm_id:
+            tm_to_rpid[tm_id] = rpid
+
+    _venue_route_planner_index = {"_by_name": name_to_rpid, "_by_tm": tm_to_rpid}  # type: ignore[assignment]
+    return _venue_route_planner_index
+
+
+def _event_route_planner_id(event: dict) -> str | None:
+    """Resolve a route_planner_id for an event via venue name or ticketmaster ID."""
+    index = _load_venue_route_planner_index()
+    by_name = index.get("_by_name", {})
+    by_tm = index.get("_by_tm", {})
+
+    tm_id = str(event.get("ticketmaster_venue_id", "") or "").strip()
+    if tm_id:
+        rpid = by_tm.get(tm_id)
+        if rpid:
+            return rpid
+
+    name_key = _normalize_lookup_text(event.get("venue_name", ""))
+    if name_key:
+        return by_name.get(name_key)
+
+    return None
 
 
 def _event_destination_coords(event: dict) -> tuple[float, float] | None:
@@ -401,7 +508,85 @@ def _filter_and_enrich_by_distance(
     """
     Estimate travel time for LLM matches, then apply distance filter.
     Returns (kept_events, metadata, warning).
+
+    If filters contains origin_station_id, uses pre-computed subway travel times
+    from Firestore instead of calling the Targomo API.
     """
+    # ── Subway pre-computed path ──────────────────────────────────────────────
+    station_id = str(filters.get("origin_station_id", "") or "").strip()
+    if station_id:
+        try:
+            db = get_db()
+            station_doc = db.collection("subway_travel_times").document(station_id).get()
+            if not station_doc.exists:
+                return (
+                    matches,
+                    {"mode": mode, "applied": False},
+                    f"Station '{station_id}' not found in travel time database. Showing unfiltered results.",
+                )
+            times_map: dict = (station_doc.to_dict() or {}).get("times", {})
+        except Exception as exc:
+            return (
+                matches,
+                {"mode": mode, "applied": False},
+                f"Subway travel time lookup failed ({exc.__class__.__name__}). Showing unfiltered results.",
+            )
+
+        # mode key: "s" for transit/subway, "w" for walking
+        time_key = "w" if mode == "walking" else "s"
+
+        kept: list[dict] = []
+        dropped_over = 0
+        no_rpid = 0
+        no_entry = 0
+
+        for event in matches:
+            rpid = _event_route_planner_id(event)
+            row = dict(event)
+            if rpid is None:
+                # No route_planner_id — include unfiltered per spec
+                row["travel_minutes"] = None
+                kept.append(row)
+                no_rpid += 1
+                continue
+
+            entry = times_map.get(rpid)
+            if entry is None:
+                # No pre-computed path — include unfiltered
+                row["travel_minutes"] = None
+                kept.append(row)
+                no_entry += 1
+                continue
+
+            minutes = entry.get(time_key)
+            if minutes is None:
+                # Mode not available (e.g. walk_status not ok) — include unfiltered
+                row["travel_minutes"] = None
+                kept.append(row)
+                no_entry += 1
+                continue
+
+            row["travel_minutes"] = minutes
+            if minutes <= max_minutes:
+                kept.append(row)
+            else:
+                dropped_over += 1
+
+        meta = {
+            "mode": mode,
+            "applied": True,
+            "source": "subway_precomputed",
+            "station_id": station_id,
+            "max_minutes": max_minutes,
+            "input_matches": len(matches),
+            "kept": len(kept),
+            "no_route_planner_id": no_rpid,
+            "no_precomputed_entry": no_entry,
+            "dropped_over_limit": dropped_over,
+        }
+        return kept, meta, ""
+
+    # ── Targomo real-time path (existing) ────────────────────────────────────
     origin = _resolve_origin_coords(filters)
     if origin is None:
         return matches, {"mode": mode, "applied": False}, "Distance filter skipped (origin location unavailable)."
@@ -655,6 +840,29 @@ def index():
 @app.route('/<path:path>')
 def static_files(path):
     return send_from_directory('.', path)
+
+
+@app.route('/api/subway-stations')
+def subway_stations():
+    """
+    Return subway stations grouped by line.
+
+    Response:
+    {
+        "lines": {
+            "1": [{"id": "101", "name": "Van Cortlandt Park-242 St"}, ...],
+            "A": [...],
+            ...
+        }
+    }
+    """
+    increment("server.api.subway_stations.calls")
+    try:
+        lines = _load_subway_stations()
+        return jsonify({"lines": lines})
+    except Exception as exc:
+        record_failure("server.subway_stations", str(exc))
+        return jsonify({"error": str(exc)}), 500
 
 
 @app.route('/api/travel-times', methods=['POST'])

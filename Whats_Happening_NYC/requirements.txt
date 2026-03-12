@@ -9,9 +9,12 @@ python-dateutil
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
+google-cloud-firestore
+google-cloud-storage
 ytmusicapi
 flask
 flask-cors
 flask-limiter
 beautifulsoup4
 curl_cffi
+pyarrow

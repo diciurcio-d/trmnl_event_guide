@@ -15,6 +15,13 @@ mkdir -p /tmp/config
 [ -d /app/config ] && rmdir /app/config 2>/dev/null || true
 [ ! -L /app/config ] && ln -s /tmp/config /app/config
 
+# Pull the latest semantic index from GCS before serving requests.
+# Fails silently so a missing index doesn't prevent the server from starting.
+python -c "
+from venue_scout.gcs_sync import pull_index
+pull_index()
+" || true
+
 exec gunicorn \
     --bind "0.0.0.0:$PORT" \
     --workers 1 \
