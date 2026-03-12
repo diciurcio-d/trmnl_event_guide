@@ -11,5 +11,5 @@ mkdir -p /tmp/config
 [ -d /app/config ] && rmdir /app/config 2>/dev/null || true
 [ ! -L /app/config ] && ln -s /tmp/config /app/config
 
-exec python -m venue_scout.job
+exec python -m "${1:-venue_scout.job}"
 
