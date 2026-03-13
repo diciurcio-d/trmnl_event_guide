@@ -106,10 +106,10 @@ def _window_from_relative(relative_window: str, now: datetime) -> tuple[datetime
         end = start + timedelta(days=6)
         return start, _day_end(end)
     if key == "this_weekend":
-        days_to_saturday = (5 - today_start.weekday()) % 7
-        saturday = today_start + timedelta(days=days_to_saturday)
-        sunday = saturday + timedelta(days=1)
-        return saturday, _day_end(sunday)
+        days_to_friday = (4 - today_start.weekday()) % 7
+        friday = today_start + timedelta(days=days_to_friday)
+        sunday = friday + timedelta(days=2)
+        return friday, _day_end(sunday)
     if key == "next_30_days":
         return now, now + timedelta(days=30)
 
@@ -281,6 +281,7 @@ def _apply_date_tool(query: str, events: list[dict]) -> tuple[list[dict], dict, 
         "- 'tonight', 'this evening', 'out tonight' → use relative_window='tonight' (events from now through end of evening)\n"
         "- 'today', 'right now', 'happening now' → use relative_window='today' (events from now through end of day)\n"
         "- Both 'today' and 'tonight' start from the CURRENT TIME — past events are excluded.\n"
+        "- 'this weekend', 'next weekend' → use relative_window='this_weekend' (Friday through Sunday inclusive).\n"
         "- A bare day-of-week reference (e.g. 'Thursday', 'Friday night') → use next_WEEKDAY.\n"
         "If no date constraint exists, do not call any function.\n"
         f"User query: {query}"
