@@ -99,7 +99,8 @@
         .layout {
             display: grid;
             grid-template-columns: 320px 1fr;
-            gap: 16px;
+            column-gap: 16px;
+            row-gap: 0;
         }
 
         .panel {
@@ -518,6 +519,19 @@
             background: #f6f9f6;
         }
 
+        .chat-attribution {
+            grid-column: 2;
+            text-align: right;
+            font-size: 11px;
+            color: var(--muted);
+            padding: 6px 0 0;
+            margin: 0;
+        }
+
+        .chat-attribution a {
+            color: var(--muted);
+        }
+
         .hint-row {
             margin-top: 8px;
             display: flex;
@@ -773,6 +787,7 @@
                     </button>
                 </form>
             </section>
+            <p class="chat-attribution">Created by David DiCiurcio. <a href="mailto:diciurcio.david@gmail.com">Reach out</a> with any feedback.</p>
         </section>
     </main>
 
