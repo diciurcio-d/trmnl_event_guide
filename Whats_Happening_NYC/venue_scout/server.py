@@ -9,7 +9,6 @@ from difflib import SequenceMatcher
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
-import requests
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_limiter import Limiter
@@ -17,10 +16,8 @@ from flask_limiter.util import get_remote_address
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from utils.distance import get_travel_time, get_travel_times_batch
 from venue_scout.firestore_client import get_db
 from venue_scout.observability import increment, log_event, record_failure, snapshot
-from venue_scout.paths import TRAVEL_CACHE_FILE, ensure_data_dir
 
 app = Flask(__name__, static_folder='.')
 CORS(app)
@@ -36,34 +33,7 @@ limiter = Limiter(
     storage_uri="memory://",
 )
 
-# Persistent cache for travel times
-CACHE_FILE = TRAVEL_CACHE_FILE
-
-
-def _load_cache() -> dict:
-    """Load travel time cache from disk."""
-    if CACHE_FILE.exists():
-        try:
-            with open(CACHE_FILE) as f:
-                return json.load(f)
-        except (json.JSONDecodeError, IOError):
-            return {}
-    return {}
-
-
-def _save_cache(cache: dict):
-    """Save travel time cache to disk."""
-    ensure_data_dir()
-    with open(CACHE_FILE, "w") as f:
-        json.dump(cache, f)
-
-
-_travel_cache = _load_cache()
 _TZ = ZoneInfo("America/New_York")
-_origin_coord_cache: dict[str, tuple[float, float] | None] = {}
-_venue_coord_lookup_cache: dict[str, dict[str, tuple[float, float]]] | None = None
-_DEFAULT_ORIGIN_ADDRESS = "167 W 74th St, New York, NY 10023"
-_DEFAULT_ORIGIN_COORDS = (40.780602, -73.983528)
 
 # Subway station cache: populated once per process from Firestore.
 # Shape: {"1": [{"id": "101", "name": "Van Cortlandt Park-242 St"}, ...], ...}
@@ -112,54 +82,6 @@ def _normalize_lookup_text(value) -> str:
         return ""
     text = re.sub(r"[^a-z0-9\s]", " ", text)
     return re.sub(r"\s+", " ", text).strip()
-
-
-def _origin_geocode_cache_key(address: str) -> str:
-    """Stable cache key for geocoded origin addresses."""
-    return f"geocode|origin|{_normalize_lookup_text(address)}"
-
-
-def _fallback_origin_coords_for_address(address: str) -> tuple[float, float] | None:
-    """Return known fallback coordinates for default configured addresses."""
-    if _normalize_lookup_text(address) == _normalize_lookup_text(_DEFAULT_ORIGIN_ADDRESS):
-        return _DEFAULT_ORIGIN_COORDS
-    return None
-
-
-def _load_venue_coord_lookup(force_reload: bool = False) -> dict[str, dict[str, tuple[float, float]]]:
-    """Load venue coordinate indexes keyed by normalized name and address."""
-    global _venue_coord_lookup_cache
-    if _venue_coord_lookup_cache is not None and not force_reload:
-        return _venue_coord_lookup_cache
-
-    by_name: dict[str, tuple[float, float]] = {}
-    by_address: dict[str, tuple[float, float]] = {}
-
-    try:
-        from venue_scout.cache import read_cached_venues
-        venues = read_cached_venues()
-    except Exception:
-        venues = []
-
-    for venue in venues:
-        lat = _to_float_or_none(venue.get("lat"))
-        lng = _to_float_or_none(venue.get("lng"))
-        if lat is None or lng is None:
-            continue
-
-        name_key = _normalize_lookup_text(venue.get("name", ""))
-        address_key = _normalize_lookup_text(venue.get("address", ""))
-
-        if name_key and name_key not in by_name:
-            by_name[name_key] = (lat, lng)
-        if address_key and address_key not in by_address:
-            by_address[address_key] = (lat, lng)
-
-    _venue_coord_lookup_cache = {
-        "by_name": by_name,
-        "by_address": by_address,
-    }
-    return _venue_coord_lookup_cache
 
 
 def _load_subway_stations() -> dict[str, list[dict]]:
@@ -258,247 +180,6 @@ def _event_route_planner_id(event: dict) -> str | None:
     return None
 
 
-def _event_destination_coords(event: dict) -> tuple[float, float] | None:
-    """Resolve destination coordinates for an event from row or venue cache."""
-    lat = _to_float_or_none(event.get("lat"))
-    lng = _to_float_or_none(event.get("lng"))
-    if lat is not None and lng is not None:
-        return lat, lng
-
-    lookup = _load_venue_coord_lookup()
-    address_key = _normalize_lookup_text(event.get("address", ""))
-    if address_key:
-        coords = lookup["by_address"].get(address_key)
-        if coords:
-            return coords
-
-    name_key = _normalize_lookup_text(event.get("venue_name", ""))
-    if name_key:
-        coords = lookup["by_name"].get(name_key)
-        if coords:
-            return coords
-
-    return None
-
-
-def _geocode_address(address: str) -> tuple[float, float] | None:
-    """Geocode an address to lat/lng using Google Geocoding API."""
-    normalized = address.strip()
-    if not normalized:
-        return None
-    cache_key = _origin_geocode_cache_key(normalized)
-
-    # Persistent cache on disk (shared with travel cache file).
-    cached_row = _travel_cache.get(cache_key)
-    if isinstance(cached_row, dict):
-        cached_lat = _to_float_or_none(cached_row.get("lat"))
-        cached_lng = _to_float_or_none(cached_row.get("lng"))
-        if cached_lat is not None and cached_lng is not None:
-            coords = (cached_lat, cached_lng)
-            _origin_coord_cache[normalized] = coords
-            return coords
-
-    in_memory_cached = _origin_coord_cache.get(normalized)
-    if in_memory_cached is not None:
-        return in_memory_cached
-
-    config = _load_config()
-    api_key = str(config.get("google_cloud", {}).get("api_key", "")).strip()
-    if not api_key:
-        fallback = _fallback_origin_coords_for_address(normalized)
-        if fallback is not None:
-            _origin_coord_cache[normalized] = fallback
-        return fallback
-
-    settings = _load_settings()
-    timeout = int(getattr(settings, "VENUE_ENRICH_PLACES_TIMEOUT_SEC", 10))
-
-    coords = None
-
-    # Primary geocoding path: Geocoding API.
-    try:
-        response = requests.get(
-            "https://maps.googleapis.com/maps/api/geocode/json",
-            params={"address": normalized, "key": api_key},
-            timeout=timeout,
-        )
-        response.raise_for_status()
-        payload = response.json()
-        if payload.get("status") == "OK":
-            first = (payload.get("results") or [{}])[0]
-            location = first.get("geometry", {}).get("location", {})
-            lat = _to_float_or_none(location.get("lat"))
-            lng = _to_float_or_none(location.get("lng"))
-            if lat is not None and lng is not None:
-                coords = (lat, lng)
-    except Exception:
-        coords = None
-
-    # Fallback path: Places API Text Search.
-    if coords is None:
-        try:
-            response = requests.post(
-                "https://places.googleapis.com/v1/places:searchText",
-                headers={
-                    "Content-Type": "application/json",
-                    "X-Goog-Api-Key": api_key,
-                    "X-Goog-FieldMask": "places.location",
-                },
-                json={
-                    "textQuery": normalized,
-                    "maxResultCount": 1,
-                },
-                timeout=timeout,
-            )
-            response.raise_for_status()
-            payload = response.json()
-            first_place = (payload.get("places") or [{}])[0]
-            location = first_place.get("location", {})
-            lat = _to_float_or_none(location.get("latitude"))
-            lng = _to_float_or_none(location.get("longitude"))
-            if lat is not None and lng is not None:
-                coords = (lat, lng)
-        except Exception:
-            coords = None
-
-    if coords is None:
-        fallback = _fallback_origin_coords_for_address(normalized)
-        if fallback is not None:
-            _origin_coord_cache[normalized] = fallback
-        return fallback
-
-    _origin_coord_cache[normalized] = coords
-    if coords is not None:
-        _travel_cache[cache_key] = {"lat": coords[0], "lng": coords[1]}
-        _save_cache(_travel_cache)
-    return coords
-
-
-def _resolve_origin_coords(filters: dict) -> tuple[float, float] | None:
-    """Resolve origin coordinates from filters or config."""
-    filter_lat = _to_float_or_none(filters.get("origin_lat"))
-    filter_lng = _to_float_or_none(filters.get("origin_lng"))
-    if filter_lat is not None and filter_lng is not None:
-        return filter_lat, filter_lng
-
-    filter_address = str(filters.get("origin_address", "")).strip()
-    if filter_address:
-        # Do not silently fall back to home coordinates when user provided
-        # a specific origin and geocoding failed.
-        return _geocode_address(filter_address)
-
-    config = _load_config()
-    user_cfg = config.get("user", {}) if isinstance(config, dict) else {}
-    cfg_lat = _to_float_or_none(user_cfg.get("home_lat"))
-    cfg_lng = _to_float_or_none(user_cfg.get("home_lng"))
-    if cfg_lat is not None and cfg_lng is not None:
-        return cfg_lat, cfg_lng
-
-    home_address = str(user_cfg.get("home_address", "")).strip()
-    return _geocode_address(home_address) if home_address else None
-
-
-def _sanitize_targomo_error(exc: Exception) -> str:
-    """Return a user-safe Targomo error message without sensitive request details."""
-    if isinstance(exc, RuntimeError):
-        return str(exc)
-    return "Targomo request failed"
-
-
-def _parse_targomo_times(payload: dict) -> dict[str, int]:
-    """Extract target-id -> travel minutes from Targomo response payload."""
-    times: dict[str, int] = {}
-    data = payload.get("data")
-    if isinstance(data, list):
-        for source in data:
-            targets = source.get("targets")
-            if not isinstance(targets, list):
-                continue
-            for target in targets:
-                target_id = str(target.get("id", "")).strip()
-                seconds = _to_int_or_none(target.get("travelTime"))
-                if target_id and seconds is not None:
-                    times[target_id] = max(1, int(round(seconds / 60)))
-
-    if times:
-        return times
-
-    targets = payload.get("targets")
-    if isinstance(targets, list):
-        for target in targets:
-            target_id = str(target.get("id", "")).strip()
-            seconds = _to_int_or_none(target.get("travelTime"))
-            if target_id and seconds is not None:
-                times[target_id] = max(1, int(round(seconds / 60)))
-    return times
-
-
-def _targomo_travel_times(
-    origin: tuple[float, float],
-    targets: list[dict],
-    mode: str,
-    max_minutes: int,
-) -> dict[str, int]:
-    """Fetch one-to-many travel times from Targomo."""
-    config = _load_config()
-    targomo_cfg = config.get("targomo", {}) if isinstance(config, dict) else {}
-    api_key = str(targomo_cfg.get("api_key", "")).strip()
-    if not api_key:
-        raise RuntimeError("Targomo API key is not configured")
-
-    region = str(targomo_cfg.get("region", "northamerica")).strip() or "northamerica"
-    base_url = str(targomo_cfg.get("base_url", "https://api.targomo.com")).rstrip("/")
-    max_edge_weight = int(max(1800, (max_minutes + 30) * 60))
-    endpoint = f"{base_url}/{region}/v1/time"
-    travel_type = "walk" if mode == "walking" else "transit"
-
-    payload = {
-        "edgeWeight": "time",
-        "maxEdgeWeight": max_edge_weight,
-        "travelType": travel_type,
-        "sources": [{"id": "origin", "lat": origin[0], "lng": origin[1]}],
-        "targets": targets,
-    }
-
-    settings = _load_settings()
-    timeout = int(getattr(settings, "GOOGLE_DISTANCE_MATRIX_BATCH_TIMEOUT_SEC", 20))
-
-    try:
-        response = requests.post(
-            endpoint,
-            params={"key": api_key},
-            json=payload,
-            timeout=timeout,
-        )
-    except requests.RequestException as exc:
-        raise RuntimeError(f"Targomo request failed (network): {exc.__class__.__name__}") from exc
-
-    if response.status_code >= 400:
-        raise RuntimeError(f"Targomo request failed ({response.status_code})")
-
-    parsed = response.json()
-    if str(parsed.get("code", "")).lower() not in ("", "ok"):
-        message = str(parsed.get("message", "Unknown Targomo error")).strip() or "Unknown Targomo error"
-        raise RuntimeError(f"Targomo error: {message}")
-
-    return _parse_targomo_times(parsed)
-
-
-def _travel_cache_key(
-    origin: tuple[float, float],
-    destination: tuple[float, float],
-    mode: str,
-) -> str:
-    if mode == "transit":
-        bucket = datetime.now(_TZ).strftime("%Y-%m-%dT%H")
-    else:
-        bucket = "static"
-    return (
-        f"targomo|{mode}|"
-        f"{origin[0]:.5f},{origin[1]:.5f}|{destination[0]:.5f},{destination[1]:.5f}|{bucket}"
-    )
-
-
 def _filter_and_enrich_by_distance(
     matches: list[dict],
     filters: dict,
@@ -510,7 +191,7 @@ def _filter_and_enrich_by_distance(
     Returns (kept_events, metadata, warning).
 
     If filters contains origin_station_id, uses pre-computed subway travel times
-    from Firestore instead of calling the Targomo API.
+    from Firestore. Otherwise returns matches unfiltered.
     """
     # ── Subway pre-computed path ──────────────────────────────────────────────
     station_id = str(filters.get("origin_station_id", "") or "").strip()
@@ -586,93 +267,8 @@ def _filter_and_enrich_by_distance(
         }
         return kept, meta, ""
 
-    # ── Targomo real-time path (existing) ────────────────────────────────────
-    origin = _resolve_origin_coords(filters)
-    if origin is None:
-        return matches, {"mode": mode, "applied": False}, "Distance filter skipped (origin location unavailable)."
-
-    to_lookup: list[dict] = []
-    per_index_minutes: dict[int, int | None] = {}
-    cache_updates = 0
-
-    for idx, event in enumerate(matches):
-        coords = _event_destination_coords(event)
-        if coords is None:
-            per_index_minutes[idx] = None
-            continue
-        key = _travel_cache_key(origin, coords, mode)
-        cached = _travel_cache.get(key)
-        if isinstance(cached, dict) and _to_int_or_none(cached.get("minutes")) is not None:
-            per_index_minutes[idx] = int(cached["minutes"])
-            continue
-        to_lookup.append(
-            {
-                "index": idx,
-                "id": str(idx),
-                "lat": coords[0],
-                "lng": coords[1],
-                "cache_key": key,
-            }
-        )
-
-    warning = ""
-    if to_lookup:
-        batch_size = 80
-        try:
-            for start in range(0, len(to_lookup), batch_size):
-                batch = to_lookup[start:start + batch_size]
-                targets = [{"id": row["id"], "lat": row["lat"], "lng": row["lng"]} for row in batch]
-                response_times = _targomo_travel_times(origin, targets, mode=mode, max_minutes=max_minutes)
-                for row in batch:
-                    minutes = response_times.get(row["id"])
-                    per_index_minutes[row["index"]] = minutes
-                    if minutes is not None:
-                        _travel_cache[row["cache_key"]] = {"minutes": minutes, "text": f"{minutes} min"}
-                        cache_updates += 1
-        except Exception as exc:
-            warning = (
-                f"Distance filter unavailable ({_sanitize_targomo_error(exc)}). "
-                "Showing unfiltered ranked results."
-            )
-            enriched = []
-            for idx, event in enumerate(matches):
-                row = dict(event)
-                row["travel_minutes"] = per_index_minutes.get(idx)
-                enriched.append(row)
-            return enriched, {"mode": mode, "applied": False}, warning
-
-    if cache_updates:
-        _save_cache(_travel_cache)
-
-    kept: list[dict] = []
-    dropped_missing = 0
-    dropped_over = 0
-    resolved = 0
-
-    for idx, event in enumerate(matches):
-        minutes = per_index_minutes.get(idx)
-        row = dict(event)
-        row["travel_minutes"] = minutes
-        if minutes is None:
-            dropped_missing += 1
-            continue
-        resolved += 1
-        if minutes <= max_minutes:
-            kept.append(row)
-        else:
-            dropped_over += 1
-
-    meta = {
-        "mode": mode,
-        "applied": True,
-        "max_minutes": max_minutes,
-        "input_matches": len(matches),
-        "resolved_minutes": resolved,
-        "kept": len(kept),
-        "dropped_missing": dropped_missing,
-        "dropped_over_limit": dropped_over,
-    }
-    return kept, meta, warning
+    # No station selected — distance filter not applicable.
+    return matches, {"mode": mode, "applied": False}, ""
 
 
 def _serialize_events(events: list[dict]) -> list[dict]:
@@ -864,210 +460,6 @@ def subway_stations():
         record_failure("server.subway_stations", str(exc))
         return jsonify({"error": str(exc)}), 500
 
-
-@app.route('/api/travel-times', methods=['POST'])
-@limiter.limit("60 per hour")  # Google Maps API — cached but still costs on cache miss
-def calculate_travel_times():
-    """
-    Calculate travel times from origin to multiple destinations.
-    Uses batch API calls for efficiency (25 destinations per API call).
-
-    Request body:
-    {
-        "origin": "123 Main St, New York, NY",
-        "destinations": [
-            {"name": "Venue 1", "address": "456 Broadway, New York, NY"},
-            ...
-        ],
-        "mode": "transit"  // transit, driving, walking
-    }
-
-    Response:
-    {
-        "results": [
-            {"name": "Venue 1", "minutes": 25, "text": "25 mins"},
-            ...
-        ]
-    }
-    """
-    increment("server.api.travel_times.calls")
-    data = request.json
-    origin = data.get('origin', '')
-    destinations = data.get('destinations', [])
-    mode = data.get('mode', 'transit')
-
-    if not origin:
-        return jsonify({"error": "Origin address required"}), 400
-
-    results = []
-    uncached = []  # (index, name, address) for venues not in cache
-
-    # Addresses that are too vague to be useful
-    BAD_ADDRESSES = {'nyc', 'new york', 'brooklyn', 'manhattan', 'queens', 'bronx', 'staten island', ''}
-
-    # First pass: check cache
-    for i, dest in enumerate(destinations):
-        name = dest.get('name', '')
-        address = dest.get('address', '').strip()
-
-        # Skip vague addresses
-        if address.lower().replace(',', '').strip() in BAD_ADDRESSES:
-            results.append({"name": name, "minutes": None, "text": "No address"})
-            continue
-
-        cache_key = f"{origin}|{address}|{mode}"
-        if cache_key in _travel_cache:
-            cached = _travel_cache[cache_key]
-            results.append({"name": name, "minutes": cached["minutes"], "text": cached["text"]})
-        else:
-            results.append(None)  # Placeholder
-            uncached.append((i, name, address))
-
-    # Batch API call for uncached venues
-    if uncached:
-        addresses = [addr for _, _, addr in uncached]
-        batch_results = get_travel_times_batch(origin, addresses, mode)
-
-        for (i, name, address), travel in zip(uncached, batch_results):
-            cache_key = f"{origin}|{address}|{mode}"
-
-            if travel["status"] == "OK":
-                minutes = travel["duration_minutes"]
-                text = travel["duration_text"]
-                _travel_cache[cache_key] = {"minutes": minutes, "text": text}
-                results[i] = {"name": name, "minutes": minutes, "text": text}
-            else:
-                results[i] = {"name": name, "minutes": None, "text": "Error"}
-
-        # Save cache after batch
-        _save_cache(_travel_cache)
-
-    return jsonify({"results": results})
-
-
-@app.route('/api/travel-time', methods=['GET'])
-@limiter.limit("60 per hour")  # Google Maps API
-def calculate_single_travel_time():
-    """Calculate travel time for a single destination."""
-    increment("server.api.travel_time.calls")
-    origin = request.args.get('origin', '')
-    destination = request.args.get('destination', '')
-    mode = request.args.get('mode', 'transit')
-
-    if not origin or not destination:
-        return jsonify({"error": "Origin and destination required"}), 400
-
-    cache_key = f"{origin}|{destination}|{mode}"
-    if cache_key in _travel_cache:
-        return jsonify(_travel_cache[cache_key])
-
-    travel = get_travel_time(origin, destination, mode)
-
-    if travel["status"] == "OK":
-        result = {
-            "minutes": travel["duration_minutes"],
-            "text": travel["duration_text"],
-            "distance": travel["distance_text"],
-        }
-        _travel_cache[cache_key] = result
-        _save_cache(_travel_cache)
-        return jsonify(result)
-    else:
-        return jsonify({"error": travel.get("error", "Unknown error")}), 400
-
-
-@app.route('/api/geocode-origin', methods=['POST'])
-def geocode_origin():
-    """Validate and geocode a user-provided origin address."""
-    increment("server.api.geocode_origin.calls")
-    data = request.json or {}
-    address = str(data.get("address", "") or "").strip()
-    if not address:
-        return jsonify({"valid": False, "error": "Origin address is required."}), 400
-
-    try:
-        coords = _geocode_address(address)
-        if coords is None:
-            return jsonify(
-                {
-                    "valid": False,
-                    "error": "Address could not be geocoded. Please enter a valid address.",
-                }
-            ), 400
-        return jsonify({"valid": True, "lat": coords[0], "lng": coords[1]})
-    except Exception:
-        return jsonify(
-            {
-                "valid": False,
-                "error": "Address validation failed. Please try again.",
-            }
-        ), 500
-
-
-@app.route('/api/preview-cost', methods=['POST'])
-def preview_cost():
-    """Preview how many API calls will be made (for cost estimation)."""
-    increment("server.api.preview_cost.calls")
-    data = request.json
-    origin = data.get('origin', '')
-    destinations = data.get('destinations', [])
-    mode = data.get('mode', 'transit')
-
-    BAD_ADDRESSES = {'nyc', 'new york', 'brooklyn', 'manhattan', 'queens', 'bronx', 'staten island', ''}
-
-    cached = 0
-    uncached = 0
-    skipped = 0
-
-    for dest in destinations:
-        address = dest.get('address', '').strip()
-
-        if address.lower().replace(',', '').strip() in BAD_ADDRESSES:
-            skipped += 1
-            continue
-
-        cache_key = f"{origin}|{address}|{mode}"
-        if cache_key in _travel_cache:
-            cached += 1
-        else:
-            uncached += 1
-
-    # Cost: $5 per 1000 elements
-    cost = (uncached / 1000) * 5
-
-    return jsonify({
-        "total": len(destinations),
-        "cached": cached,
-        "uncached": uncached,
-        "skipped": skipped,
-        "estimated_cost": f"${cost:.3f}",
-    })
-
-
-@app.route('/api/cache-stats')
-def cache_stats():
-    """Get cache statistics."""
-    increment("server.api.cache_stats.calls")
-    # Group by origin
-    origins = {}
-    for key in _travel_cache:
-        origin = key.split('|')[0]
-        origins[origin] = origins.get(origin, 0) + 1
-
-    return jsonify({
-        "total_cached": len(_travel_cache),
-        "by_origin": origins,
-    })
-
-
-@app.route('/api/clear-cache', methods=['POST'])
-def clear_cache():
-    """Clear the travel time cache."""
-    increment("server.api.clear_cache.calls")
-    global _travel_cache
-    _travel_cache = {}
-    _save_cache(_travel_cache)
-    return jsonify({"status": "ok", "message": "Cache cleared"})
 
 
 # ============================================================================
@@ -1581,7 +973,6 @@ def debug_health():
             "venue_cache_threshold_days": getattr(settings, "VENUE_CACHE_THRESHOLD_DAYS", None),
             "venue_fetch_delay": getattr(settings, "VENUE_FETCH_DELAY", None),
         },
-        "travel_cache_entries": len(_travel_cache),
         "observability": snapshot(),
     }
     return jsonify(payload)
