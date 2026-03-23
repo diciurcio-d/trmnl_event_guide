@@ -1582,6 +1582,7 @@ def _normalize_llm_event_rows(
     """Convert extracted rows into canonical event objects."""
     out: list[dict] = []
     today = datetime.now(ZoneInfo("America/New_York")).date()
+    one_year_out = today + timedelta(days=365)
 
     for row in rows:
         name = str(row.get("name", "") or "").strip()
@@ -1605,12 +1606,12 @@ def _normalize_llm_event_rows(
                 dt = parsed
                 normalized_date = parsed.strftime("%Y-%m-%d")
 
-        if dt is not None and dt.date() < today:
+        if dt is not None and (dt.date() < today or dt.date() > one_year_out):
             continue
         if normalized_date:
             try:
                 parsed_date = datetime.strptime(normalized_date, "%Y-%m-%d").date()
-                if parsed_date < today:
+                if parsed_date < today or parsed_date > one_year_out:
                     continue
             except Exception:
                 pass

@@ -27,5 +27,6 @@ exec gunicorn \
     --workers 1 \
     --threads 8 \
     --timeout 120 \
+    --preload \
     --log-level info \
     venue_scout.server:app
