@@ -564,14 +564,38 @@
         @media (max-width: 900px) {
             .layout {
                 grid-template-columns: 1fr;
+                row-gap: 12px;
+            }
+
+            .chat-attribution {
+                grid-column: 1;
+            }
+
+            .filters {
+                padding: 10px;
+            }
+
+            .filters-body {
+                max-height: 60vh;
+                overflow-y: auto;
+            }
+
+            .field {
+                margin-bottom: 8px;
             }
 
             .field-row {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
+                margin-bottom: 8px;
+            }
+
+            .field label {
+                margin-bottom: 3px;
             }
 
             .chat {
-                height: 68vh;
+                height: 75vh;
+                min-height: 480px;
             }
 
             .filters-toggle {
@@ -1725,10 +1749,16 @@
             chatInputEl.focus();
         });
 
-        // Collapsible filters panel (mobile only)
+        // Collapsible filters panel (mobile only) — collapsed by default on small screens
         const filtersToggleEl = document.getElementById("filters-toggle");
         const filtersPanelEl  = document.getElementById("filters-panel");
         const toggleLabelEl   = filtersToggleEl.querySelector(".filters-toggle-label");
+
+        if (window.innerWidth <= 900) {
+            filtersPanelEl.classList.add("collapsed");
+            filtersToggleEl.setAttribute("aria-expanded", "false");
+            toggleLabelEl.textContent = "Show";
+        }
 
         filtersToggleEl.addEventListener("click", () => {
             const isCollapsed = filtersPanelEl.classList.toggle("collapsed");
