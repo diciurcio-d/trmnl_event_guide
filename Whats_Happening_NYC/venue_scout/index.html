@@ -452,6 +452,14 @@
             background: #e6f4ea;
         }
 
+        .result-recurring {
+            font-size: 11px;
+            color: #7a5a1e;
+            background: #fef3cd;
+            border-radius: 999px;
+            padding: 1px 7px;
+        }
+
         .result-ask-btn {
             align-self: flex-end;
             margin-top: 2px;
@@ -1160,7 +1168,9 @@
             const preview = includeDescription ? shortDescription(event.description || "") : "";
             const descHtml = preview ? `<div class="result-desc">${escapeHtml(preview)}</div>` : "";
 
-            const venueRowParts = [venueHtml, catHtml, priceHtml].filter(Boolean);
+            const recurringHtml = event.is_recurring ? `<span class="result-recurring">recurring</span>` : "";
+
+            const venueRowParts = [venueHtml, catHtml, priceHtml, recurringHtml].filter(Boolean);
             const venueRowSep = '<span style="color:var(--line)">·</span>';
 
             item.innerHTML = `

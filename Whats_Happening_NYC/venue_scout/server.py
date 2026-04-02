@@ -38,6 +38,66 @@ _TZ = ZoneInfo("America/New_York")
 # Subway station cache: populated once per process from Firestore.
 # Shape: {"1": [{"id": "101", "name": "Van Cortlandt Park-242 St"}, ...], ...}
 _subway_stations_cache: dict[str, list[dict]] | None = None
+
+# Travel times cache: {station_id: {route_planner_id: {w: int, s: int}}}
+# Loaded from GCS at startup; falls back to per-request Firestore reads if missing.
+_travel_times_cache: dict[str, dict] = {}
+
+
+def _preload() -> None:
+    """Eagerly load events and travel times into memory at container startup.
+
+    Called once at module load time (before gunicorn forks workers) so every
+    worker starts with warm caches and the first user request is fast.
+    """
+    import threading
+
+    def _load_events():
+        try:
+            from venue_scout.venue_events_sheet import read_venue_events_from_sheet
+            events = read_venue_events_from_sheet()
+            print(f"[preload] Events ready: {len(events):,}")
+        except Exception as exc:
+            print(f"[preload] Events load failed: {exc}")
+
+    def _load_travel_times():
+        try:
+            from venue_scout.gcs_sync import pull_travel_times_cache
+            data = pull_travel_times_cache(verbose=False)
+            if data:
+                _travel_times_cache.update(data)
+                print(f"[preload] Travel times ready: {len(data):,} stations")
+                return
+        except Exception as exc:
+            print(f"[preload] GCS travel times unavailable ({exc.__class__.__name__}), falling back to Firestore.")
+        try:
+            db = get_db()
+            data = {}
+            for doc in db.collection("subway_travel_times").stream():
+                data[doc.id] = (doc.to_dict() or {}).get("times", {})
+            _travel_times_cache.update(data)
+            print(f"[preload] Travel times ready (Firestore): {len(data):,} stations")
+        except Exception as exc:
+            print(f"[preload] Travel times load failed: {exc}")
+
+    def _load_venue_index():
+        try:
+            _load_venue_route_planner_index()
+            idx = _venue_route_planner_index or {}
+            n = len(idx.get("_by_name", {}))
+            print(f"[preload] Venue route-planner index ready: {n:,} venues")
+        except Exception as exc:
+            print(f"[preload] Venue index load failed: {exc}")
+
+    t1 = threading.Thread(target=_load_events, daemon=True)
+    t2 = threading.Thread(target=_load_travel_times, daemon=True)
+    t3 = threading.Thread(target=_load_venue_index, daemon=True)
+    t1.start()
+    t2.start()
+    t3.start()
+    t1.join()
+    t2.join()
+    t3.join()
 _SUBWAY_LINE_ORDER = ["1", "2", "3", "4", "5", "6", "7", "A", "B", "C", "D", "E", "F", "G", "J", "L", "M", "N", "Q", "R", "S"]
 
 # Venue route_planner_id lookup: {route_planner_id: True} populated lazily.
@@ -197,15 +257,19 @@ def _filter_and_enrich_by_distance(
     station_id = str(filters.get("origin_station_id", "") or "").strip()
     if station_id:
         try:
-            db = get_db()
-            station_doc = db.collection("subway_travel_times").document(station_id).get()
-            if not station_doc.exists:
-                return (
-                    matches,
-                    {"mode": mode, "applied": False},
-                    f"Station '{station_id}' not found in travel time database. Showing unfiltered results.",
-                )
-            times_map: dict = (station_doc.to_dict() or {}).get("times", {})
+            if station_id in _travel_times_cache:
+                times_map: dict = _travel_times_cache[station_id]
+            else:
+                db = get_db()
+                station_doc = db.collection("subway_travel_times").document(station_id).get()
+                if not station_doc.exists:
+                    return (
+                        matches,
+                        {"mode": mode, "applied": False},
+                        f"Station '{station_id}' not found in travel time database. Showing unfiltered results.",
+                    )
+                times_map = (station_doc.to_dict() or {}).get("times", {})
+                _travel_times_cache[station_id] = times_map
         except Exception as exc:
             return (
                 matches,
@@ -393,6 +457,41 @@ def _apply_event_filters(
         applied["fuzzy_categories"] = fuzzy_categories
         applied["fuzzy_category_threshold"] = fuzzy_threshold
 
+    if bool(filters.get("free_only", False)):
+        filtered = [event for event in filtered if event.get("is_free") is True]
+        applied["free_only"] = True
+
+    if bool(filters.get("exclude_recurring", False)):
+        filtered = [event for event in filtered if not event.get("is_recurring")]
+        applied["exclude_recurring"] = True
+
+    _time_of_day = str(filters.get("time_of_day") or "").strip().lower()
+    if _time_of_day and _time_of_day != "none":
+        _tod_hours: dict[str, tuple[int, int]] = {
+            "morning":    (6, 11),
+            "afternoon":  (12, 16),
+            "evening":    (17, 21),
+            "late_night": (22, 3),
+        }
+        _tod_range = _tod_hours.get(_time_of_day)
+        if _tod_range:
+            _start_h, _end_h = _tod_range
+            _wraps = _end_h < _start_h
+            _tod_filtered = []
+            for _ev in filtered:
+                if not _ev.get("datetime"):
+                    _tod_filtered.append(_ev)
+                    continue
+                _dt = _parse_event_datetime(_ev)
+                if _dt is None:
+                    _tod_filtered.append(_ev)
+                    continue
+                _h = _dt.hour
+                if (_wraps and (_h >= _start_h or _h <= _end_h)) or (not _wraps and _start_h <= _h <= _end_h):
+                    _tod_filtered.append(_ev)
+            filtered = _tod_filtered
+            applied["time_of_day"] = _time_of_day
+
     if apply_distance_filter:
         max_travel_raw = filters.get("max_travel_minutes")
         include_unknown_distance = bool(filters.get("include_unknown_distance", True))
@@ -411,6 +510,10 @@ def _apply_event_filters(
             filtered = [event for event in filtered if within_distance(event)]
             applied["max_travel_minutes"] = max_travel
             applied["include_unknown_distance"] = include_unknown_distance
+
+    if bool(filters.get("exclude_recurring", False)):
+        filtered = [event for event in filtered if not event.get("is_recurring")]
+        applied["exclude_recurring"] = True
 
     days_ahead = _to_int_or_none(filters.get("days_ahead"))
 
@@ -827,8 +930,14 @@ def query_events():
         return jsonify({"error": "events must be a list"}), 400
 
     try:
+        from venue_scout.query_filter import (
+            extract_query_intent,
+            filter_events_by_date_window,
+            query_events_with_llm,
+        )
+
         settings = _load_settings()
-        normalized_filters = filters if isinstance(filters, dict) else {}
+        normalized_filters = dict(filters if isinstance(filters, dict) else {})
         distance_mode_raw = str(normalized_filters.get("distance_mode", "transit")).strip().lower()
         distance_mode = "none"
         if distance_mode_raw in ("walking", "transit"):
@@ -838,6 +947,44 @@ def query_events():
         if max_travel is None or max_travel < 1:
             max_travel = int(getattr(settings, "DEFAULT_MAX_TRAVEL_MINUTES", 60))
 
+        input_event_count = len(events)
+
+        # ── Step 1: Extract structured intent from query (single LLM tool call) ──
+        intent = extract_query_intent(query)
+        intent_warning = str(intent.pop("_warning", "") or "")
+
+        # ── Step 2: Apply date filter from intent ─────────────────────────────────
+        if intent.get("date_window_applied") and intent.get("date_start_dt") and intent.get("date_end_dt"):
+            events = filter_events_by_date_window(
+                events,
+                intent["date_start_dt"],
+                intent["date_end_dt"],
+                intent.get("include_undated", False),
+            )
+            if not events:
+                return jsonify({
+                    "interpretation": "No events found in the requested date range.",
+                    "filters": {"date": {k: v for k, v in intent.items() if not k.endswith("_dt")}},
+                    "applied_filters": {},
+                    "matches": [],
+                    "count": 0,
+                    "input_count": input_event_count,
+                    "filtered_count": 0,
+                    "warning": intent_warning,
+                    "mode": "date_tool_empty",
+                })
+
+        # ── Step 3: Merge intent constraints into filters ─────────────────────────
+        if intent.get("free_only"):
+            normalized_filters["free_only"] = True
+        if intent.get("exclude_recurring"):
+            normalized_filters["exclude_recurring"] = True
+        if intent.get("time_of_day"):
+            normalized_filters["time_of_day"] = intent["time_of_day"]
+        if intent.get("max_travel_minutes"):
+            max_travel = intent["max_travel_minutes"]
+
+        # ── Step 4: Apply structural filters (free, recurring, time-of-day) ───────
         filtered_events, applied_filters = _apply_event_filters(
             events,
             normalized_filters,
@@ -847,20 +994,43 @@ def query_events():
         if distance_mode in ("walking", "transit"):
             applied_filters["max_travel_minutes"] = max_travel
         if not filtered_events:
-            return jsonify(
-                {
-                    "interpretation": "No events match your selected filters.",
+            return jsonify({
+                "interpretation": "No events match your selected filters.",
+                "filters": {},
+                "applied_filters": applied_filters,
+                "matches": [],
+                "count": 0,
+                "input_count": input_event_count,
+                "filtered_count": 0,
+                "warning": intent_warning,
+                "mode": "filtered_empty",
+            })
+
+        # ── Step 5: Apply distance filter PRE-LLM ────────────────────────────────
+        distance_meta: dict = {"mode": distance_mode, "applied": False}
+        distance_warning = ""
+        if distance_mode in ("walking", "transit"):
+            filtered_events, distance_meta, distance_warning = _filter_and_enrich_by_distance(
+                filtered_events,
+                filters=normalized_filters,
+                mode=distance_mode,
+                max_minutes=max_travel,
+            )
+            if distance_meta.get("applied") and not filtered_events:
+                return jsonify({
+                    "interpretation": "No events found within your travel time limit.",
                     "filters": {},
                     "applied_filters": applied_filters,
+                    "distance_filter": distance_meta,
                     "matches": [],
                     "count": 0,
-                    "input_count": len(events),
+                    "input_count": input_event_count,
                     "filtered_count": 0,
-                    "warning": "",
-                    "mode": "filtered_empty",
-                }
-            )
+                    "warning": distance_warning,
+                    "mode": "distance_empty",
+                })
 
+        # ── Step 6: Semantic search + LLM re-ranking ─────────────────────────────
         result = query_events_with_llm(
             query=query,
             events=filtered_events,
@@ -868,6 +1038,7 @@ def query_events():
             force_fallback=force_fallback,
             context=context,
             history=history,
+            pre_applied_filters=intent,
         )
 
         # Enrich matches with cloudflare_protected so the frontend can pass it to /api/event-info
@@ -884,27 +1055,12 @@ def query_events():
         except Exception:
             pass  # best-effort; don't break the query on cache read failure
 
-        pre_distance_matches = list(result.get("matches", []))
-        distance_meta: dict = {"mode": distance_mode, "applied": False}
-        distance_warning = ""
-        if distance_mode in ("walking", "transit"):
-            pre_distance_count = len(pre_distance_matches)
-            distance_matches, distance_meta, distance_warning = _filter_and_enrich_by_distance(
-                pre_distance_matches,
-                filters=normalized_filters,
-                mode=distance_mode,
-                max_minutes=max_travel,
-            )
-            if distance_meta.get("applied"):
-                distance_meta["pre_distance_count"] = pre_distance_count
-            pre_distance_matches = distance_matches
-
-        warning_parts = [str(result.get("warning", "") or "").strip()]
+        warning_parts = [intent_warning, str(result.get("warning", "") or "").strip()]
         if distance_warning:
             warning_parts.append(distance_warning)
         warning = " ".join([part for part in warning_parts if part]).strip()
 
-        matches = _serialize_events(pre_distance_matches)
+        matches = _serialize_events(result.get("matches", []))
         payload = {
             "interpretation": result.get("interpretation", ""),
             "filters": result.get("filters", {}),
@@ -912,7 +1068,7 @@ def query_events():
             "distance_filter": distance_meta,
             "matches": matches,
             "count": len(matches),
-            "input_count": len(events),
+            "input_count": input_event_count,
             "filtered_count": len(filtered_events),
             "warning": warning,
             "mode": result.get("mode", "unknown"),
@@ -923,7 +1079,7 @@ def query_events():
             query=query,
             result_count=len(matches),
             mode=payload["mode"],
-            input_count=len(events),
+            input_count=input_event_count,
             filtered_count=len(filtered_events),
         )
         if payload["warning"]:
@@ -977,6 +1133,8 @@ def debug_health():
     }
     return jsonify(payload)
 
+
+_preload()
 
 if __name__ == '__main__':
     print("Starting Venue Scout server...")

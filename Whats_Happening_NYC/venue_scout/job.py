@@ -121,6 +121,16 @@ def main():
             push_index()
         except Exception as exc:
             print(f"  Warning: GCS push failed ({exc.__class__.__name__}: {exc}). Index built locally only.")
+
+    # Push events snapshot to GCS so the web server loads from GCS on next
+    # startup instead of streaming Firestore (reduces cold-start latency).
+    try:
+        from venue_scout.gcs_sync import push_events_cache
+        from venue_scout.venue_events_sheet import _serialize_events_for_gcs
+        print("  Pushing events cache to GCS...")
+        push_events_cache(_serialize_events_for_gcs(all_events))
+    except Exception as exc:
+        print(f"  Warning: Events cache GCS push failed ({exc.__class__.__name__}: {exc}).")
     print()
 
     elapsed = time.time() - start

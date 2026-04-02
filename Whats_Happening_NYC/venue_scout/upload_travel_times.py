@@ -4,6 +4,7 @@
 Usage:
     python -m venue_scout.upload_travel_times [--dry-run] [--skip-travel-times] [--skip-venue-mapping]
     python -m venue_scout.upload_travel_times --fix-lines-only [--dry-run]
+    python -m venue_scout.upload_travel_times --parquet-file path/to/matrix.parquet --destinations-file path/to/destinations.csv
 
 Source data:
     Parquet: /Users/ddiciurcio/TRMNL/route_planner/outputs/matrix_20260307_151829.parquet
@@ -363,7 +364,14 @@ def main() -> None:
     parser.add_argument("--skip-venue-mapping", action="store_true", help="Skip writing route_planner_id to venue docs")
     parser.add_argument("--fix-lines-only", action="store_true",
                         help="Fast path: only update the 'lines' field on existing docs using GTFS data")
+    parser.add_argument("--parquet-file", type=Path, default=None,
+                        help="Override the default parquet file path")
+    parser.add_argument("--destinations-file", type=Path, default=None,
+                        help="Override the default destinations CSV path")
     args = parser.parse_args()
+
+    parquet_file = args.parquet_file or PARQUET_FILE
+    destinations_csv = args.destinations_file or DESTINATIONS_CSV
 
     # Fast path: just fix the lines field on existing docs
     if args.fix_lines_only:
@@ -378,7 +386,7 @@ def main() -> None:
         return
 
     # Validate source files exist
-    for path in (PARQUET_FILE, ORIGINS_CSV, DESTINATIONS_CSV):
+    for path in (parquet_file, ORIGINS_CSV, destinations_csv):
         if not path.exists():
             print(f"ERROR: Missing source file: {path}", file=sys.stderr)
             sys.exit(1)
@@ -397,13 +405,13 @@ def main() -> None:
     print(f"  {len(station_lines_map)} stations mapped from GTFS")
 
     print("Loading destinations.csv…")
-    destinations = _load_destinations(DESTINATIONS_CSV)
+    destinations = _load_destinations(destinations_csv)
     print(f"  {len(destinations)} destinations loaded")
 
     # Step 2: Upload station travel time docs
     if not args.skip_travel_times:
         print("\nBuilding station docs from parquet…")
-        station_docs = _build_station_docs(PARQUET_FILE, origins, station_lines_map)
+        station_docs = _build_station_docs(parquet_file, origins, station_lines_map)
         print(f"  {len(station_docs)} station docs built")
 
         print("\nUploading to Firestore…")

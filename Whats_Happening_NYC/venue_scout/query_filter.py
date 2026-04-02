@@ -16,6 +16,14 @@ from venue_scout.semantic_search import lexical_rank_events, retrieve_semantic_c
 
 _TZ = ZoneInfo("America/New_York")
 _DATE_TOOL_NAME = "filter_events_by_date"
+_INTENT_TOOL_NAME = "extract_query_filters"
+
+_TIME_OF_DAY_HOURS: dict[str, tuple[int, int]] = {
+    "morning":    (6, 11),
+    "afternoon":  (12, 16),
+    "evening":    (17, 21),
+    "late_night": (22, 3),   # wraps midnight
+}
 
 
 def _load_settings():
@@ -333,6 +341,230 @@ def _apply_date_tool(query: str, events: list[dict]) -> tuple[list[dict], dict, 
     return filtered, metadata, ""
 
 
+def filter_events_by_date_window(
+    events: list[dict],
+    start: datetime | None,
+    end: datetime | None,
+    include_undated: bool,
+) -> list[dict]:
+    """Public wrapper — apply a date window filter to an event list."""
+    return _filter_events_by_date_window(events, start, end, include_undated)
+
+
+def _filter_events_by_time_of_day(events: list[dict], time_of_day: str) -> list[dict]:
+    """Keep events that fall within the requested part of the day.
+
+    Events with no time component (date-only or undated) are always kept.
+    """
+    hours = _TIME_OF_DAY_HOURS.get(str(time_of_day or "").strip().lower())
+    if not hours:
+        return events
+    start_h, end_h = hours
+    wraps = end_h < start_h  # late_night spans midnight
+    out = []
+    for event in events:
+        if not event.get("datetime"):
+            out.append(event)
+            continue
+        dt = _event_datetime(event)
+        if dt is None:
+            out.append(event)
+            continue
+        h = dt.hour
+        if (wraps and (h >= start_h or h <= end_h)) or (not wraps and start_h <= h <= end_h):
+            out.append(event)
+    return out
+
+
+def _intent_tool_declaration() -> types.Tool:
+    """Combined intent extraction tool: date + time-of-day + free/recurring/travel constraints."""
+    return types.Tool(
+        function_declarations=[
+            types.FunctionDeclaration(
+                name=_INTENT_TOOL_NAME,
+                description=(
+                    "Extract all structured constraints from a user query for NYC event filtering. "
+                    "Call this function whenever the query contains ANY of: date constraints, "
+                    "time-of-day preferences, free-event filter, recurring-event exclusion, "
+                    "or an explicit travel time limit stated in the query text."
+                ),
+                parameters_json_schema={
+                    "type": "object",
+                    "properties": {
+                        "relative_window": {
+                            "type": "string",
+                            "enum": [
+                                "none", "today", "tonight", "tomorrow",
+                                "next_monday", "next_tuesday", "next_wednesday",
+                                "next_thursday", "next_friday", "next_saturday",
+                                "next_sunday", "this_week", "this_weekend",
+                                "next_week", "next_30_days",
+                            ],
+                            "description": (
+                                "Use 'tonight' for evening queries (e.g. 'tonight', 'this evening', 'out tonight'). "
+                                "Use 'today' for same-day without an evening qualifier. "
+                                "Both start from the current time — past events excluded automatically. "
+                                "Use next_WEEKDAY when the user names a day of the week. "
+                                "'tonight'/'this evening' → relative_window='tonight', NOT time_of_day='evening'."
+                            ),
+                        },
+                        "start_date": {"type": "string", "description": "YYYY-MM-DD"},
+                        "end_date": {"type": "string", "description": "YYYY-MM-DD"},
+                        "days_ahead": {"type": "integer"},
+                        "include_undated": {
+                            "type": "boolean",
+                            "description": "Include events with no specific date",
+                        },
+                        "time_of_day": {
+                            "type": "string",
+                            "enum": ["morning", "afternoon", "evening", "late_night"],
+                            "description": (
+                                "Set ONLY when the user explicitly requests a part of the day "
+                                "separate from a date (e.g. 'evening events this weekend', "
+                                "'morning yoga classes'). Do NOT set for 'tonight' or 'this evening' "
+                                "— use relative_window='tonight' instead."
+                            ),
+                        },
+                        "free_only": {
+                            "type": "boolean",
+                            "description": "True if the user explicitly wants free / no-cost / no-cover events.",
+                        },
+                        "exclude_recurring": {
+                            "type": "boolean",
+                            "description": (
+                                "True if the user wants to avoid repeating/recurring events and "
+                                "prefers unique, one-time, or first-time events."
+                            ),
+                        },
+                        "max_travel_minutes": {
+                            "type": "integer",
+                            "description": (
+                                "Maximum travel time in minutes. Set ONLY when the user explicitly "
+                                "states a travel constraint in the query text "
+                                "(e.g. 'within 20 minutes', 'under 30 min away'). "
+                                "Do NOT infer from vague phrases like 'nearby' or 'close'."
+                            ),
+                        },
+                    },
+                },
+            )
+        ]
+    )
+
+
+def extract_query_intent(query: str) -> dict:
+    """Single LLM tool call that extracts all structured constraints from a user query.
+
+    Returns a dict with:
+      date_window_applied (bool), date_start_dt / date_end_dt (datetime | None),
+      include_undated (bool), time_of_day (str | None), free_only (bool),
+      exclude_recurring (bool), max_travel_minutes (int | None).
+    An optional _warning key carries non-fatal error messages.
+    """
+    now = datetime.now(_TZ)
+    day_name = now.strftime("%A")
+    timeout_sec = int(getattr(_settings, "QUERY_DATE_TOOL_TIMEOUT_SEC", 10))
+    client = get_gemini_model(timeout_sec=timeout_sec)
+    model_name = str(
+        getattr(
+            _settings,
+            "QUERY_DATE_TOOL_MODEL",
+            getattr(_settings, "GEMINI_MODEL", "gemini-2.5-flash"),
+        )
+    )
+    seed = int(getattr(_settings, "GEMINI_SEED", 20260213))
+
+    tool_prompt = (
+        "Extract all structured constraints from the user query for NYC event filtering.\n"
+        f"Current date/time: {now.isoformat()} ({day_name})\n"
+        "DATE RULES:\n"
+        "- 'tonight' / 'this evening' / 'out tonight' → relative_window='tonight'\n"
+        "- 'today' / 'happening now' → relative_window='today'\n"
+        "- 'this weekend' / 'next weekend' → relative_window='this_weekend'\n"
+        "- Named weekday (e.g. 'Saturday', 'Friday night') → next_WEEKDAY\n"
+        "TIME OF DAY RULES:\n"
+        "- Only set time_of_day when user asks for part of day SEPARATE from a date constraint\n"
+        "  (e.g. 'evening events this weekend' → both relative_window='this_weekend' AND time_of_day='evening').\n"
+        "- Do NOT set time_of_day for 'tonight' — use relative_window='tonight' instead.\n"
+        "OTHER RULES:\n"
+        "- free_only=true: user wants free / no-cost / no cover events\n"
+        "- exclude_recurring=true: user wants to avoid repeating events; wants unique / one-time events\n"
+        "- max_travel_minutes: ONLY when user explicitly states a travel time in the query text.\n"
+        "  Omit for vague phrases like 'nearby' or 'close to me'.\n"
+        "- Only call this function if at least one constraint is present.\n"
+        f"User query: {query}"
+    )
+
+    _empty: dict = {
+        "date_window_applied": False,
+        "date_start_dt": None,
+        "date_end_dt": None,
+        "include_undated": False,
+        "time_of_day": None,
+        "free_only": False,
+        "exclude_recurring": False,
+        "max_travel_minutes": None,
+    }
+
+    try:
+        response = client.models.generate_content(
+            model=model_name,
+            contents=tool_prompt,
+            config={
+                "temperature": 0,
+                "seed": seed,
+                "tools": [_intent_tool_declaration()],
+                "automatic_function_calling": {"disable": True},
+            },
+        )
+    except Exception as exc:
+        return {**_empty, "_warning": f"Intent extraction unavailable ({exc})."}
+
+    function_calls = response.function_calls or []
+    if not function_calls:
+        return _empty
+
+    call = function_calls[0]
+    if call.name != _INTENT_TOOL_NAME:
+        return _empty
+
+    args = call.args or {}
+    start, end = _build_date_window_from_args(args, now)
+    include_undated = bool(args.get("include_undated", False))
+
+    time_of_day_raw = str(args.get("time_of_day") or "").strip().lower()
+    time_of_day = time_of_day_raw if time_of_day_raw in _TIME_OF_DAY_HOURS else None
+
+    free_only = bool(args.get("free_only", False))
+    exclude_recurring = bool(args.get("exclude_recurring", False))
+
+    max_travel_minutes: int | None = None
+    raw_mtm = args.get("max_travel_minutes")
+    if raw_mtm is not None:
+        try:
+            v = int(raw_mtm)
+            if v > 0:
+                max_travel_minutes = v
+        except (TypeError, ValueError):
+            pass
+
+    intent: dict = {
+        "date_window_applied": bool(start and end),
+        "date_start_dt": start,
+        "date_end_dt": end,
+        "include_undated": include_undated,
+        "time_of_day": time_of_day,
+        "free_only": free_only,
+        "exclude_recurring": exclude_recurring,
+        "max_travel_minutes": max_travel_minutes,
+    }
+    if start:
+        intent["date_start"] = start.isoformat()
+    if end:
+        intent["date_end"] = end.isoformat()
+    return intent
+
+
 def _event_view(events: list[dict], max_events: int = 150) -> list[dict]:
     rows = []
     for idx, event in enumerate(events[:max_events]):
@@ -580,6 +812,7 @@ def query_events_with_llm(
     force_fallback: bool = False,
     context: str = "",
     history: str = "",
+    pre_applied_filters: dict | None = None,
 ) -> dict:
     """Rank events for a natural-language query with deterministic fallback."""
     if not events:
@@ -600,7 +833,10 @@ def query_events_with_llm(
     # so that pre-ranking (lexical/semantic) and fallback scoring use the full intent.
     effective_query = f"{query} {context}".strip() if context else query
 
-    if not force_fallback:
+    if pre_applied_filters is not None:
+        # Caller already extracted intent and pre-filtered events — skip internal date tool.
+        date_filters = pre_applied_filters
+    elif not force_fallback:
         ranked_events, date_filters, date_warning = _apply_date_tool(query, events)
         if date_warning:
             warning = date_warning

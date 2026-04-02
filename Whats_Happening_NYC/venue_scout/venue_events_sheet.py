@@ -11,6 +11,7 @@ and easy to inspect in a spreadsheet.
 import hashlib
 import json
 import re
+import threading
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -40,6 +41,12 @@ _FIRESTORE_BATCH_SIZE = 500
 # Transient HTTP status codes worth retrying (used only for Run Log writes)
 _RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 _RETRY_DELAYS = [10, 20, 40]
+
+# ── In-process events cache ───────────────────────────────────────────────────
+# Loaded once per container lifetime from GCS (fast) with Firestore as fallback.
+# Invalidated after any write so the next read picks up fresh data.
+_events_cache: list[dict] | None = None
+_events_cache_lock = threading.Lock()
 
 
 # ─────────────────────────── Sheets retry (Run Log only) ─────────────────────
@@ -138,6 +145,7 @@ VENUE_EVENTS_COLUMNS = [
     "date_added",
     "in_semantic_index",
     "semantic_indexed_at",
+    "is_recurring",
 ]
 
 
@@ -179,6 +187,13 @@ def normalize_event(event: dict) -> dict:
     normalized["date_added"] = normalized.get("date_added", "")
     normalized["in_semantic_index"] = normalized.get("in_semantic_index", False)
     normalized["semantic_indexed_at"] = normalized.get("semantic_indexed_at", "")
+    is_recurring = normalized.get("is_recurring")
+    if isinstance(is_recurring, bool):
+        normalized["is_recurring"] = is_recurring
+    elif isinstance(is_recurring, str):
+        normalized["is_recurring"] = is_recurring.lower() in ("true", "1", "yes")
+    else:
+        normalized["is_recurring"] = False
     return normalized
 
 
@@ -459,6 +474,93 @@ def _populate_event_addresses(events: list[dict]) -> list[dict]:
     return out
 
 
+# ─────────────────────────── Recurring event detection ──────────────────────
+
+def _normalize_name_for_recurrence(name: str) -> str:
+    """Reduce an event name to a stable key for grouping repeated instances.
+
+    Strips trailing date/episode tokens so "Jazz Night – Apr 3" and
+    "Jazz Night – Apr 10" collapse to the same key.
+    """
+    s = name.lower().strip()
+    s = re.sub(r"[\-–—#|]\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s\d,]*$", "", s)
+    s = re.sub(r"[\-–—#|]\s*\d[\d/.\-]*\s*$", "", s)
+    s = re.sub(r"\s*(vol\.?|volume|ep\.?|episode|#)\s*\d+\s*$", "", s)
+    s = re.sub(r"[^a-z0-9\s]", " ", s)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def _compute_recurring_doc_ids(events: list[dict]) -> set[str]:
+    """Return the set of doc IDs for events that recur more than once per week.
+
+    An event name+venue group is considered recurring if any two consecutive
+    instances (sorted by date) are ≤ 7 days apart.
+    """
+    from collections import defaultdict
+
+    def _event_date(event: dict):
+        dt = event.get("datetime")
+        if isinstance(dt, datetime):
+            return dt.date()
+        raw = str(event.get("date_str") or "").strip()
+        return _parse_date_str(raw) if raw else None
+
+    groups: dict[tuple, list[tuple]] = defaultdict(list)
+    for event in events:
+        venue = str(event.get("venue_name") or "").strip().lower()
+        name = _normalize_name_for_recurrence(str(event.get("name") or ""))
+        if not venue or not name:
+            continue
+        d = _event_date(event)
+        groups[(venue, name)].append((d, _event_doc_id(event)))
+
+    recurring: set[str] = set()
+    for entries in groups.values():
+        if len(entries) < 2:
+            continue
+        dated = sorted((d, doc_id) for d, doc_id in entries if d is not None)
+        if len(dated) < 2:
+            continue
+        for (d1, _), (d2, _) in zip(dated, dated[1:]):
+            if (d2 - d1).days <= 7:
+                for _, doc_id in entries:
+                    recurring.add(doc_id)
+                break
+    return recurring
+
+
+def recompute_recurring_for_venue(venue_name: str) -> dict:
+    """Recompute is_recurring for all events at a venue and update changed docs.
+
+    Called after any write to a venue's events so the flag stays current.
+    Returns a summary dict with counts of events set True/False.
+    """
+    db = _get_db()
+    col = db.collection(_EVENTS_COLLECTION)
+
+    events = read_venue_events_from_sheet(venue_name)
+    if not events:
+        return {"set_true": 0, "set_false": 0}
+
+    recurring_ids = _compute_recurring_doc_ids(events)
+
+    set_true = set_false = 0
+    for start in range(0, len(events), _FIRESTORE_BATCH_SIZE):
+        batch = db.batch()
+        for event in events[start:start + _FIRESTORE_BATCH_SIZE]:
+            doc_id = _event_doc_id(event)
+            new_val = doc_id in recurring_ids
+            if event.get("is_recurring") != new_val:
+                batch.set(col.document(doc_id), {"is_recurring": new_val}, merge=True)
+                if new_val:
+                    set_true += 1
+                else:
+                    set_false += 1
+        batch.commit()
+
+    return {"set_true": set_true, "set_false": set_false}
+
+
 # ─────────────────────────── Firestore helpers ───────────────────────────────
 
 def _get_db():
@@ -640,21 +742,78 @@ def _process_events_for_write(
 
 # ─────────────────────────── Public storage API ──────────────────────────────
 
+def _serialize_events_for_gcs(events: list[dict]) -> list[dict]:
+    """Convert event dicts to JSON-safe form for GCS storage."""
+    out = []
+    for event in events:
+        e = dict(event)
+        dt = e.get("datetime")
+        if dt is not None and hasattr(dt, "isoformat"):
+            e["datetime"] = dt.isoformat()
+        out.append(e)
+    return out
+
+
+def _load_all_events_uncached() -> list[dict]:
+    """Stream all events directly from Firestore (no cache)."""
+    db = _get_db()
+    events = []
+    for doc in db.collection(_EVENTS_COLLECTION).stream():
+        data = doc.to_dict()
+        if data:
+            events.append(_deserialize_event_from_db(data))
+    return events
+
+
+def _load_all_events() -> list[dict]:
+    """Return all events, loading from GCS or Firestore on first call and
+    caching in memory for the lifetime of the container process."""
+    global _events_cache
+    with _events_cache_lock:
+        if _events_cache is not None:
+            return _events_cache
+
+        # Try GCS snapshot first (fast — ~1s vs ~25s for Firestore stream)
+        try:
+            from venue_scout.gcs_sync import pull_events_cache
+            gcs_events = pull_events_cache(verbose=True)
+            if gcs_events is not None:
+                _events_cache = [_deserialize_event_from_db(e) for e in gcs_events]
+                print(f"  Events cache loaded from GCS: {len(_events_cache):,} events")
+                return _events_cache
+        except Exception as exc:
+            print(f"  GCS events cache unavailable ({exc.__class__.__name__}), falling back to Firestore.")
+
+        # Fallback: stream from Firestore
+        print("  Loading events from Firestore (cold start)...")
+        _events_cache = _load_all_events_uncached()
+        print(f"  Events loaded from Firestore: {len(_events_cache):,} events")
+        return _events_cache
+
+
+def invalidate_events_cache() -> None:
+    """Clear the in-process events cache so the next read fetches fresh data."""
+    global _events_cache
+    with _events_cache_lock:
+        _events_cache = None
+
+
 def read_venue_events_from_sheet(venue_name: str | None = None) -> list[dict]:
     """Read venue events from Firestore.
 
-    Args:
-        venue_name: If provided, return only events for this venue.
-                    If None, return all events.
+    Full load (venue_name=None): served from the in-process cache which is
+    populated from GCS on first call and held for the container lifetime.
+    Per-venue reads always go directly to Firestore (used during nightly writes).
     """
     try:
+        if venue_name is None:
+            return _load_all_events()
+
+        # Per-venue: always fresh from Firestore
         db = _get_db()
         col = db.collection(_EVENTS_COLLECTION)
-
-        query = col.where("venue_name", "==", venue_name) if venue_name else col
-
         events = []
-        for doc in query.stream():
+        for doc in col.where("venue_name", "==", venue_name).stream():
             data = doc.to_dict()
             if data:
                 events.append(_deserialize_event_from_db(data))
@@ -667,6 +826,8 @@ def read_venue_events_from_sheet(venue_name: str | None = None) -> list[dict]:
 
 def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = None):
     """Write venue events to Firestore.
+
+    Invalidates the in-process events cache so subsequent reads reflect the write.
 
     Venue-scoped write (venue_name provided):
         Processes only that venue's events.  Deletes the venue's stale docs
@@ -707,6 +868,12 @@ def write_venue_events_to_sheet(events: list[dict], venue_name: str | None = Non
 
         _batch_delete_refs(db, to_delete)
         _batch_set_events(db, col, future_events)
+        invalidate_events_cache()
+
+        if venue_name:
+            recurring_result = recompute_recurring_for_venue(venue_name)
+            if recurring_result["set_true"] or recurring_result["set_false"]:
+                print(f"  Recurring recompute: {recurring_result['set_true']} marked recurring, {recurring_result['set_false']} unmarked")
 
         scope = venue_name or "all venues"
         print(
@@ -774,7 +941,13 @@ def append_venue_events(events: list[dict], venue_name: str):
             return 0
 
         _batch_set_events(db, col, new_events)
+        invalidate_events_cache()
         print(f"  Added {len(new_events)} new events for {venue_name}")
+
+        recurring_result = recompute_recurring_for_venue(venue_name)
+        if recurring_result["set_true"] or recurring_result["set_false"]:
+            print(f"  Recurring recompute: {recurring_result['set_true']} marked recurring, {recurring_result['set_false']} unmarked")
+
         return len(new_events)
 
     except Exception as e:
