@@ -1909,6 +1909,89 @@ def fetch_venue_events(
 
     print(f"  Fetching events for: {venue_name}")
 
+    # 92nd Street Y dedicated custom Algolia scraper intercept
+    if "92nd street y" in venue_name.lower() or "92ny" in venue_name.lower():
+        print(f"    Detected 92nd Street Y. Running dedicated Algolia REST API scraper...")
+        try:
+            from scrapers.ninety_two_ny import fetch_92ny_events
+            algolia_events = fetch_92ny_events(venue_name)
+            if algolia_events:
+                result.events = algolia_events
+                result.source_used = "92ny_algolia"
+                increment("event_fetcher.fetch_venue.success")
+                log_event(
+                    "event_fetch_success",
+                    venue_name=venue_name,
+                    city=city,
+                    strategy="92ny_algolia",
+                    source_used="92ny_algolia",
+                    event_count=len(algolia_events),
+                )
+                if not skip_metadata_update:
+                    mark_venue_fetched(venue_name, city, len(algolia_events), "92ny_algolia")
+                print(f"    Result: {len(algolia_events)} events (source: 92ny_algolia)")
+                return result
+            else:
+                print(f"    Dedicated 92nd Street Y scraper returned no events, falling back...")
+        except Exception as e:
+            print(f"    Error running 92nd Street Y dedicated scraper: {e}. Falling back...")
+
+    # Museum of Modern Art (MoMA) dedicated custom scraper intercept
+    if "museum of modern art" in venue_name.lower() or "moma" in venue_name.lower():
+        if "moma ps1" not in venue_name.lower():
+            print(f"    Detected Museum of Modern Art (MoMA). Running dedicated Playwright scraper...")
+            try:
+                from scrapers.moma import fetch_moma_events
+                moma_events = fetch_moma_events(venue_name)
+                if moma_events:
+                    result.events = moma_events
+                    result.source_used = "moma_scraper"
+                    increment("event_fetcher.fetch_venue.success")
+                    log_event(
+                        "event_fetch_success",
+                        venue_name=venue_name,
+                        city=city,
+                        strategy="moma_scraper",
+                        source_used="moma_scraper",
+                        event_count=len(moma_events),
+                    )
+                    if not skip_metadata_update:
+                        mark_venue_fetched(venue_name, city, len(moma_events), "moma_scraper")
+                    print(f"    Result: {len(moma_events)} events (source: moma_scraper)")
+                    return result
+                else:
+                    print(f"    Dedicated MoMA scraper returned no events, falling back...")
+            except Exception as e:
+                print(f"    Error running Museum of Modern Art (MoMA) dedicated scraper: {e}. Falling back...")
+
+    # The Metropolitan Museum of Art (The Met) & The Met Cloisters dedicated custom scraper intercept
+    if "metropolitan museum" in venue_name.lower() or "met cloisters" in venue_name.lower() or "the met" in venue_name.lower():
+        if "opera" not in venue_name.lower():
+            print(f"    Detected The Met / Met Cloisters venue. Running dedicated Met scraper...")
+            try:
+                from scrapers.the_met import fetch_the_met_events
+                met_events = fetch_the_met_events(venue_name)
+                if met_events:
+                    result.events = met_events
+                    result.source_used = "the_met_scraper"
+                    increment("event_fetcher.fetch_venue.success")
+                    log_event(
+                        "event_fetch_success",
+                        venue_name=venue_name,
+                        city=city,
+                        strategy="the_met_scraper",
+                        source_used="the_met_scraper",
+                        event_count=len(met_events),
+                    )
+                    if not skip_metadata_update:
+                        mark_venue_fetched(venue_name, city, len(met_events), "the_met_scraper")
+                    print(f"    Result: {len(met_events)} events (source: the_met_scraper)")
+                    return result
+                else:
+                    print(f"    Dedicated The Met scraper returned no events, falling back...")
+            except Exception as e:
+                print(f"    Error running The Met dedicated scraper: {e}. Falling back...")
+
     # Feed-based fetching (iCal/RSS) — preferred over HTML scraping
     feed_url = venue.get("feed_url", "")
     feed_type = venue.get("feed_type", "")
