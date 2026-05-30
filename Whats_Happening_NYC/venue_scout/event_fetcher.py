@@ -1992,6 +1992,60 @@ def fetch_venue_events(
             except Exception as e:
                 print(f"    Error running The Met dedicated scraper: {e}. Falling back...")
 
+    # Comedy Cellar & Rooms (Village Underground, Fat Black Pussycat) custom scraper intercept
+    if any(k in venue_name.lower() for k in ["comedy cellar", "village underground", "fat black pussycat"]):
+        print(f"    Detected Comedy Cellar/Room venue. Running dedicated Comedy Cellar scraper...")
+        try:
+            from scrapers.comedy_cellar import fetch_comedy_cellar_events
+            cellar_events = fetch_comedy_cellar_events(venue_name)
+            if cellar_events:
+                result.events = cellar_events
+                result.source_used = "comedy_cellar_scraper"
+                increment("event_fetcher.fetch_venue.success")
+                log_event(
+                    "event_fetch_success",
+                    venue_name=venue_name,
+                    city=city,
+                    strategy="comedy_cellar_scraper",
+                    source_used="comedy_cellar_scraper",
+                    event_count=len(cellar_events),
+                )
+                if not skip_metadata_update:
+                    mark_venue_fetched(venue_name, city, len(cellar_events), "comedy_cellar_scraper")
+                print(f"    Result: {len(cellar_events)} events (source: comedy_cellar_scraper)")
+                return result
+            else:
+                print(f"    Dedicated Comedy Cellar scraper returned no events, falling back...")
+        except Exception as e:
+            print(f"    Error running Comedy Cellar dedicated scraper: {e}. Falling back...")
+
+    # Smoke Jazz Club custom scraper intercept
+    if "smoke jazz" in venue_name.lower() or "smoke" == venue_name.strip().lower():
+        print(f"    Detected Smoke Jazz Club venue. Running dedicated Smoke Jazz scraper...")
+        try:
+            from scrapers.smoke_jazz import fetch_smoke_jazz_events
+            smoke_events = fetch_smoke_jazz_events(venue_name)
+            if smoke_events:
+                result.events = smoke_events
+                result.source_used = "smoke_jazz_scraper"
+                increment("event_fetcher.fetch_venue.success")
+                log_event(
+                    "event_fetch_success",
+                    venue_name=venue_name,
+                    city=city,
+                    strategy="smoke_jazz_scraper",
+                    source_used="smoke_jazz_scraper",
+                    event_count=len(smoke_events),
+                )
+                if not skip_metadata_update:
+                    mark_venue_fetched(venue_name, city, len(smoke_events), "smoke_jazz_scraper")
+                print(f"    Result: {len(smoke_events)} events (source: smoke_jazz_scraper)")
+                return result
+            else:
+                print(f"    Dedicated Smoke Jazz scraper returned no events, falling back...")
+        except Exception as e:
+            print(f"    Error running Smoke Jazz dedicated scraper: {e}. Falling back...")
+
     # Feed-based fetching (iCal/RSS) — preferred over HTML scraping
     feed_url = venue.get("feed_url", "")
     feed_type = venue.get("feed_type", "")

@@ -43,6 +43,11 @@ The following cultural landmarks and tour organizations are extremely high-profi
 * **Official URL**: [ohny.org](https://ohny.org)
 * **Scraping Strategy**: Scrape the official OHNY calendar, tracking year-round walking tours, special access events, and their major annual October weekend festival.
 
+### 🏛️ NY Historical Society [NEW TARGET]
+* **Status**: High profile landmark. Currently has basic page configuration in `state.py` but requires a robust, custom scraping integration.
+* **Official URL**: [nyhistory.org/programs](https://www.nyhistory.org/programs)
+* **Scraping Strategy**: Crawl their programs calendar (such as `/programs?genres=talks&subgenres=`) using BeautifulSoup or Playwright to parse historical talks, panel discussions, and lectures along with start times, ticket prices, and booking links.
+
 ---
 
 ## ⚡ 2. Eventbrite Integration Study & API Limits
