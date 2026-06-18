@@ -228,23 +228,61 @@ Each successful run appends a row to the **"Run Log"** tab in the Venue Events s
 
 `venue_scout/newsletter.py` generates a weekly HTML email digest of ~25–30 upcoming events across the next 7 days, with more picks on weekends. It uses Gemini to curate highlights and sends via Gmail SMTP.
 
-### Scheduled job
+### Scheduled jobs
 
-The newsletter runs automatically every **Thursday at 11:00 AM ET** via Cloud Scheduler → Cloud Run Job.
+The three newsletters run automatically at **11:00 AM ET** via Cloud Scheduler triggering a Cloud Run Job (`newsletter-weekly`) with arguments:
 
-- **Cloud Run Job**: `newsletter-weekly`
-- **Cloud Scheduler trigger**: `newsletter-weekly-thursday`
+1. **General Highlights:** Weekly on Thursdays (`0 11 * * 4`)
+2. **Talks & Tours:** Weekly on Wednesdays (`0 11 * * 3`)
+3. **Music Matches:** Once every two weeks on Tuesdays (`0 11 * * 2`). Note: The scheduler runs weekly, but the script automatically skips odd ISO week numbers unless the `--force` flag is passed.
+
+#### Cloud Run Jobs
+- **Job Name:** `newsletter-weekly`
+- **Region:** `us-central1`
+- **Project:** `gen-lang-client-0046008897`
+
+#### Cloud Scheduler Configuration
+Create or update the triggers using HTTP POST requests targeting the Cloud Run Job Run API with arguments in the JSON body:
 
 ```bash
-# Check recent runs
-gcloud run jobs executions list \
-  --job=newsletter-weekly \
-  --region=us-central1 \
-  --project=gen-lang-client-0046008897 \
-  --limit=5
+# 1. General Highlights (Weekly on Thursdays)
+gcloud scheduler jobs create http newsletter-general-thursday \
+  --schedule="0 11 * * 4" \
+  --time-zone="America/New_York" \
+  --uri="https://us-central1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/gen-lang-client-0046008897/jobs/newsletter-weekly:run" \
+  --http-method=POST \
+  --oauth-service-account-email="service-account-key@gen-lang-client-0046008897.iam.gserviceaccount.com" \
+  --message-body='{"overrides":{"containerOverrides":[{"args":["--type","general"]}]}}' \
+  --headers="Content-Type=application/json" \
+  --project=gen-lang-client-0046008897
 
-# Trigger a manual run
+# 2. Talks & Tours (Weekly on Wednesdays)
+gcloud scheduler jobs create http newsletter-talks-wednesday \
+  --schedule="0 11 * * 3" \
+  --time-zone="America/New_York" \
+  --uri="https://us-central1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/gen-lang-client-0046008897/jobs/newsletter-weekly:run" \
+  --http-method=POST \
+  --oauth-service-account-email="service-account-key@gen-lang-client-0046008897.iam.gserviceaccount.com" \
+  --message-body='{"overrides":{"containerOverrides":[{"args":["--type","talks"]}]}}' \
+  --headers="Content-Type=application/json" \
+  --project=gen-lang-client-0046008897
+
+# 3. Music Matches (Bi-weekly on Tuesdays)
+gcloud scheduler jobs create http newsletter-music-tuesday \
+  --schedule="0 11 * * 2" \
+  --time-zone="America/New_York" \
+  --uri="https://us-central1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/gen-lang-client-0046008897/jobs/newsletter-weekly:run" \
+  --http-method=POST \
+  --oauth-service-account-email="service-account-key@gen-lang-client-0046008897.iam.gserviceaccount.com" \
+  --message-body='{"overrides":{"containerOverrides":[{"args":["--type","music"]}]}}' \
+  --headers="Content-Type=application/json" \
+  --project=gen-lang-client-0046008897
+```
+
+#### Trigger a manual run of a specific newsletter:
+```bash
 gcloud run jobs execute newsletter-weekly \
+  --args="--type,music" \
   --region=us-central1 \
   --project=gen-lang-client-0046008897
 ```

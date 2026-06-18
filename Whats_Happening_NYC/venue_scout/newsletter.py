@@ -683,13 +683,13 @@ def send_newsletter(html: str, subject: str, config: dict) -> None:
 # Main
 # ---------------------------------------------------------------------------
 
-def main(newsletter_type: str = "all", dry_run: bool = False) -> None:
+def main(newsletter_type: str = "all", dry_run: bool = False, force: bool = False) -> None:
     if newsletter_type == "all":
         print("=== Curating and sending ALL three newsletters ===")
         print()
         for t in ["general", "talks", "music"]:
             try:
-                main(newsletter_type=t, dry_run=dry_run)
+                main(newsletter_type=t, dry_run=dry_run, force=force)
             except Exception as e:
                 print(f"Error curating/sending {t} newsletter: {e}")
             print()
@@ -700,6 +700,15 @@ def main(newsletter_type: str = "all", dry_run: bool = False) -> None:
 
     config = _load_config()
     now = datetime.now(_TZ)
+
+    if newsletter_type == "music":
+        # Check bi-weekly schedule: run only on even ISO week numbers
+        # (Allows --dry-run or --force to bypass this check)
+        current_week = now.isocalendar().week
+        if not dry_run and not force and (current_week % 2 != 0):
+            print(f"Skipping music newsletter: configured to run bi-weekly on even weeks (current week {current_week} is odd).")
+            print("Use --force to run anyway.")
+            return
     
     if newsletter_type == "talks":
         days_range = 7
@@ -807,5 +816,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true", help="Write HTML to /tmp instead of sending")
     parser.add_argument("--type", "-t", choices=["talks", "music", "general", "all"], default="all", help="Type of newsletter to send")
+    parser.add_argument("--force", "-f", action="store_true", help="Force send even if bi-weekly schedule would skip")
     args = parser.parse_args()
-    main(newsletter_type=args.type, dry_run=args.dry_run)
+    main(newsletter_type=args.type, dry_run=args.dry_run, force=args.force)
