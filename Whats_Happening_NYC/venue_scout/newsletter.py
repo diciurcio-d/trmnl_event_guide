@@ -12,6 +12,7 @@ Sends via Gmail SMTP using credentials from config.json.
 from __future__ import annotations
 
 import json
+import re
 import smtplib
 import textwrap
 from datetime import datetime, timedelta
@@ -74,7 +75,6 @@ def _is_music_event(event: dict) -> bool:
         r"\bgig\b", r"\bsinger\b", r"\bsongwriter\b", r"\borchestra\b"
     ]
     
-    import re
     for kw in keywords:
         if re.search(kw, name) or re.search(kw, desc):
             return True
@@ -100,7 +100,6 @@ def _is_sports_event(event: dict) -> bool:
         r"\bgame viewing\b", r"\bcoppa italia\b", r"\buefa\b"
     ]
     
-    import re
     for kw in keywords:
         if re.search(kw, name) or re.search(kw, desc):
             return True
@@ -128,7 +127,6 @@ def _is_performing_arts_or_comedy(event: dict) -> bool:
         r"\bimprov\b", r"\bplay\b", r"\bmusical\b", r"\btheater\b", r"\btheatre\b"
     ]
     
-    import re
     for kw in keywords:
         if re.search(kw, name) or re.search(kw, desc):
             return True
@@ -149,7 +147,6 @@ def _is_talk_or_tour(event: dict) -> bool:
         r"\blearn english\b",
         r"\bspeak english\b"
     ]
-    import re
     if any(re.search(kw, name) or re.search(kw, desc) for kw in english_class_keywords):
         return False
 
@@ -171,7 +168,6 @@ def _is_talk_or_tour(event: dict) -> bool:
             r"\blecture\b", r"\btalk\b", r"\bpanel discussion\b", r"\bsymposium\b",
             r"\bconversation\b", r"\bdiscussion\b", r"\bbook launch\b", r"\bbook event\b", r"\bq&a\b"
         ]
-        import re
         if not any(re.search(kw, name) or re.search(kw, desc) for kw in educational_keywords):
             return False
         
@@ -185,7 +181,6 @@ def _is_talk_or_tour(event: dict) -> bool:
         r"\btour\b", r"\bwalk\b", r"\bseminar\b", r"\bq&a\b", r"\bconversation\b"
     ]
     
-    import re
     for kw in keywords:
         if re.search(kw, name) or re.search(kw, desc):
             return True
