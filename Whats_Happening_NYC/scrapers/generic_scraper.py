@@ -340,6 +340,90 @@ def fetch_events_from_source(source: dict) -> list[dict]:
     This is the main generic scraper function that works with any source.
     """
     source_name = source["name"]
+    
+    # Intercept Open House NY to use robust, fast, server-side custom scraper
+    if "open house" in source_name.lower() or "ohny" in source_name.lower():
+        print(f"    Detected Open House NY. Running dedicated Builder.io API scraper...", flush=True)
+        try:
+            from scrapers.open_house_ny import fetch_open_house_ny_events
+            ohny_events = fetch_open_house_ny_events(source_name)
+            # Map open_house_ny keys to the exact keys expected by the generic pipeline
+            mapped_events = []
+            for ev in ohny_events:
+                has_specific_time = ev["datetime"].hour != 0 or ev["datetime"].minute != 0
+                mapped_events.append({
+                    "name": ev["name"],
+                    "datetime": ev["datetime"],
+                    "date_str": ev["date_str"],
+                    "type": ev["event_type"],
+                    "sold_out": False,
+                    "source": source_name,
+                    "location": ev["address"],
+                    "description": ev["description"],
+                    "has_specific_time": has_specific_time,
+                    "url": ev["url"],
+                    "travel_minutes": None,
+                })
+            # Enrich events with travel time from user's home
+            mapped_events = enrich_events_with_travel_time(mapped_events)
+            return mapped_events
+        except Exception as e:
+            print(f"    Error running Open House NY dedicated scraper: {e}. Falling back to generic...", flush=True)
+            
+    # Intercept NY Historical Society to use robust, fast, server-side custom scraper
+    if "historical society" in source_name.lower() or "nyhistory" in source_name.lower():
+        print(f"    Detected NY Historical Society. Running dedicated Prismic API scraper...", flush=True)
+        try:
+            from scrapers.ny_historical_society import fetch_ny_historical_society_events
+            nyhs_events = fetch_ny_historical_society_events(source_name)
+            mapped_events = []
+            for ev in nyhs_events:
+                has_specific_time = ev["datetime"].hour != 0 or ev["datetime"].minute != 0
+                mapped_events.append({
+                    "name": ev["name"],
+                    "datetime": ev["datetime"],
+                    "date_str": ev["date_str"],
+                    "type": ev["event_type"],
+                    "sold_out": False,
+                    "source": source_name,
+                    "location": ev["address"],
+                    "description": ev["description"],
+                    "has_specific_time": has_specific_time,
+                    "url": ev["url"],
+                    "travel_minutes": None,
+                })
+            mapped_events = enrich_events_with_travel_time(mapped_events)
+            return mapped_events
+        except Exception as e:
+            print(f"    Error running NY Historical Society dedicated scraper: {e}. Falling back to generic...", flush=True)
+
+    # Intercept MAS Tours to use robust, fast, server-side custom scraper
+    if "mas tours" in source_name.lower() or "municipal art" in source_name.lower():
+        print(f"    Detected MAS Tours. Running dedicated HTML scraper...", flush=True)
+        try:
+            from scrapers.mas_tours import fetch_mas_tours_events
+            mas_events = fetch_mas_tours_events(source_name)
+            mapped_events = []
+            for ev in mas_events:
+                has_specific_time = ev["datetime"].hour != 0 or ev["datetime"].minute != 0
+                mapped_events.append({
+                    "name": ev["name"],
+                    "datetime": ev["datetime"],
+                    "date_str": ev["date_str"],
+                    "type": ev["event_type"],
+                    "sold_out": False,
+                    "source": source_name,
+                    "location": ev["address"],
+                    "description": ev["description"],
+                    "has_specific_time": has_specific_time,
+                    "url": ev["url"],
+                    "travel_minutes": None,
+                })
+            mapped_events = enrich_events_with_travel_time(mapped_events)
+            return mapped_events
+        except Exception as e:
+            print(f"    Error running MAS Tours dedicated scraper: {e}. Falling back to generic...", flush=True)
+
     url = source["url"]
     method = source.get("method", "playwright")
     default_location = source.get("default_location", source_name)

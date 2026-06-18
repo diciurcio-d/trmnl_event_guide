@@ -35,6 +35,8 @@ venue_scout/outputs/
 .env
 *.env
 *.log
+.venv/
+venv/
 
 # Generated previews/benchmarks
 trmnl/preview*.html

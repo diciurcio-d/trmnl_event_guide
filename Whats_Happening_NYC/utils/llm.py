@@ -77,7 +77,7 @@ def generate_content(
     client = get_gemini_model(timeout_sec=timeout_sec)
     retry_limit = max_retries if max_retries is not None else int(getattr(_settings, "GEMINI_MAX_RETRIES", 3))
     retry_limit = max(1, int(retry_limit))
-    active_model = str(model_name or getattr(_settings, "GEMINI_MODEL", "gemini-3-flash-preview"))
+    active_model = str(model_name or getattr(_settings, "GEMINI_MODEL", "gemini-2.5-flash-lite"))
     temperature = float(getattr(_settings, "GEMINI_TEMPERATURE", 0.0))
     seed = int(getattr(_settings, "GEMINI_SEED", 20260213))
     initial_delay = float(getattr(_settings, "GEMINI_RETRY_INITIAL_DELAY_SEC", 1.0))

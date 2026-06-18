@@ -1676,7 +1676,7 @@ def _parse_events_with_llm(
     try:
         parse_timeout_sec = int(getattr(_settings, "EVENT_PARSE_LLM_TIMEOUT_SEC", 12))
         parse_max_retries = int(getattr(_settings, "EVENT_PARSE_LLM_MAX_RETRIES", 1))
-        primary_model = str(getattr(_settings, "GEMINI_MODEL", "gemini-3-flash-preview")).strip()
+        primary_model = str(getattr(_settings, "GEMINI_MODEL", "gemini-2.5-flash-lite")).strip()
         timeout_fallback_models = _fallback_model_list(
             getattr(
                 _settings,
@@ -2045,6 +2045,87 @@ def fetch_venue_events(
                 print(f"    Dedicated Smoke Jazz scraper returned no events, falling back...")
         except Exception as e:
             print(f"    Error running Smoke Jazz dedicated scraper: {e}. Falling back...")
+
+    # Open House NY custom scraper intercept
+    if "open house ny" in venue_name.lower() or "open house new york" in venue_name.lower() or "ohny" in venue_name.lower():
+        print(f"    Detected Open House NY. Running dedicated Builder.io API scraper...")
+        try:
+            from scrapers.open_house_ny import fetch_open_house_ny_events
+            ohny_events = fetch_open_house_ny_events(venue_name)
+            if ohny_events:
+                result.events = ohny_events
+                result.source_used = "open_house_ny_scraper"
+                increment("event_fetcher.fetch_venue.success")
+                log_event(
+                    "event_fetch_success",
+                    venue_name=venue_name,
+                    city=city,
+                    strategy="open_house_ny_scraper",
+                    source_used="open_house_ny_scraper",
+                    event_count=len(ohny_events),
+                )
+                if not skip_metadata_update:
+                    mark_venue_fetched(venue_name, city, len(ohny_events), "open_house_ny_scraper")
+                print(f"    Result: {len(ohny_events)} events (source: open_house_ny_scraper)")
+                return result
+            else:
+                print(f"    Dedicated Open House NY scraper returned no events, falling back...")
+        except Exception as e:
+            print(f"    Error running Open House NY dedicated scraper: {e}. Falling back...")
+
+    # NY Historical Society custom scraper intercept
+    if "historical society" in venue_name.lower() or "nyhistory" in venue_name.lower():
+        print(f"    Detected NY Historical Society. Running dedicated Prismic API scraper...")
+        try:
+            from scrapers.ny_historical_society import fetch_ny_historical_society_events
+            nyhs_events = fetch_ny_historical_society_events(venue_name)
+            if nyhs_events:
+                result.events = nyhs_events
+                result.source_used = "nyhistory_scraper"
+                increment("event_fetcher.fetch_venue.success")
+                log_event(
+                    "event_fetch_success",
+                    venue_name=venue_name,
+                    city=city,
+                    strategy="nyhistory_scraper",
+                    source_used="nyhistory_scraper",
+                    event_count=len(nyhs_events),
+                )
+                if not skip_metadata_update:
+                    mark_venue_fetched(venue_name, city, len(nyhs_events), "nyhistory_scraper")
+                print(f"    Result: {len(nyhs_events)} events (source: nyhistory_scraper)")
+                return result
+            else:
+                print(f"    Dedicated NY Historical Society scraper returned no events, falling back...")
+        except Exception as e:
+            print(f"    Error running NY Historical Society dedicated scraper: {e}. Falling back...")
+
+    # MAS Tours custom scraper intercept
+    if "mas tours" in venue_name.lower() or "municipal art" in venue_name.lower():
+        print(f"    Detected MAS Tours. Running dedicated HTML scraper...")
+        try:
+            from scrapers.mas_tours import fetch_mas_tours_events
+            mas_events = fetch_mas_tours_events(venue_name)
+            if mas_events:
+                result.events = mas_events
+                result.source_used = "mas_tours_scraper"
+                increment("event_fetcher.fetch_venue.success")
+                log_event(
+                    "event_fetch_success",
+                    venue_name=venue_name,
+                    city=city,
+                    strategy="mas_tours_scraper",
+                    source_used="mas_tours_scraper",
+                    event_count=len(mas_events),
+                )
+                if not skip_metadata_update:
+                    mark_venue_fetched(venue_name, city, len(mas_events), "mas_tours_scraper")
+                print(f"    Result: {len(mas_events)} events (source: mas_tours_scraper)")
+                return result
+            else:
+                print(f"    Dedicated MAS Tours scraper returned no events, falling back...")
+        except Exception as e:
+            print(f"    Error running MAS Tours dedicated scraper: {e}. Falling back...")
 
     # Feed-based fetching (iCal/RSS) — preferred over HTML scraping
     feed_url = venue.get("feed_url", "")

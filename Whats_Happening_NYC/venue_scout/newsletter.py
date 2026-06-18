@@ -1,5 +1,10 @@
 """
-Weekly NYC event newsletter — curates and emails highlights for the next 7 days.
+NYC event newsletters — curates and emails highlights for specific categories.
+
+Supports three newsletter types:
+1. Talks & Tours (educational events, lectures, book launches, science, geopolitics)
+2. Music Matches (concerts matching the user's liked YouTube Music library)
+3. General Highlights (weekly picks excluding music matches and talks/tours)
 
 Sends via Gmail SMTP using credentials from config.json.
 """
@@ -45,6 +50,147 @@ def _load_config() -> dict:
         with open(_CONFIG_PATH) as f:
             return json.load(f)
     return {}
+
+
+# ---------------------------------------------------------------------------
+# Classification Helpers
+# ---------------------------------------------------------------------------
+
+def _is_music_event(event: dict) -> bool:
+    """Check if the event is a musical performance, concert, or gig."""
+    category = str(event.get("category", "") or "").lower().strip()
+    event_type = str(event.get("event_type", "") or "").lower().strip()
+    
+    music_cats = {"concert", "live music", "jazz club", "classical music", "music venue", "opera", "music"}
+    if category in music_cats or event_type in music_cats:
+        return True
+        
+    name = str(event.get("name", "") or "").lower()
+    desc = str(event.get("description", "") or "").lower()
+    
+    keywords = [
+        r"\bmusic\b", r"\bconcert\b", r"\bjazz\b", r"\bperformance\b", 
+        r"\brecital\b", r"\bopera\b", r"\bsymphony\b", r"\blive band\b", 
+        r"\bgig\b", r"\bsinger\b", r"\bsongwriter\b", r"\borchestra\b"
+    ]
+    
+    import re
+    for kw in keywords:
+        if re.search(kw, name) or re.search(kw, desc):
+            return True
+            
+    return False
+
+
+def _is_sports_event(event: dict) -> bool:
+    """Check if the event is a sports game, match viewing, or watch party."""
+    category = str(event.get("category", "") or "").lower().strip()
+    event_type = str(event.get("event_type", "") or "").lower().strip()
+    
+    sports_cats = {"sports", "sports_recreation", "stadium", "arena"}
+    if category in sports_cats or event_type in sports_cats:
+        return True
+        
+    name = str(event.get("name", "") or "").lower()
+    desc = str(event.get("description", "") or "").lower()
+    
+    keywords = [
+        r"\bmatch viewing\b", r"\bviewing party\b", r"\bwatch party\b", 
+        r"\bwatching party\b", r"\bworld cup\b", r"\bsuper bowl\b", 
+        r"\bgame viewing\b", r"\bcoppa italia\b", r"\buefa\b"
+    ]
+    
+    import re
+    for kw in keywords:
+        if re.search(kw, name) or re.search(kw, desc):
+            return True
+            
+    return False
+
+
+def _is_performing_arts_or_comedy(event: dict) -> bool:
+    """Check if the event is a comedy show, play, musical, or other performing arts show."""
+    category = str(event.get("category", "") or "").lower().strip()
+    event_type = str(event.get("event_type", "") or "").lower().strip()
+    
+    perf_cats = {
+        "comedy", "standup", "stand-up", "improv", "theater", "theatre", 
+        "broadway", "dance", "ballet", "magic show", "variety show", "cabaret"
+    }
+    if category in perf_cats or event_type in perf_cats:
+        return True
+        
+    name = str(event.get("name", "") or "").lower()
+    desc = str(event.get("description", "") or "").lower()
+    
+    keywords = [
+        r"\bcomedy\b", r"\bstandup\b", r"\bstand-up\b", r"\bcomedian\b",
+        r"\bimprov\b", r"\bplay\b", r"\bmusical\b", r"\btheater\b", r"\btheatre\b"
+    ]
+    
+    import re
+    for kw in keywords:
+        if re.search(kw, name) or re.search(kw, desc):
+            return True
+            
+    return False
+
+
+def _is_talk_or_tour(event: dict) -> bool:
+    """Check if the event is a talk, lecture, book launch, history lesson, or tour."""
+    name = str(event.get("name", "") or "").lower()
+    desc = str(event.get("description", "") or "").lower()
+
+    # Exclude English language/conversation classes
+    english_class_keywords = [
+        r"\benglish conversation class",
+        r"\benglish class",
+        r"\besl\b",
+        r"\blearn english\b",
+        r"\bspeak english\b"
+    ]
+    import re
+    if any(re.search(kw, name) or re.search(kw, desc) for kw in english_class_keywords):
+        return False
+
+    category = str(event.get("category", "") or "").lower().strip()
+    event_type = str(event.get("event_type", "") or "").lower().strip()
+    
+    educational_cats = {"walking tour", "architecture tour", "book event", "talk/lecture", "museum event", "educational"}
+    if category in educational_cats or event_type in educational_cats:
+        return True
+        
+    # Exclude music, comedy, and general performing arts events
+    # unless they are explicitly educational/historical/literary talks or tours.
+    if _is_music_event(event) or _is_performing_arts_or_comedy(event):
+        name = str(event.get("name", "") or "").lower()
+        desc = str(event.get("description", "") or "").lower()
+        educational_keywords = [
+            r"\bwalking tour\b", r"\bguided tour\b", r"\bhistoric tour\b", r"\barchitecture tour\b",
+            r"\bmuseum tour\b", r"\bgallery tour\b", r"\bexhibition tour\b", r"\bneighborhood tour\b",
+            r"\blecture\b", r"\btalk\b", r"\bpanel discussion\b", r"\bsymposium\b",
+            r"\bconversation\b", r"\bdiscussion\b", r"\bbook launch\b", r"\bbook event\b", r"\bq&a\b"
+        ]
+        import re
+        if not any(re.search(kw, name) or re.search(kw, desc) for kw in educational_keywords):
+            return False
+        
+    name = str(event.get("name", "") or "").lower()
+    desc = str(event.get("description", "") or "").lower()
+    
+    keywords = [
+        r"\btalk\b", r"\blecture\b", r"\bgeopolitics\b", r"\bscience lecture\b", 
+        r"\bbook launch\b", r"\bhistory lesson\b", r"\bpanel discussion\b", 
+        r"\bsymposium\b", r"\breading\b", r"\bauthor\b", r"\bpodcast\b", 
+        r"\btour\b", r"\bwalk\b", r"\bseminar\b", r"\bq&a\b", r"\bconversation\b"
+    ]
+    
+    import re
+    for kw in keywords:
+        if re.search(kw, name) or re.search(kw, desc):
+            return True
+            
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -141,17 +287,9 @@ def _event_summary_for_llm(event: dict, idx: int) -> dict:
     }
 
 
-def curate_newsletter(grouped: dict[str, list[dict]]) -> list[dict]:
+def curate_newsletter(grouped: dict[str, list[dict]], newsletter_type: str = "general") -> list[dict]:
     """
     Ask Gemini to pick highlights for the entire week in a single LLM call.
-
-    All days' candidates are sent together so the model can ensure variety
-    across the full week (no repeated venues or events) without needing a
-    separate exclusion list.
-
-    Returns a list of day-buckets:
-      [{"date": "2026-03-07", "label": "Saturday, March 7",
-        "picks": [{"name":..., "venue":..., "time":..., "description":..., "url":...}]}]
     """
     import re
     from utils.llm import generate_content
@@ -197,12 +335,21 @@ def curate_newsletter(grouped: dict[str, list[dict]]) -> list[dict]:
             "candidates": summaries,
         })
 
-    prompt = f"""You are curating a NYC events newsletter for the coming week. Pick highlights across all days in a single pass so you can ensure variety — no venue or event should appear more than once across the whole newsletter.
+    if newsletter_type == "talks":
+        topic_desc = "NYC Talks & Tours newsletter"
+        preferences = """- Upcoming educational events, lectures, talks, tours, book launches, history lessons, science presentations, geopolitics panels, and podcast host appearances.
+- A mix of topics (science, history, books, politics, etc.) spread across the week."""
+    else:
+        topic_desc = "NYC weekly events highlights newsletter"
+        preferences = """- A mix of types (comedy, theatre, food, art, sports, outdoor, film, etc.) spread across the week.
+- Do NOT include any music concerts or academic lectures/talks/tours (these are covered in other newsletters)."""
+
+    prompt = f"""You are curating a {topic_desc} for the coming week. Pick highlights across all days in a single pass so you can ensure variety — no venue or event should appear more than once across the whole newsletter.
 
 For each day, select exactly the number of events specified in "picks_needed". Prefer:
 - Specific/unique events over generic ones
 - Evening events for weekdays
-- A mix of types (music, art, food, comedy, sports, outdoor, film, family, etc.) spread across the week
+{preferences}
 
 Return strict JSON — a list of day objects, one per day, in the same order as the input. Each day object has:
 - "date": (string, YYYY-MM-DD, from input)
@@ -318,6 +465,89 @@ Days and candidates:
     return day_buckets
 
 
+def curate_music_newsletter(events: list[dict]) -> list[dict]:
+    """
+    Curate the music newsletter. Since it's limited to matched library artists,
+    we group them by day and pass them to the LLM to write exciting descriptions
+    for each one (no need to enforce a specific picks-per-day limit).
+    """
+    import re
+    from utils.llm import generate_content
+
+    if not events:
+        return []
+
+    # Group by date
+    grouped = _group_by_day(events)
+    sorted_dates = sorted(grouped.keys())
+
+    day_buckets = []
+    for date_str in sorted_dates:
+        day_events = grouped[date_str]
+        dt_day = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=_TZ)
+        label = dt_day.strftime("%A, %B %-d")
+
+        summaries = [
+            _event_summary_for_llm(e, idx)
+            for idx, e in enumerate(day_events)
+        ]
+
+        prompt = f"""You are writing exciting descriptions for upcoming music performances in NYC that match the user's favorite artists.
+
+Date: {label}
+
+For each performance, write 1-2 punchy sentences describing the artist and event (max 180 chars). Make it sound exciting!
+Return strict JSON as a list of objects, one per performance, in the same order as the input. Each object must have:
+- "name": (string, event name)
+- "venue": (string)
+- "time": (string, e.g. "8:00 PM" or "time TBD")
+- "description": (string, the punchy description you wrote)
+- "url": (string, copy exactly)
+
+Performances:
+{json.dumps(summaries, ensure_ascii=False)}
+"""
+
+        model = str(getattr(_settings, "NEWSLETTER_MODEL", "gemini-2.5-flash"))
+        timeout = int(getattr(_settings, "NEWSLETTER_TIMEOUT_SEC", 60))
+
+        picks = []
+        try:
+            raw = generate_content(prompt, max_retries=2, timeout_sec=timeout, model_name=model)
+            match = re.search(r"\[[\s\S]*\]", raw)
+            if not match:
+                raise ValueError("no JSON array in response")
+            picks = json.loads(match.group())
+            # Ensure URL, matched_artist, and price are preserved
+            for i, p in enumerate(picks):
+                if i < len(day_events):
+                    src = day_events[i]
+                    p["url"] = src.get("url") or src.get("event_source_url", "")
+                    p["matched_artist"] = src.get("matched_artist", "")
+                    p["price"] = "Free" if src.get("is_free") is True else (src.get("price", "") or "")
+        except Exception as exc:
+            print(f"  LLM curation failed for {date_str}: {exc} — using fallbacks")
+            picks = []
+            for e in day_events:
+                picks.append({
+                    "name": e.get("name", ""),
+                    "venue": e.get("venue_name", ""),
+                    "time": _event_summary_for_llm(e, 0)["time"],
+                    "description": str(e.get("description", "") or "")[:180],
+                    "url": e.get("url") or e.get("event_source_url", ""),
+                    "matched_artist": e.get("matched_artist", ""),
+                    "price": "Free" if e.get("is_free") is True else (e.get("price", "") or "")
+                })
+
+        day_buckets.append({
+            "date": date_str,
+            "label": label,
+            "picks": picks
+        })
+
+    return day_buckets
+
+
 # ---------------------------------------------------------------------------
 # HTML rendering
 # ---------------------------------------------------------------------------
@@ -328,7 +558,7 @@ _HTML_TEMPLATE = """\
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>What's Happening NYC</title>
+<title>{title}</title>
 <style>
   body {{ margin: 0; padding: 0; background: #f4f4f4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; }}
   .wrapper {{ max-width: 620px; margin: 0 auto; background: #ffffff; }}
@@ -354,7 +584,7 @@ _HTML_TEMPLATE = """\
 <body>
 <div class="wrapper">
   <div class="header">
-    <h1>What's Happening NYC</h1>
+    <h1>{title}</h1>
     <p>{date_range}</p>
   </div>
   <div class="body">
@@ -374,7 +604,6 @@ def _render_day_section(day: dict) -> str:
     date_str = day.get("date", "")
     picks = day.get("picks", [])
 
-    # Short date label for per-event meta (e.g. "Sat Mar 7")
     try:
         dt_day = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=_TZ)
         short_date = dt_day.strftime("%a, %b %-d")
@@ -388,11 +617,16 @@ def _render_day_section(day: dict) -> str:
         venue = pick.get("venue", "")
         time_str = pick.get("time", "")
         desc = pick.get("description", "")
+        matched_artist = pick.get("matched_artist", "")
 
         if url:
             name_html = f'<a href="{url}">{name}</a>'
         else:
             name_html = name
+
+        if matched_artist:
+            artist_tag = f'<span style="background-color: #fff3cd; color: #856404; font-size: 11px; font-weight: 700; text-transform: uppercase; padding: 2px 6px; border-radius: 10px; margin-left: 8px; vertical-align: middle;">⭐ Match: {matched_artist}</span>'
+            name_html = f"{name_html} {artist_tag}"
 
         price_str = str(pick.get("price", "") or "").strip()
         when = f"{short_date} · {time_str}" if time_str and time_str != "time TBD" else (short_date or time_str)
@@ -414,9 +648,9 @@ def _render_day_section(day: dict) -> str:
 """
 
 
-def render_html(day_buckets: list[dict], date_range: str) -> str:
+def render_html(day_buckets: list[dict], date_range: str, title: str) -> str:
     day_sections = "\n".join(_render_day_section(d) for d in day_buckets)
-    return _HTML_TEMPLATE.format(date_range=date_range, day_sections=day_sections)
+    return _HTML_TEMPLATE.format(title=title, date_range=date_range, day_sections=day_sections)
 
 
 # ---------------------------------------------------------------------------
@@ -449,41 +683,115 @@ def send_newsletter(html: str, subject: str, config: dict) -> None:
 # Main
 # ---------------------------------------------------------------------------
 
-def main(dry_run: bool = False) -> None:
+def main(newsletter_type: str = "all", dry_run: bool = False) -> None:
+    if newsletter_type == "all":
+        print("=== Curating and sending ALL three newsletters ===")
+        print()
+        for t in ["general", "talks", "music"]:
+            try:
+                main(newsletter_type=t, dry_run=dry_run)
+            except Exception as e:
+                print(f"Error curating/sending {t} newsletter: {e}")
+            print()
+        return
+
     import sys
+    from venue_scout.concert_matcher import match_events_to_artists, get_user_artists
+
     config = _load_config()
     now = datetime.now(_TZ)
-    end = now + timedelta(days=7)
-    date_range = f"{now.strftime('%B %-d')} – {end.strftime('%B %-d, %Y')}"
-    subject = f"What's Happening NYC · {now.strftime('%B %-d')}"
+    
+    if newsletter_type == "talks":
+        days_range = 7
+        end = now + timedelta(days=days_range)
+        date_range = f"{now.strftime('%B %-d')} – {end.strftime('%B %-d, %Y')}"
+        subject = f"What's Happening NYC · Talks & Tours · {now.strftime('%B %-d')}"
+        title = "What's Happening NYC · Talks & Tours"
+    elif newsletter_type == "music":
+        days_range = 30
+        end = now + timedelta(days=days_range)
+        date_range = f"{now.strftime('%B %-d')} – {end.strftime('%B %-d, %Y')}"
+        subject = f"What's Happening NYC · Music Matches · {now.strftime('%B %-d')}"
+        title = "What's Happening NYC · Concert Matches"
+    else:  # general
+        days_range = 7
+        end = now + timedelta(days=days_range)
+        date_range = f"{now.strftime('%B %-d')} – {end.strftime('%B %-d, %Y')}"
+        subject = f"What's Happening NYC · Weekly Highlights · {now.strftime('%B %-d')}"
+        title = "What's Happening NYC · Weekly Highlights"
 
-    print(f"=== NYC Newsletter — {date_range} ===")
+    print(f"=== NYC Newsletter ({newsletter_type}) — {date_range} ===")
     print()
 
-    print("Loading upcoming events from sheet...")
-    events = get_upcoming_events(days=7)
-    print(f"  {len(events)} events in the next 7 days")
+    print(f"Loading upcoming events for the next {days_range} days...")
+    events = get_upcoming_events(days=days_range)
+    print(f"  {len(events)} total upcoming events")
 
     if not events:
         print("No upcoming events found. Exiting.")
         sys.exit(0)
 
-    grouped = _group_by_day(events)
-    print(f"  Spread across {len(grouped)} days")
-    print()
+    # Step 2: Apply first-stage filtering based on type
+    if newsletter_type == "talks":
+        filtered_events = [e for e in events if _is_talk_or_tour(e)]
+        print(f"  Filtered to {len(filtered_events)} talks/tours")
+    elif newsletter_type == "music":
+        music_events = [e for e in events if _is_music_event(e) and not _is_sports_event(e)]
+        print(f"  Filtered to {len(music_events)} music events. Matching against YT Music library...")
+        artists = get_user_artists()
+        if not artists:
+            print("ERROR: No YouTube Music liked artists found. YouTube Music may not be authenticated.")
+            sys.exit(1)
+        matched_music_events = match_events_to_artists(music_events, artists)
+        filtered_events = [e for e in matched_music_events if e.get("matched_artist")]
+        print(f"  Found {len(filtered_events)} matched artist concerts")
+    else:  # general
+        # Get matched artists to exclude them
+        artists = get_user_artists()
+        if not artists:
+            print("WARNING: YouTube Music not authenticated. Music match exclusions will be skipped for the general newsletter.")
+            artist_names = set()
+        else:
+            artist_names = {a.get("name", "").lower() for a in artists if a.get("name")}
+        
+        filtered_events = []
+        for e in events:
+            # Exclude talks/tours
+            if _is_talk_or_tour(e):
+                continue
+            # Exclude matched music events
+            if _is_music_event(e):
+                from venue_scout.concert_matcher import match_event_to_artists
+                if match_event_to_artists(e, artist_names):
+                    continue
+            filtered_events.append(e)
+        print(f"  Filtered to {len(filtered_events)} general events (excluding talks/tours and matched music)")
 
-    model = str(getattr(_settings, "NEWSLETTER_MODEL", "gemini-2.5-flash"))
-    timeout = int(getattr(_settings, "NEWSLETTER_TIMEOUT_SEC", 60))
-    print(f"Curating picks with {model} (single call, timeout {timeout}s)...")
-    day_buckets = curate_newsletter(grouped)
+    if not filtered_events:
+        print("No events found matching criteria. Exiting.")
+        sys.exit(0)
+
+    # Step 3: Curation
+    if newsletter_type == "music":
+        day_buckets = curate_music_newsletter(filtered_events)
+    else:
+        grouped = _group_by_day(filtered_events)
+        print(f"  Spread across {len(grouped)} days")
+        print()
+        
+        model = str(getattr(_settings, "NEWSLETTER_MODEL", "gemini-2.5-flash"))
+        timeout = int(getattr(_settings, "NEWSLETTER_TIMEOUT_SEC", 60))
+        print(f"Curating picks with {model} (single call, timeout {timeout}s)...")
+        day_buckets = curate_newsletter(grouped, newsletter_type)
+
     total_picks = sum(len(d["picks"]) for d in day_buckets)
     print(f"  Selected {total_picks} events across {len(day_buckets)} days")
     print()
 
-    html = render_html(day_buckets, date_range)
+    html = render_html(day_buckets, date_range, title)
 
     if dry_run:
-        out_path = Path("/tmp/newsletter_preview.html")
+        out_path = Path(f"/tmp/newsletter_preview_{newsletter_type}.html")
         out_path.write_text(html)
         print(f"Dry run — preview written to {out_path}")
         print("Open it in a browser to review before sending.")
@@ -498,5 +806,6 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true", help="Write HTML to /tmp instead of sending")
+    parser.add_argument("--type", "-t", choices=["talks", "music", "general", "all"], default="all", help="Type of newsletter to send")
     args = parser.parse_args()
-    main(dry_run=args.dry_run)
+    main(newsletter_type=args.type, dry_run=args.dry_run)

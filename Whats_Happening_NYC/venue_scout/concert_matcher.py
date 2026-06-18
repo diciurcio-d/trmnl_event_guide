@@ -26,9 +26,10 @@ def _normalize_artist_name(name: str) -> str:
 
 
 def get_user_artists(
-    num_songs: int = 1000,
-    min_songs: int = 2,
-    max_artists: int = 100,
+    num_songs: int | None = None,
+    min_songs: int | None = None,
+    max_artists: int | None = None,
+    force_refresh: bool = False,
 ) -> list[dict]:
     """
     Get user's artists from YouTube Music.
@@ -37,10 +38,20 @@ def get_user_artists(
         num_songs: Number of liked songs to analyze
         min_songs: Minimum liked songs to include an artist
         max_artists: Maximum artists to return
+        force_refresh: If True, bypass the cache and fetch fresh data
 
     Returns:
         List of artist dicts with name, id, liked_song_count
     """
+    import settings
+
+    if num_songs is None:
+        num_songs = getattr(settings, "YTMUSIC_NUM_SONGS", 1000)
+    if min_songs is None:
+        min_songs = getattr(settings, "YTMUSIC_MIN_SONGS_PER_ARTIST", 2)
+    if max_artists is None:
+        max_artists = getattr(settings, "YTMUSIC_MAX_ARTISTS", 100)
+
     try:
         from concert_finder.ytmusic_client import YTMusicClient, ARTISTS_CACHE
     except ImportError:
@@ -48,7 +59,7 @@ def get_user_artists(
         return []
 
     # Try to load from cache first
-    if ARTISTS_CACHE.exists():
+    if not force_refresh and ARTISTS_CACHE.exists():
         import json
         try:
             with open(ARTISTS_CACHE) as f:
@@ -121,13 +132,7 @@ def match_event_to_artists(
     event_name_norm = _normalize_artist_name(event_name)
 
     for artist_name in artist_names:
-        # Check if artist name appears in event name
-        if artist_name in event_name_norm:
-            # Avoid false positives for very short names
-            if len(artist_name) > 3:
-                return artist_name
-
-        # Check for word boundary match
+        # Check for word boundary match to prevent partial-word matches (e.g. 'Queen' -> 'Queens')
         pattern = r'\b' + re.escape(artist_name) + r'\b'
         if re.search(pattern, event_name_norm):
             return artist_name

@@ -275,7 +275,7 @@ def _apply_date_tool(query: str, events: list[dict]) -> tuple[list[dict], dict, 
         getattr(
             _settings,
             "QUERY_DATE_TOOL_MODEL",
-            getattr(_settings, "GEMINI_MODEL", "gemini-3-flash-preview"),
+            getattr(_settings, "GEMINI_MODEL", "gemini-2.5-flash-lite"),
         )
     )
     seed = int(getattr(_settings, "GEMINI_SEED", 20260213))
@@ -946,7 +946,7 @@ EVENTS:
                 getattr(
                     _settings,
                     "QUERY_RANKING_MODEL",
-                    getattr(_settings, "GEMINI_MODEL", "gemini-3-flash-preview"),
+                    getattr(_settings, "GEMINI_MODEL", "gemini-2.5-flash-lite"),
                 )
             )
             timeout_fallback_models = _fallback_model_list(

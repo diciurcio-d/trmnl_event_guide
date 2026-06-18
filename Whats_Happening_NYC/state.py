@@ -185,6 +185,17 @@ DEFAULT_SOURCES: list[EventSource] = [
         "parsing_hints": "Calendar with 'Upcoming' section. Dates like 'February 8th, 2026'. Times like '10:00AM-12:00PM'. Some marked 'Members Only'.",
     },
     {
+        "name": "MAS Tours",
+        "url": "https://www.mas.org/events",
+        "method": "playwright",
+        "enabled": True,
+        "default_location": "Various NYC Locations",
+        "default_event_type": "Walking Tour",
+        "wait_seconds": 3,
+        "cloudflare_protected": False,
+        "parsing_hints": "Calendar of walking and architectural tours. Dates like 'Saturday, June 6 at 11:00 AM'. Prices like 'Member: $25 | Non-member: $35'.",
+    },
+    {
         "name": "Transit Techies",
         "url": "https://www.transittechies.com/events",
         "method": "playwright",

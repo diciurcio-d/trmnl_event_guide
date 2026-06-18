@@ -192,7 +192,8 @@ def enrich_venues_in_cache(city: str = "NYC") -> int:
         name = venue["name"]
 
         # Rate limit
-        if f"{name}|{city}" not in _places_cache:
+        address_hint = str(venue.get("address", "") or "").strip().lower()
+        if f"{name}|{city}|{address_hint}" not in _places_cache:
             time.sleep(float(getattr(_settings, "VENUE_ENRICH_PLACES_DELAY_SEC", 0.1)))
 
         result = lookup_place(name, city, venue.get("address", ""))
@@ -240,7 +241,10 @@ def enrich_venues(city: str = "NYC", dry_run: bool = True, limit: int = None):
         print(f"Processing first {limit} venues")
 
     # Check how many are already cached
-    cached = sum(1 for v in to_enrich if f"{v['name']}|{city}" in _places_cache)
+    cached = sum(
+        1 for v in to_enrich
+        if f"{v['name']}|{city}|{str(v.get('address', '') or '').strip().lower()}" in _places_cache
+    )
     print(f"Already cached: {cached}")
     print(f"New API calls needed: {len(to_enrich) - cached}")
     print(f"Estimated cost: ${(len(to_enrich) - cached) * 0.017:.2f}")  # $17 per 1000 requests
@@ -256,7 +260,8 @@ def enrich_venues(city: str = "NYC", dry_run: bool = True, limit: int = None):
         name = venue["name"]
 
         # Rate limit (Places API allows 100 QPS but let's be gentle)
-        if f"{name}|{city}" not in _places_cache:
+        address_hint = str(venue.get("address", "") or "").strip().lower()
+        if f"{name}|{city}|{address_hint}" not in _places_cache:
             time.sleep(float(getattr(_settings, "VENUE_ENRICH_PLACES_DELAY_SEC", 0.1)))
 
         result = lookup_place(name, city, venue.get("address", ""))

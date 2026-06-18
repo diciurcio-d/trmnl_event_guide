@@ -18,7 +18,7 @@ class YTMusicClient:
         self._init_client()
 
     def _init_client(self):
-        """Initialize the YTMusic client with browser auth."""
+        """Initialize the YTMusic client with browser or oauth auth."""
         try:
             from ytmusicapi import YTMusic
         except ImportError:
@@ -32,7 +32,28 @@ class YTMusicClient:
             return
 
         try:
-            self.ytmusic = YTMusic(str(self.auth_path))
+            oauth_credentials = None
+            try:
+                with open(self.auth_path) as f:
+                    auth_data = json.load(f)
+                if isinstance(auth_data, dict) and "refresh_token" in auth_data:
+                    config_path = self.auth_path.parent / "config.json"
+                    if config_path.exists():
+                        with open(config_path) as f_config:
+                            config_data = json.load(f_config)
+                        yt_config = config_data.get("youtube_music", {})
+                        client_id = yt_config.get("client_id")
+                        client_secret = yt_config.get("client_secret")
+                        if client_id and client_secret:
+                            from ytmusicapi.auth.oauth import OAuthCredentials
+                            oauth_credentials = OAuthCredentials(client_id, client_secret)
+            except Exception:
+                pass
+
+            if oauth_credentials:
+                self.ytmusic = YTMusic(str(self.auth_path), oauth_credentials=oauth_credentials)
+            else:
+                self.ytmusic = YTMusic(str(self.auth_path))
         except Exception as e:
             print(f"Failed to initialize YTMusic client: {e}")
 
