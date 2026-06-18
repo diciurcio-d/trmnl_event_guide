@@ -11,5 +11,12 @@ mkdir -p /tmp/config
 [ -d /app/config ] && rmdir /app/config 2>/dev/null || true
 [ ! -L /app/config ] && ln -s /tmp/config /app/config
 
-exec python -m "${1:-venue_scout.job}"
+if [ -z "$1" ]; then
+    exec python -m venue_scout.job
+elif [[ "$1" == venue_scout.* ]]; then
+    exec python -m "$1" "${@:2}"
+else
+    exec python -m venue_scout.newsletter "$@"
+fi
+
 
